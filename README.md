@@ -51,7 +51,12 @@ git clone https://github.com/dungdeptraiqua123-tech/video-editor.git ~/.claude/s
 | Mạng lúc cài | npm, huggingface.co (mô hình chép lời), remotion.media (trình duyệt render) |
 | `ELEVENLABS_API_KEY` | Chỉ khi làm video từ kịch bản, xem `huong-dan/elevenlabs.md` |
 
-`setup` cài vào `~/.video-editor/` (đổi bằng biến `VE_HOME`), không ghi vào thư mục skill.
+`setup` làm hai việc:
+
+- **Cài 93 skill liên quan** (từ `reference/`) thành skill riêng, nằm cạnh `video-editor` trong `~/.claude/skills/`. Ba skill trùng tên với bộ hyperframes chính thức được cài với tiền tố `herk-` (`herk-hyperframes`, `herk-hyperframes-cli`, `herk-hyperframes-registry`). Skill bạn tự cài trùng tên thì giữ nguyên, không ghi đè. Mở phiên Claude Code mới để thấy chúng.
+- **Cài công cụ** vào `~/.video-editor/` (đổi bằng biến `VE_HOME`), không ghi vào thư mục skill.
+
+Quản lý skill liên quan: `video-editor skills` (xem), `skills install --only gsap,hyperframes` (chỉ cài vài bộ), `skills remove` (gỡ hết bản do video-editor cài). Không muốn cài: `setup --no-skills`.
 Sau khi cài, chỉ cần nói với Claude: *"dựng Reel từ video này"* hoặc *"làm video 45 giây từ kịch bản này"*.
 
 Đã kiểm thử trên Linux (Claude Code cloud). macOS và Windows được hỗ trợ theo thiết kế (đường dẫn, lệnh khởi chạy `.cmd`, gợi ý cài đặt) nhưng chưa chạy thử trên máy thật.

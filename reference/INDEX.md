@@ -3,6 +3,8 @@
 Đây là tài liệu đọc thêm, **không cần** để chạy quy trình chính (`video-editor`). Chỉ mở khi cần ý tưởng hoặc kỹ thuật mà bộ dựng mặc định chưa có.
 Gồm 93 skill từ 7 bộ, chép nguyên bản (tiếng Anh). Phần lớn nhắm tới HyperFrames hoặc máy Mac: lấy nguyên tắc, còn lệnh thì điều chỉnh cho môi trường đang dùng.
 
+`video-editor setup` cài cả 93 skill này thành skill riêng cạnh `video-editor` (xem, gỡ: `video-editor skills`). Khi đó Claude tự gọi đúng skill theo yêu cầu; danh mục dưới đây vẫn dùng để tra cứu.
+
 Giấy phép từng bộ: xem `THIRD_PARTY.md`. Bốn bộ hyperframes, herk-edit-kit, iart-ai, motion-graphics chưa xác minh được giấy phép phân phối lại.
 
 ## Khi nào đọc gì

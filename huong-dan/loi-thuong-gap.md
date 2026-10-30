@@ -24,3 +24,5 @@ Mỗi lỗi của `video-editor` in hai dòng: `✗` là nguyên nhân, `→` l�
 | Render chậm hoặc hết RAM | Máy yếu, video dài | `render.concurrency: 2`; xem trước bằng `preview --draft` (nửa độ phân giải) |
 | Bị ngắt giữa chừng | Mất mạng, tắt máy | Chạy lại đúng lệnh hoặc `video-editor run <dự án>`: bước đã xong được bỏ qua nhờ `work/state.json` |
 | Muốn làm lại một bước dù đầu vào không đổi | | Thêm `--force` |
+| Không thấy các skill liên quan trong Claude Code | Chưa chạy `setup`, hoặc phiên đang mở từ trước khi cài | `video-editor skills` để xem đã cài chưa, `video-editor skills install` để cài, rồi mở phiên Claude Code mới |
+| "Bỏ qua … skill vì đã có skill cùng tên" | Bạn tự cài một skill trùng tên trước đó | Giữ bản của bạn, hoặc xoá thư mục đó rồi chạy lại `video-editor skills install` |

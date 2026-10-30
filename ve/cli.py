@@ -1,7 +1,8 @@
 """video-editor: công cụ điều phối dựng video ngắn.
 
   video-editor doctor                      kiểm tra môi trường
-  video-editor setup [--model nhe|vua|nang|nhanh]   cài môi trường (một lần)
+  video-editor setup [--model nhe|vua|nang|nhanh]   cài môi trường và các skill liên quan (một lần)
+  video-editor skills [install|remove]     cài/gỡ 93 skill liên quan thành skill riêng
   video-editor init <dự án> --input video.mp4 | --script kichban.txt [--format 9:16] [--template trung-tinh]
   video-editor transcribe <dự án>          chép lời (hoặc --from-srt / --from-json)
   video-editor tts <dự án> [--placeholder] giọng đọc cho kịch bản
@@ -157,6 +158,12 @@ def main(argv=None) -> int:
     s.add_argument("--model", help="mô hình Whisper: nhe (small), vua (medium), nang (large-v3), nhanh (large-v3-turbo)")
     s.add_argument("--skip-model", action="store_true")
     s.add_argument("--install-system", action="store_true", help="tự cài ffmpeg/Node bằng brew hoặc winget nếu thiếu")
+    s.add_argument("--no-skills", action="store_true", help="không cài các skill liên quan trong reference/")
+    s.add_argument("--skills-dir", help="thư mục skills đích (mặc định: thư mục đang chứa video-editor, hoặc ~/.claude/skills)")
+    k = sub.add_parser("skills", help="cài, gỡ, xem các skill liên quan (93 skill trong reference/)")
+    k.add_argument("action", nargs="?", default="status", choices=["status", "install", "remove"])
+    k.add_argument("--dir", help="thư mục skills đích (mặc định: thư mục đang chứa video-editor, hoặc ~/.claude/skills)")
+    k.add_argument("--only", help="chỉ cài các bộ này, cách nhau dấu phẩy, ví dụ gsap,hyperframes")
     i = sub.add_parser("init", help="tạo thư mục dự án")
     i.add_argument("dir")
     i.add_argument("--input", help="video hoặc âm thanh người nói")
@@ -200,7 +207,22 @@ def main(argv=None) -> int:
         if a.cmd == "setup":
             from ve.doctor import setup
 
-            return setup(a.model, a.skip_model, a.install_system)
+            return setup(a.model, a.skip_model, a.install_system, not a.no_skills, a.skills_dir)
+        if a.cmd == "skills":
+            from ve import skills as SK
+
+            if a.action == "install":
+                SK.install(a.dir, [x.strip() for x in a.only.split(",") if x.strip()] if a.only else None)
+            elif a.action == "remove":
+                SK.remove(a.dir)
+            else:
+                st = SK.status(a.dir)
+                info(f"{st['installed']}/{st['total']} skill liên quan đã cài trong {st['dir']}")
+                if st["conflicts"]:
+                    info(f"  trùng tên skill có sẵn (không ghi đè): {', '.join(st['conflicts'])}")
+                if st["installed"] < st["total"] - len(st["conflicts"]):
+                    info("  → video-editor skills install")
+            return 0
         if a.cmd == "templates":
             for t in sorted(TEMPLATES.iterdir()):
                 if (t / "brand.json").exists():

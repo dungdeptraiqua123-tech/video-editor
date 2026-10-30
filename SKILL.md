@@ -33,7 +33,8 @@ Công cụ tự quản lý đường dẫn, file trung gian và trạng thái; c
 ```
 
 - Còn dấu ✗ thì chạy `<skill>/bin/video-editor setup` (một lần, 1–10 phút).
-- Lệnh này tự cài môi trường Python riêng, thư viện đúng phiên bản, bộ dựng Remotion và trình duyệt render, rồi tải mô hình Whisper.
+- Lệnh này cài 93 skill liên quan thành skill riêng cạnh `video-editor`, tự cài môi trường Python riêng, thư viện đúng phiên bản, bộ dựng Remotion và trình duyệt render, rồi tải mô hình Whisper.
+- Người dùng nhờ "cài skill" từ link repo: clone vào `~/.claude/skills/video-editor` rồi chạy `setup`. Báo họ mở phiên mới để thấy các skill liên quan.
 - Máy yếu (dưới 8 GB RAM): `setup --model nhe`.
 - Thiếu ffmpeg hoặc Node: làm theo dòng `→` mà doctor in ra, hoặc `setup --install-system` (macOS/Windows).
 

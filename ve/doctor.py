@@ -131,6 +131,14 @@ def checks(online_checks: bool = True) -> list[dict]:
     if key and online_checks:
         el += ", kết nối OK" if online("https://api.elevenlabs.io/v1/models") else ", KHÔNG kết nối được api.elevenlabs.io"
     add("Giọng đọc ElevenLabs", key, el, "Xem huong-dan/elevenlabs.md", need=False)
+    from .skills import status
+
+    try:
+        st = status()
+        sk = f"{st['installed']}/{st['total']} skill trong {st['dir']}" + (f", {len(st['conflicts'])} trùng tên skill có sẵn" if st["conflicts"] else "")
+        add("Skill liên quan", st["installed"] + len(st["conflicts"]) >= st["total"], sk, "Chạy `video-editor skills install`", need=False)
+    except VEError as e:
+        add("Skill liên quan", False, e.what, e.fix, need=False)
     return out
 
 
@@ -153,8 +161,14 @@ def doctor(as_json: bool = False, online_checks: bool = True) -> int:
     return 1 if bad else 0
 
 
-def setup(model: str | None = None, skip_model: bool = False, install_system: bool = False) -> int:
+def setup(model: str | None = None, skip_model: bool = False, install_system: bool = False, skills: bool = True, skills_dir: str | None = None) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
+    # 0. skill liên quan (chỉ chép file, không cần mạng): làm trước để có ngay cả khi các bước sau còn thiếu công cụ
+    if skills:
+        from .skills import install
+
+        info("▶ cài các skill liên quan")
+        install(skills_dir)
     # 1. công cụ hệ thống
     missing = [t for t in ("ffmpeg", "node") if (t == "ffmpeg" and not which("ffmpeg")) or (t == "node" and not node_ok(node_version()))]
     if missing:
