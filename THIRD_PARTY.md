@@ -23,10 +23,15 @@ Rà soát ngày 30/10/2026. Đây là ghi chú để tra cứu, không phải t�
 | `templates/btc-daily/logo.png`, `icon.png` | Của chủ kênh BTC Daily | Chỉ dùng cho kênh đó |
 | `reference/ghost-editor` | MIT © kurbaitaev | Kèm font OFL có file LICENSE riêng |
 | `reference/gsap` | MIT (ghi trong từng SKILL.md) | Tài liệu; thư viện GSAP có giấy phép riêng của GreenSock |
-| `reference/video-shotcraft` | Apache-2.0 © Vincentwei1021 | Bản rút gọn: bỏ `demos/`, `workbench/`, `gallery/` và **toàn bộ file âm thanh** (phần lớn từ Mixkit, giấy phép không cho phân phối lại file rời; một số chưa rõ nguồn) |
+| `reference/video-shotcraft` | Apache-2.0 © Vincentwei1021 | Bản đầy đủ như nguồn, gồm `demos/`, `workbench/`, `gallery/` và file âm thanh. Phần lớn âm thanh lấy từ Mixkit: giấy phép Mixkit cho dùng trong video nhưng không cho phân phối lại file rời; một số file chưa rõ nguồn |
+| `reference/hyperframes` (7 skill) | **Chưa xác minh** | Nguồn: github.com/heygen-com/hyperframes |
+| `reference/herk-edit-kit` (15 skill) | **Chưa xác minh** | Nguồn: người cung cấp bộ skill |
+| `reference/iart-ai` (55 skill) | **Chưa xác minh** | Nguồn: người cung cấp bộ skill |
+| `reference/motion-graphics` (6 skill) | **Chưa xác minh** | Nguồn: người cung cấp bộ skill |
 
-## Không kèm theo
+## Lưu ý về các bộ chưa xác minh giấy phép
 
-`hyperframes`, `herk-edit-kit`, `iart-ai` và `motion-graphics` (tổng cộng 83 skill) **không** được đưa vào repo, vì chưa xác minh được giấy phép phân phối lại. Danh mục và nguồn của chúng nằm ở `reference/INDEX.md`.
+Bốn bộ hyperframes, herk-edit-kit, iart-ai, motion-graphics (83 skill) và các file âm thanh Mixkit trong video-shotcraft được kèm theo theo yêu cầu của chủ dự án, để cài một lần là đủ toàn bộ thư viện tham khảo. Chúng không kèm file LICENSE, nên chưa rõ tác giả có cho phép phân phối lại hay không.
 
-Lưu ý: các phiên bản đầu của repo (trước 0.2.0) từng chứa những bộ này. Nếu repo để công khai, nên xoá chúng khỏi lịch sử git, hoặc chuyển repo sang chế độ riêng tư.
+- Nên để repo ở chế độ riêng tư và không chia sẻ gói cài cho người ngoài.
+- Muốn công khai repo hoặc phát hành gói cho người khác: xác minh giấy phép với tác giả trước, hoặc bỏ các bộ này khỏi `reference/` (bộ dựng `video-editor` không cần chúng).

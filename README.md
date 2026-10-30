@@ -82,7 +82,7 @@ video-editor export du-an/bitcoin
 | `huong-dan/` | Hướng dẫn: dự án, đồ hoạ, lỗi thường gặp, ElevenLabs |
 | `mau-tai-lieu/` | Phiếu nhận việc, khung kịch bản |
 | `tests/` | Kiểm thử đơn vị và trọn quy trình |
-| `reference/` | Tài liệu tham khảo nâng cao (không cần cho quy trình chính) |
+| `reference/` | Thư viện tham khảo: 93 skill từ 7 bộ (không cần cho quy trình chính). Danh mục ở `reference/INDEX.md` |
 | `THIRD_PARTY.md` | Giấy phép thành phần bên thứ ba (Remotion miễn phí tới 3 người, công ty lớn hơn cần mua giấy phép) |
 
 ## Kiểm thử

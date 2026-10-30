@@ -121,4 +121,4 @@ video-editor export <dự án>
 | `mau-tai-lieu/` | Phiếu nhận việc, khung kịch bản 45–60 giây |
 | `templates/<mẫu>/README.md` | Quy chuẩn nhận diện của mẫu |
 | `examples/btc-daily/project.json` | Ví dụ thật: Reel 175 giây, 11 khung đồ hoạ, 11 thẻ chủ đề |
-| `reference/INDEX.md` | Kỹ thuật nâng cao ngoài bộ dựng mặc định (đọc khi cần) |
+| `reference/INDEX.md` | Danh mục 93 skill tham khảo: kỹ thuật nâng cao ngoài bộ dựng mặc định (đọc khi cần) |
