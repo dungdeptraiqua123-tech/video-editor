@@ -1,0 +1,42 @@
+<!-- @dsCard height=300 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;900&display=swap">
+<div class="cover">
+  <!--
+    blocks: primary 220×208 (radius-card), line 140×170 (radius-card), sky 140×110 (radius-card), amber disc 88 (radius-pill = half side)
+    arrangement: primary slab bleeds off the top, line and sky stack bleed off the right edge, amber disc sits low like a price marker
+    pattern: dot grid at space-row (26px) in sky — the brand is precise, data-driven news; a grid reads as a chart plot area
+    scales: space-row 26px pitch, space-word 22px gaps, radius-card 26px, radius-pill for the disc
+  -->
+  <svg class="art" viewBox="480 0 480 300" width="480" height="300" aria-hidden="true">
+    <rect class="primary tile" x="600" y="-40" width="220" height="248"/>
+    <rect class="line tile" x="842" y="-30" width="140" height="200"/>
+    <rect class="sky tile" x="842" y="192" width="140" height="110"/>
+    <rect class="amber disc" x="666" y="208" width="88" height="88"/>
+    <g class="dots">
+      <circle cx="504" cy="28" r="3"/><circle cx="530" cy="28" r="3"/><circle cx="556" cy="28" r="3"/><circle cx="582" cy="28" r="3"/>
+      <circle cx="504" cy="54" r="3"/><circle cx="530" cy="54" r="3"/><circle cx="556" cy="54" r="3"/><circle cx="582" cy="54" r="3"/>
+      <circle cx="504" cy="80" r="3"/><circle cx="530" cy="80" r="3"/><circle cx="556" cy="80" r="3"/><circle cx="582" cy="80" r="3"/>
+      <circle cx="504" cy="106" r="3"/><circle cx="530" cy="106" r="3"/><circle cx="556" cy="106" r="3"/><circle cx="582" cy="106" r="3"/>
+      <circle cx="504" cy="132" r="3"/><circle cx="530" cy="132" r="3"/><circle cx="556" cy="132" r="3"/><circle cx="582" cy="132" r="3"/>
+    </g>
+  </svg>
+  <div class="text">
+    <div class="name">BTC Daily</div>
+    <div class="tag">Bản tin Bitcoin mỗi ngày: nói tới đâu, hiện tới đó.</div>
+  </div>
+</div>
+<style>
+  body { margin: 0; }
+  .cover { position: relative; width: 960px; height: 300px; background: var(--night); overflow: hidden; font-family: var(--font-brand); }
+  .art { position: absolute; left: 480px; top: 0; }
+  .tile { rx: var(--radius-card); }
+  .disc { rx: 44px; }
+  .primary { fill: var(--primary); }
+  .line { fill: var(--line); }
+  .sky { fill: var(--sky); }
+  .amber { fill: var(--amber); }
+  .dots { fill: var(--sky); }
+  .text { position: absolute; left: 40px; bottom: 40px; max-width: 440px; }
+  .name { color: var(--ink); font-size: 80px; font-weight: 900; line-height: .95; }
+  .tag { color: var(--mute); font-size: 14px; font-weight: 600; margin-top: 14px; }
+</style>

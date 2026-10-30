@@ -1,0 +1,5 @@
+node_modules/
+*.mp4
+!mau-remotion/public/**/*.mp4
+audio.wav
+.DS_Store

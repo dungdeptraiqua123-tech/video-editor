@@ -1,0 +1,21 @@
+<!-- @dsCard group="Đồ hoạ" height=440 width=1080 subtitle="Chế độ đồ hoạ: tiêu đề cảnh bên trái, ô mặt người nói bên phải" -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;800;900&display=swap">
+<div class="stage">
+  <div class="head">
+    <div class="kicker">BTC Daily · 02/10</div>
+    <div class="title">Bitcoin muốn mạnh</div>
+    <div class="bar"></div>
+  </div>
+  <div class="cam"><span>Ô mặt người nói<br>240 × 300</span></div>
+</div>
+<style>
+  body { margin: 0; }
+  .stage { position: relative; height: 440px; background: radial-gradient(ellipse at 50% 120%, #10306e 0%, var(--night) 62%); font-family: var(--font-brand); }
+  .head { position: absolute; left: var(--space-gutter); top: 130px; width: 680px; }
+  .kicker { color: var(--sky); font-size: 28px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+  .title { color: var(--ink); font-size: 62px; font-weight: 900; line-height: 1.12; margin-top: 10px; }
+  .bar { width: 120px; height: 7px; border-radius: 4px; background: var(--primary); margin-top: 18px; box-shadow: var(--glow-primary); }
+  .cam { position: absolute; left: 790px; top: 110px; width: 240px; height: 300px; box-sizing: border-box; border: 4px solid var(--sky);
+    border-radius: var(--radius-cam); box-shadow: var(--glow-primary); background: linear-gradient(170deg, #59606d, #262a33);
+    display: grid; place-items: center; text-align: center; color: var(--mute); font-size: 20px; font-weight: 600; }
+</style>

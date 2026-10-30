@@ -1,0 +1,21 @@
+<!-- @dsCard group="Đồ hoạ" height=420 width=1080 subtitle="Con số chính: đếm lên và dừng đúng lúc được đọc" -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;800;900&display=swap">
+<div class="stage">
+  <div class="row"><div class="coin">₿</div><div class="num" id="n">$86,900</div></div>
+  <div class="ctx"><span class="arrow">↘</span>Sát mốc cản 87K</div>
+  <div class="note">sáng nay · vùng cản 87.000</div>
+</div>
+<style>
+  body { margin: 0; }
+  .stage { height: 420px; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 0 var(--space-gutter); background: var(--night); font-family: var(--font-brand); }
+  .row { display: flex; align-items: center; gap: 30px; }
+  .coin { width: 150px; height: 150px; border-radius: 50%; background: var(--amber); color: var(--ink); font: 900 92px/150px Arial, sans-serif; text-align: center; transform: rotate(14deg); }
+  .num { color: var(--ink); font-size: 150px; font-weight: 900; letter-spacing: -3px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .ctx { color: var(--down); font-size: 56px; font-weight: 800; display: flex; gap: 16px; align-items: center; }
+  .note { color: var(--mute); font-size: 26px; font-weight: 600; }
+</style>
+<script>
+  const el = document.getElementById("n"), end = 86900, still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!still) { let t0 = null; const run = (t) => { t0 ??= t; const p = Math.min(1, ((t - t0) % 3000) / 600), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = "$" + Math.round(end * (0.9 + 0.1 * e)).toLocaleString("en-US"); requestAnimationFrame(run); }; requestAnimationFrame(run); }
+</script>
