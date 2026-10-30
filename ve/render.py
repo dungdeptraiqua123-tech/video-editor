@@ -225,7 +225,7 @@ def export(prj: Project) -> list[Path]:
         f"| File | `{final.name}` ({final.stat().st_size / 1e6:.1f} MB) |",
         f"| Khổ hình | {prj.cfg['format']} ({fi.get('width')}×{fi.get('height')}, {fps} fps) |",
         f"| Thời lượng | {fi['duration']:.1f}s (nguồn {tl['sourceDuration']:.1f}s, đã cắt {tl['sourceDuration'] - tl['duration']:.1f}s) |",
-        f"| Đã cắt | " + ", ".join(f"{k} {v:.1f}s" for k, v in rs.items() if v > 0.05) + " |",
+        f"| Đã cắt | " + (", ".join(f"{k} {v:.1f}s" for k, v in rs.items() if v > 0.05) or "không") + " |",
         f"| Âm lượng | {lo['lufs']} LUFS, đỉnh {lo['peak']} dBFS (chuẩn -14 LUFS) |",
         f"| Đồ hoạ | {len(d['beats'])} khung, {len(d['topics'])} thẻ chủ đề |",
         f"| Phụ đề | {n} dòng, kiểu {d['captions']['style']} |",

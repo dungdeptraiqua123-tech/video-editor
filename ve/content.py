@@ -43,6 +43,14 @@ class Report:
         self.warnings.append(f"{where}: {msg}")
 
 
+def _same(ph: str, tok: str) -> bool:
+    """Từ khoá khớp cả từ, phần đầu của số ("85" khớp "85.000") hoặc một vế của khoảng ("400" khớp "300-400")."""
+    if ph == tok:
+        return True
+    k = len(ph)
+    return len(tok) > k and ((tok.startswith(ph) and tok[k] in ".,-–/") or (tok.endswith(ph) and tok[-k - 1] in "-–/"))
+
+
 class Finder:
     """Tìm cụm từ trong danh sách từ (thời gian sau khi cắt)."""
 
@@ -57,7 +65,7 @@ class Finder:
         n = len(ph)
         for i in range(len(self.toks) - n + 1):
             w = self.words[i]
-            if lo <= w["start"] <= hi and self.toks[i:i + n] == ph:
+            if lo <= w["start"] <= hi and all(_same(a, b) for a, b in zip(ph, self.toks[i:i + n])):
                 return w["start"], self.words[i + n - 1]["end"]
         return None
 
@@ -213,7 +221,11 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
             if not hit:
                 rep.err(f"topics[{i}].items[{k}]", f"không tìm thấy \"{it.get('say')}\" trong đoạn của chủ đề")
                 continue
+            if hit[0] > end:
+                rep.warn(f"topics[{i}].items[{k}]", f"\"{it.get('say')}\" được nói lúc {hit[0]:.1f}s, sau khi thẻ đã ẩn ({end:.1f}s), ý này sẽ không hiện")
             items.append({"at": round(hit[0] - LEAD, 2), "text": it.get("text", "")})
+        if end - starts[i] < 1.5:
+            rep.warn(f"topics[{i}]", f"thẻ chỉ hiện {max(0, end - starts[i]):.1f}s (bị chủ đề sau hoặc phần kết chặn)")
         topics.append({"start": round(starts[i], 2), "end": round(end, 2), "kicker": t.get("kicker", ""), "title": t.get("title", ""), "items": items})
 
     z = content.get("zooms", "auto")

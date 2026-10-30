@@ -40,17 +40,43 @@ def words_from_transcript(segs: list, drop_segments: list | None = None) -> list
     for s in segs:
         if any(abs(s["start"] - d) < 0.05 for d in drop):
             continue
-        for w in s.get("words", []):
+        ws = s.get("words", [])
+        # Whisper đánh dấu đầu từ bằng khoảng trắng; mẩu không có khoảng trắng là phần đuôi của từ trước
+        # (số "85" + ".000", "300" + "-400"). Chỉ ghép khi đoạn dùng quy ước này.
+        spaced = any(str(w.get("w", "")).startswith(" ") for w in ws)
+        first = len(out)
+        for w in ws:
             x = Word.from_any(w)
-            if x.text and x.end >= x.start:
+            if not (x.text and x.end >= x.start):
+                continue
+            raw = str(w.get("w", " "))
+            if spaced and len(out) > first and raw[:1] not in (" ", "\t"):
+                prev = out[-1]
+                out[-1] = Word(prev.text + x.text, prev.start, max(prev.end, x.end), min(prev.p, x.p))
+            else:
                 out.append(x)
     out.sort(key=lambda w: w.start)
     return out
 
 
+def _glue(toks: list[str]) -> list[str]:
+    out: list[str] = []
+    for t in toks:
+        if out and t[:1] in ".,-–/" and t[1:2].isdigit():
+            out[-1] += t
+        else:
+            out.append(t)
+    return out
+
+
 def apply_fixes(words: list[Word], fixes: list) -> list[Word]:
     """fixes: [["cụm sai", "cụm đúng"], ...]. Cụm đúng rỗng = xoá. So khớp không phân biệt hoa thường và dấu câu."""
-    fx = [([norm(x) for x in bad.split()], good.split()) for bad, good in fixes if bad.strip()]
+    fx = []
+    for bad, good in fixes:
+        # cụm viết theo kiểu tách cũ ("3 -400") cũng khớp với từ đã ghép ("3-400")
+        for toks in {tuple(bad.split()), tuple(_glue(bad.split()))}:
+            if toks:
+                fx.append(([norm(x) for x in toks], good.split()))
     out, i = [], 0
     while i < len(words):
         for bad, good in fx:

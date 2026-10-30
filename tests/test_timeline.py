@@ -1,6 +1,6 @@
 import unittest
 
-from ve.timeline import CutConfig, Word, apply_fixes, build_timeline, find_fillers, find_stumbles
+from ve.timeline import CutConfig, Word, apply_fixes, build_timeline, find_fillers, find_stumbles, words_from_transcript
 
 
 def W(spec):
@@ -19,9 +19,26 @@ class Fixes(unittest.TestCase):
         self.assertEqual([w.text for w in ws], ["long", "short", "ok"])
         self.assertAlmostEqual(ws[1].start, 0.2)
 
+    def test_old_split_style_matches_merged_number(self):
+        ws = apply_fixes(W("hơn:0-0.2 3-400:0.2-0.6 ngàn:0.6-0.8 bit:0.8-1"), [["3 -400 ngàn bit", "300-400 ngàn BTC"]])
+        self.assertEqual([w.text for w in ws], ["hơn", "300-400", "ngàn", "BTC"])
+
     def test_keeps_trailing_punctuation(self):
         ws = apply_fixes(W("Sol,:0-0.3 tăng:0.3-0.5"), [["Sol", "Solana"]])
         self.assertEqual(ws[0].text, "Solana,")
+
+
+class Transcript(unittest.TestCase):
+    def test_merges_number_pieces(self):
+        seg = {"start": 0, "end": 2, "words": [{"w": " móc", "s": 0, "e": 0.4, "p": 0.9}, {"w": " 85", "s": 0.4, "e": 0.8, "p": 0.9},
+                                               {"w": ".000", "s": 0.8, "e": 1.2, "p": 0.6}, {"w": " Rồi", "s": 1.3, "e": 1.5, "p": 1}]}
+        ws = words_from_transcript([seg])
+        self.assertEqual([w.text for w in ws], ["móc", "85.000", "Rồi"])
+        self.assertEqual((ws[1].start, ws[1].end, ws[1].p), (0.4, 1.2, 0.6))
+
+    def test_no_merge_without_space_convention(self):
+        seg = {"start": 0, "end": 1, "words": [{"w": "a", "s": 0, "e": 0.3}, {"w": "b", "s": 0.3, "e": 0.6}]}
+        self.assertEqual([w.text for w in words_from_transcript([seg])], ["a", "b"])
 
 
 class Detect(unittest.TestCase):

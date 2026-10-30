@@ -26,6 +26,8 @@ Không có `end` thì khung hiện `dur` giây (mặc định 4).
 
 Phần tử bên trong khung dùng `say` (hoặc `labelSay`, `changeSay`): phần tử bật ra 0,08 giây trước khi cụm được nói. Cụm phải nằm trong lúc khung đang hiện.
 
+Số viết đúng như trong `loi-thoai.txt`: Whisper có khi ghi "85.000", có khi "85 ngàn". `"say": "85"` khớp cả "85.000"; `"say": "400"` khớp vế sau của "300-400".
+
 Khi cụm không tìm thấy, `build` báo lỗi kèm các cụm gần giống. Thường là do chữ trong lời đã bị sửa bằng `fix`: neo theo chữ **sau khi sửa**.
 
 ## Khung đồ hoạ (`beats`)

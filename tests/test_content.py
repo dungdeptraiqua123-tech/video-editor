@@ -1,6 +1,6 @@
 import unittest
 
-from ve.content import resolve_content
+from ve.content import Finder, resolve_content
 from ve.timeline import CutConfig, Word, build_timeline
 
 
@@ -36,7 +36,13 @@ class Resolve(unittest.TestCase):
         self.assertAlmostEqual(b["start"] + b["g"]["levels"][0]["d"], t87 - 0.08, places=2)
         self.assertGreater(b["g"]["levels"][1]["d"], b["g"]["levels"][0]["d"])
 
-    def test_missing_phrase_reports_suggestion(self):
+    def test_number_parts_match(self):
+        f = Finder(words("phá được 85.500 rồi vùng 300-400 nghìn"))
+        self.assertIsNotNone(f.find("85.500"))
+        self.assertIsNotNone(f.find("85"))
+        self.assertIsNotNone(f.find("400 nghìn"))
+        self.assertIsNone(f.find("500"))  # phần thập phân/nghìn không tính là một vế
+
         c = dict(self.content, beats=[{"start": "Bitcoin tang", "g": {"type": "title", "kicker": "A", "text": "B"}}])
         _, rep = resolve_content(c, self.w, self.dur)
         self.assertEqual(len(rep.errors), 1)
