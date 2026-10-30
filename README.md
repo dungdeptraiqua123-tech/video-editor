@@ -46,9 +46,9 @@ git clone https://github.com/dungdeptraiqua123-tech/video-editor.git ~/.claude/s
 | Thứ cần | Dùng cho |
 |---|---|
 | Python 3 và `faster-whisper` | Chép lời (chế độ A) |
-| Node 18 trở lên, Remotion 4.0.537 (`npm ci` trong bản chép của `mau-remotion/`) | Dựng video |
+| Node 20.19+ hoặc 22.13+ hoặc 24+, Remotion 4.0.537 (`npm ci` trong bản chép của `mau-remotion/`) | Dựng video |
 | ffmpeg | Cắt, ghép |
-| Chromium headless | Render |
+| Chrome Headless Shell (Remotion tự tải khi render lần đầu) | Render |
 | Mạng mở cho `huggingface.co`, `*.hf.co`, `*.xethub.hf.co` | Tải mô hình Whisper |
 | `ELEVENLABS_API_KEY` và mạng mở cho `api.elevenlabs.io` | Chế độ B |
 
@@ -58,7 +58,7 @@ git clone https://github.com/dungdeptraiqua123-tech/video-editor.git ~/.claude/s
 |---|---|
 | `SKILL.md` | Quy trình đầy đủ, bắt đầu đọc từ đây |
 | `mau-remotion/` | Dự án Remotion mẫu |
-| `scripts/` | `transcribe.py`, `build.py`, `tts_elevenlabs.py` |
+| `scripts/` | `transcribe.py`, `build.py`, `export_subs.py`, `tts_elevenlabs.py` |
 | `nhan-dien/btc-daily/` | Bộ nhận diện |
 | `mau-tai-lieu/` | Phiếu nhận việc, khung kịch bản |
 | `huong-dan/` | Hướng dẫn thiết lập ElevenLabs |

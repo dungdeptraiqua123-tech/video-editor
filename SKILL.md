@@ -33,6 +33,7 @@ Thư mục skill này (đã cài ở `~/.claude/skills/video-editor/` hoặc nơ
 | `scripts/tts_elevenlabs.py` | Chế độ B: nhân bản giọng, đọc kịch bản, xuất `voice.mp3` và `transcript.json` có mốc từng chữ |
 | `huong-dan/elevenlabs.md` | Hướng dẫn người dùng: chọn gói, tạo API key, thêm biến môi trường, mở mạng, kiểm tra |
 | `mau-tai-lieu/kich-ban-mau.md` | Khung kịch bản cho chế độ B |
+| `scripts/export_subs.py` | Xuất phụ đề SRT và VTT từ `src/data.json`, khớp phụ đề trong video |
 | `scripts/build.py` | Sửa lời, cắt lặng, chuẩn hoá -14 LUFS, dò từ khoá thành mốc thời gian, xuất `src/data.json` |
 | `skills/` | 93 skill gốc (tiếng Anh) của 7 bộ: ghost-editor, herk-edit-kit, hyperframes, iart-ai, motion-graphics, gsap, video-shotcraft (bản gọn nhẹ) |
 | `INDEX.md` | Danh mục 93 skill kèm đường dẫn và mô tả |
@@ -63,8 +64,8 @@ Bộ nhận diện BTC Daily (màu, chữ, phụ đề, thành phần): https://
 - Hỏi (hoặc tự suy ra): nền tảng đăng, độ dài mong muốn, phong cách hay bộ nhận diện, có kịch bản không, có ảnh hoặc biểu đồ thật để làm dẫn chứng không.
 - Mạng cần mở: `huggingface.co`, `*.hf.co`, `*.xethub.hf.co`. File model tải từ `us.aws.cdn.hf.co` và `cas-*.xethub.hf.co`. Nếu bị chặn, hướng dẫn người dùng thêm vào Allowed domains, hoặc xin file `.srt` từ CapCut. Không vòng qua mirror.
 - Python: `python3 -m venv venv && ./venv/bin/pip install faster-whisper`.
-- Node: chép `mau-remotion/` ra ổ cục bộ, chạy `npm ci`. Không làm việc trực tiếp trên ổ mạng hay thư mục skill (chậm, và thư mục skill có thể chỉ đọc).
-- Trình duyệt: `--browser-executable=/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell`.
+- Node **20.19 trở lên** (Remotion 4.0.537 yêu cầu `^20.19 || ^22.13 || >=24`): chép `mau-remotion/` ra ổ cục bộ, chạy `npm ci`. Không làm việc trực tiếp trên ổ mạng hay thư mục skill (chậm, và thư mục skill có thể chỉ đọc).
+- Trình duyệt: mặc định để Remotion tự tải Chrome Headless Shell (`npx remotion browser ensure`). Chỉ khi môi trường chặn tải mới truyền `--browser-executable=<đường dẫn Chrome có sẵn>`. Ví dụ trên máy đám mây Claude: `/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell`. Không ghi cứng đường dẫn của một máy cụ thể vào mã.
 - Tham khảo: `skills/iart-ai/creative-brief`, `skills/iart-ai/motion-art-direction`.
 
 ### Bước 2. Khảo sát nguồn và video mẫu
@@ -141,8 +142,8 @@ SKIP_CUT=1 python3 build.py nguon.mp4   # chỉ đổi kịch bản đồ hoạ 
 ### Bước 9. Soát và render
 ```bash
 npx tsc --noEmit -p .
-npx remotion still BitcoinReel out/k.png --frame=<giây × 30> --browser-executable=...
-npx remotion render BitcoinReel out/raw.mp4 --concurrency=4 --crf=20 --audio-bitrate=192k --browser-executable=...
+npx remotion still BitcoinReel out/k.png --frame=<giây × 30> [--browser-executable=...]
+npx remotion render BitcoinReel out/raw.mp4 --concurrency=4 --crf=20 --audio-bitrate=192k [--browser-executable=...]
 ffmpeg -i out/raw.mp4 -c copy -movflags +faststart out/final.mp4
 ```
 - **Danh sách soát ảnh tĩnh:**
@@ -161,7 +162,7 @@ ffmpeg -i out/raw.mp4 -c copy -movflags +faststart out/final.mp4
 ### Bước 10. Giao file và báo cáo
 - Lưu vào thư mục dự án người dùng chỉ định (mặc định `/mnt/project-files/<du-an>/` nếu có thư mục chung, không thì `./xuat/<du-an>/`):
   - `reel-<chu-de>.mp4` (H.264 8-bit, faststart)
-  - `phu-de-<chu-de>.srt` (tối đa 8 chữ mỗi dòng)
+  - `phu-de-<chu-de>.srt` và `.vtt`: chạy `python3 scripts/export_subs.py src/data.json phu-de-<chu-de>`. Thời gian là thời gian sau khi cắt, và cách gom cụm giống hệt phụ đề trong video.
   - Ảnh xem trước
   - Mã nguồn (không gồm `node_modules`, `cut.mp4`, `audio.wav`)
 - Báo cáo: thời lượng, thời gian render đo được, dung lượng, LUFS, những gì đã sửa trong lời, những cụm còn chưa rõ, và 5 mốc nên nghe kiểm tra.
