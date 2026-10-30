@@ -1,11 +1,11 @@
 ---
 name: video-editor
-description: Dựng video ngắn dọc (Facebook Reels, TikTok, Shorts) từ video người nói tiếng Việt, trọn quy trình từ phiếu nhận việc, chép lời, đồ hoạ khớp lời, phụ đề, render tới giao file. Tự chứa 93 skill dựng video, mẫu Remotion, script và bộ nhận diện BTC Daily.
+description: Dựng video ngắn dọc (Facebook Reels, TikTok, Shorts) tiếng Việt, từ video người nói hoặc chỉ từ prompt/kịch bản với giọng đọc AI nhân bản (ElevenLabs). Trọn quy trình từ phiếu nhận việc, chép lời, đồ hoạ khớp lời, phụ đề, render tới giao file. Tự chứa 93 skill dựng video, mẫu Remotion, script và bộ nhận diện BTC Daily.
 ---
 
 # Video editor
 
-Một skill duy nhất cho mọi việc dựng video ngắn: Reel người nói, explainer, video quảng cáo, video sản phẩm. Gồm hai phần:
+Một skill duy nhất cho mọi việc dựng video ngắn: Reel người nói, explainer, video quảng cáo, video sản phẩm. Hai chế độ: **A** dựng từ video người nói (quy trình 10 bước), **B** tạo video từ prompt hoặc kịch bản với giọng đọc AI nhân bản (mục "Chế độ B"). Gồm hai phần:
 
 1. **Bộ quy trình chuẩn** (ngay dưới đây): các bước, quy tắc và lệnh đã chạy thật trên Reel "Cập nhật bitcoin 02/10" (175 giây), cộng với quy tắc chắt lọc từ các bộ skill đã cài.
 2. **Thư viện 93 skill** đóng gói trong `skills/` (trong thư mục skill này), tra theo bảng "Việc gì thì mở skill nào". Danh mục đầy đủ có mô tả ở `INDEX.md`.
@@ -30,6 +30,8 @@ Thư mục skill này (đã cài ở `~/.claude/skills/video-editor/` hoặc nơ
 | `mau-tai-lieu/phieu-nhan-viec.md` | Phiếu nhận việc điền ở bước 1 |
 | `mau-remotion/beats.mau.json` | Kịch bản đồ hoạ mẫu (hook, brand, cta, beats, topics, zooms, fix, dropSegments) |
 | `scripts/transcribe.py` | faster-whisper large-v3, tiếng Việt, mốc theo từng từ |
+| `scripts/tts_elevenlabs.py` | Chế độ B: nhân bản giọng, đọc kịch bản, xuất `voice.mp3` và `transcript.json` có mốc từng chữ |
+| `mau-tai-lieu/kich-ban-mau.md` | Khung kịch bản cho chế độ B |
 | `scripts/build.py` | Sửa lời, cắt lặng, chuẩn hoá -14 LUFS, dò từ khoá thành mốc thời gian, xuất `src/data.json` |
 | `skills/` | 93 skill gốc (tiếng Anh) của 7 bộ: ghost-editor, herk-edit-kit, hyperframes, iart-ai, motion-graphics, gsap, video-shotcraft (bản gọn nhẹ) |
 | `INDEX.md` | Danh mục 93 skill kèm đường dẫn và mô tả |
@@ -162,6 +164,44 @@ ffmpeg -i out/raw.mp4 -c copy -movflags +faststart out/final.mp4
   - Ảnh xem trước
   - Mã nguồn (không gồm `node_modules`, `cut.mp4`, `audio.wav`)
 - Báo cáo: thời lượng, thời gian render đo được, dung lượng, LUFS, những gì đã sửa trong lời, những cụm còn chưa rõ, và 5 mốc nên nghe kiểm tra.
+
+## Chế độ B: từ prompt hoặc kịch bản, giọng đọc AI (ElevenLabs)
+
+Dùng khi không có video người nói. Đầu vào là một câu chủ đề hoặc một kịch bản. Đầu ra là Reel đồ hoạ toàn màn hình, giọng nhân bản của chủ kênh, phụ đề và đồ hoạ bám từng chữ như chế độ thường.
+
+**Chuẩn bị một lần:**
+- Người dùng tạo API key ở ElevenLabs (cần gói có Instant Voice Cloning) và thêm `ELEVENLABS_API_KEY` vào biến môi trường của môi trường làm việc.
+- Mở mạng cho `api.elevenlabs.io`. Nếu bị chặn, hướng dẫn người dùng thêm vào Allowed domains, không vòng qua đường khác.
+- Chỉ nhân bản giọng của chính người dùng hoặc người đã đồng ý bằng lời.
+
+**Các bước:**
+1. **Nhận việc:** điền `mau-tai-lieu/phieu-nhan-viec.md`, chọn chế độ B.
+2. **Kịch bản:** nếu chỉ có prompt, viết theo `mau-tai-lieu/kich-ban-mau.md`.
+   - Dài 120 đến 180 chữ cho video 45 đến 60 giây.
+   - Câu ngắn, mỗi câu một ý, có con số.
+   - Viết số theo cách đọc khi dễ đọc sai (`87 nghìn đô` thay cho `$87.000`).
+   - Gửi kịch bản cho người dùng duyệt trước khi tạo giọng, vì mỗi lần tạo giọng đều tốn ký tự.
+3. **Nhân bản giọng (lần đầu):**
+   - Lấy 1 đến 3 phút nói sạch từ video cũ: `ffmpeg -i video-cu.mp4 -ss 10 -t 150 -vn -ac 1 -ar 44100 mau-giong.mp3`.
+   - Chạy `python3 scripts/tts_elevenlabs.py clone --name "<tên kênh>" mau-giong.mp3`. Lệnh ghi `voice.json`; giữ file này cho các video sau.
+4. **Tạo giọng:** `python3 scripts/tts_elevenlabs.py speak kichban.txt`.
+   - Ra `voice.mp3` và `transcript.json` (mốc từng chữ, cùng định dạng Whisper), nên **bỏ qua bước 3 chép lời**.
+   - Chỉnh giọng: `--speed 1.05`; `--stability 0.45` (thấp hơn thì cảm xúc hơn); `--model eleven_v3` nếu muốn biểu cảm hơn.
+5. **Tạo video nền từ giọng:**
+   - `ffmpeg -f lavfi -i color=c=0x050e24:s=1080x1920:r=30 -i voice.mp3 -shortest -c:v libx264 -tune stillimage -c:a aac voice.mp4`
+   - Sau đó `python3 scripts/build.py voice.mp4`, như bước 7.
+6. **Đồ hoạ:** vì không có người nói, beats phải **phủ gần hết thời lượng**.
+   - Nối các cảnh: stat, list, levels, chart, title.
+   - Mỗi cảnh 3 đến 8 giây.
+   - Giữa hai cảnh không để trống quá 1 giây.
+   - Vẫn neo `say` vào từ khoá như cũ.
+7. **Render** với `--props='{"faceless":true}'`. Chế độ này ẩn khung video và bật nền đồ hoạ suốt video. Tiếng lấy từ `cut.mp4`, và render nhanh hơn vì không phải giải mã hình.
+8. **Giao file** như bước 10, thêm `kichban.txt`, `voice.mp3` và số ký tự đã dùng.
+
+**Lưu ý:**
+- Giọng AI đọc sai tên riêng hoặc từ tiếng Anh. Sửa bằng cách viết lại theo cách đọc trong kịch bản (`ê tê ép` cho ETF nếu cần), không sửa trong `fix`.
+- Giọng AI đều nhịp nên build.py gần như không cắt gì. Đó là bình thường.
+- Không có mạng hoặc API key thì dừng lại, báo người dùng. Không thay bằng giọng khác khi chưa được đồng ý.
 
 ## Phong cách mặc định: BTC Daily
 

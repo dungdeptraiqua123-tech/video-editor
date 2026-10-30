@@ -181,11 +181,13 @@ const Outro: React.FC<{ cta: string }> = ({ cta }) => {
   );
 };
 
-export const BitcoinReel: React.FC<{ data: ReelData; video: string; captionStyle?: CaptionStyle }> = ({ data, video, captionStyle }) => {
+// faceless: video không có người nói (giọng AI từ kịch bản). Ẩn khung video, chỉ giữ tiếng, nền đồ hoạ luôn bật.
+export const BitcoinReel: React.FC<{ data: ReelData; video: string; captionStyle?: CaptionStyle; faceless?: boolean }> = ({ data, video, captionStyle, faceless }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const t = frame / fps;
   const p = modeAt(frame, fps, data.beats);
+  const bg = faceless ? 1 : p;
 
   // zoom cắt nhảy khi người nói toàn màn hình: luân phiên khung rộng / khung chặt
   const zi = data.zooms.filter((z) => z <= t).length;
@@ -199,12 +201,13 @@ export const BitcoinReel: React.FC<{ data: ReelData; video: string; captionStyle
 
   const beat = data.beats.find((b) => t >= b.start - 0.3 && t < b.end + 0.3);
   const topic = data.topics.find((x) => t >= x.start && t < x.end);
-  const captionY = lerp(1420, 1520, p);
+  const captionY = faceless ? 1520 : lerp(1420, 1520, p);
   const outroFrom = durationInFrames - Math.round(OUTRO_SEC * fps);
 
   return (
     <AbsoluteFill style={{ background: C.night }}>
-      <Backdrop o={p} />
+      <Backdrop o={bg} />
+      {faceless ? <Audio src={staticFile(video)} /> : null}
       <div
         style={{
           position: "absolute",
@@ -214,17 +217,18 @@ export const BitcoinReel: React.FC<{ data: ReelData; video: string; captionStyle
           height: box.h,
           borderRadius: box.r,
           overflow: "hidden",
+          opacity: faceless ? 0 : 1,
           border: p > 0.01 ? `${4 * p}px solid ${C.sky}` : undefined,
           boxShadow: p > 0.01 ? glow(C.orange, 22 * p) : undefined,
         }}
       >
         <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${tx}px, ${ty}px) scale(${s})`, transformOrigin: "0 0" }}>
-          <OffthreadVideo src={staticFile(video)} style={{ width: W, height: H }} />
+          {faceless ? null : <OffthreadVideo src={staticFile(video)} style={{ width: W, height: H }} />}
         </div>
       </div>
 
       {/* nền tối mờ phía dưới để phụ đề trắng luôn dễ đọc */}
-      <AbsoluteFill style={{ background: "linear-gradient(to bottom, transparent 58%, rgba(5,14,36,0.55) 80%, rgba(5,14,36,0.7) 100%)", opacity: 1 - p }} />
+      <AbsoluteFill style={{ background: "linear-gradient(to bottom, transparent 58%, rgba(5,14,36,0.55) 80%, rgba(5,14,36,0.7) 100%)", opacity: 1 - bg }} />
 
       {beat ? <BrandTag brand={data.brand} title={beat.head} o={p} /> : null}
 
