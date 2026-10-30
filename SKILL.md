@@ -31,6 +31,7 @@ Thư mục skill này (đã cài ở `~/.claude/skills/video-editor/` hoặc nơ
 | `mau-remotion/beats.mau.json` | Kịch bản đồ hoạ mẫu (hook, brand, cta, beats, topics, zooms, fix, dropSegments) |
 | `scripts/transcribe.py` | faster-whisper large-v3, tiếng Việt, mốc theo từng từ |
 | `scripts/tts_elevenlabs.py` | Chế độ B: nhân bản giọng, đọc kịch bản, xuất `voice.mp3` và `transcript.json` có mốc từng chữ |
+| `huong-dan/elevenlabs.md` | Hướng dẫn người dùng: chọn gói, tạo API key, thêm biến môi trường, mở mạng, kiểm tra |
 | `mau-tai-lieu/kich-ban-mau.md` | Khung kịch bản cho chế độ B |
 | `scripts/build.py` | Sửa lời, cắt lặng, chuẩn hoá -14 LUFS, dò từ khoá thành mốc thời gian, xuất `src/data.json` |
 | `skills/` | 93 skill gốc (tiếng Anh) của 7 bộ: ghost-editor, herk-edit-kit, hyperframes, iart-ai, motion-graphics, gsap, video-shotcraft (bản gọn nhẹ) |
@@ -169,9 +170,14 @@ ffmpeg -i out/raw.mp4 -c copy -movflags +faststart out/final.mp4
 
 Dùng khi không có video người nói. Đầu vào là một câu chủ đề hoặc một kịch bản. Đầu ra là Reel đồ hoạ toàn màn hình, giọng nhân bản của chủ kênh, phụ đề và đồ hoạ bám từng chữ như chế độ thường.
 
-**Chuẩn bị một lần:**
-- Người dùng tạo API key ở ElevenLabs (cần gói có Instant Voice Cloning) và thêm `ELEVENLABS_API_KEY` vào biến môi trường của môi trường làm việc.
-- Mở mạng cho `api.elevenlabs.io`. Nếu bị chặn, hướng dẫn người dùng thêm vào Allowed domains, không vòng qua đường khác.
+**Chuẩn bị một lần:** hướng dẫn chi tiết cho người dùng ở `huong-dan/elevenlabs.md` (chọn gói, tạo key, thêm biến môi trường, mở mạng, kiểm tra). Tóm tắt:
+- Tạo API key ở ElevenLabs với quyền Text to Speech và Voices, rồi thêm `ELEVENLABS_API_KEY` vào biến môi trường. Không bao giờ để người dùng dán key vào chat.
+- Mở mạng cho `api.elevenlabs.io`. Nếu bị chặn, hướng dẫn người dùng thêm vào Allowed domains, không vòng qua đường khác. Cài đặt môi trường chỉ có hiệu lực ở phiên mới.
+- Kiểm tra bằng `python3 scripts/tts_elevenlabs.py voices`.
+- **Theo gói:**
+  - **Free:** gọi API được, khoảng 10.000 ký tự mỗi tháng, nhưng **không nhân bản giọng và không dùng thương mại**. Dùng giọng có sẵn (`speak --voice <id>`) để làm thử, và nói rõ với người dùng rằng video không được đăng cho kênh kiếm tiền.
+  - **Starter trở lên:** có nhân bản giọng và quyền thương mại.
+  - Số liệu gói thay đổi theo thời gian, nên nhắc người dùng xem trang Pricing chính thức.
 - Chỉ nhân bản giọng của chính người dùng hoặc người đã đồng ý bằng lời.
 
 **Các bước:**
@@ -181,7 +187,7 @@ Dùng khi không có video người nói. Đầu vào là một câu chủ đề
    - Câu ngắn, mỗi câu một ý, có con số.
    - Viết số theo cách đọc khi dễ đọc sai (`87 nghìn đô` thay cho `$87.000`).
    - Gửi kịch bản cho người dùng duyệt trước khi tạo giọng, vì mỗi lần tạo giọng đều tốn ký tự.
-3. **Nhân bản giọng (lần đầu):**
+3. **Nhân bản giọng (lần đầu, cần gói Starter trở lên; gói Free bỏ qua bước này và dùng `--voice <id>`):**
    - Lấy 1 đến 3 phút nói sạch từ video cũ: `ffmpeg -i video-cu.mp4 -ss 10 -t 150 -vn -ac 1 -ar 44100 mau-giong.mp3`.
    - Chạy `python3 scripts/tts_elevenlabs.py clone --name "<tên kênh>" mau-giong.mp3`. Lệnh ghi `voice.json`; giữ file này cho các video sau.
 4. **Tạo giọng:** `python3 scripts/tts_elevenlabs.py speak kichban.txt`.
