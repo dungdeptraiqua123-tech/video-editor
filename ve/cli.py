@@ -1,0 +1,279 @@
+"""video-editor: công cụ điều phối dựng video ngắn.
+
+  video-editor doctor                      kiểm tra môi trường
+  video-editor setup [--model nhe|vua|nang|nhanh]   cài môi trường (một lần)
+  video-editor init <dự án> --input video.mp4 | --script kichban.txt [--format 9:16] [--template trung-tinh]
+  video-editor transcribe <dự án>          chép lời (hoặc --from-srt / --from-json)
+  video-editor tts <dự án> [--placeholder] giọng đọc cho kịch bản
+  video-editor build <dự án> [--check]     cắt + dò mốc đồ hoạ + kiểm tra
+  video-editor preview <dự án> [--draft]   ảnh các khoảnh khắc chính (và bản nháp)
+  video-editor render <dự án>              render MP4
+  video-editor export <dự án>              phụ đề SRT/VTT, ảnh bìa, báo cáo
+  video-editor run <dự án>                 làm tiếp mọi bước còn thiếu
+  video-editor status <dự án>
+"""
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from ve import media as M  # noqa: E402
+from ve.env import SKILL_DIR, TEMPLATES, VEError, info, read_json, run, venv_python, warn, write_json  # noqa: E402
+from ve.project import FORMATS, Project, fingerprint, init_project  # noqa: E402
+
+
+def cmd_transcribe(prj: Project, force=False, from_srt=None, from_json=None) -> None:
+    from ve.build import write_transcript_text
+    from ve.doctor import model_cached, resolve_model
+    from ve.subs import parse_srt
+
+    out = prj.work / "transcript.json"
+    if from_srt or from_json:
+        segs = parse_srt(Path(from_srt).read_text(encoding="utf-8-sig")) if from_srt else read_json(Path(from_json))
+        if not any(s.get("words") for s in segs):
+            raise VEError("File lời thoại không có chữ nào.")
+        write_json(out, segs)
+        prj.mark("transcribe", fingerprint(Path(from_srt or from_json)), source="import")
+        prj.invalidate("build", "render", "export")
+        info(f"✓ nhập {len(segs)} đoạn lời thoại → {write_transcript_text(prj)}")
+        return
+    if prj.cfg.get("script"):
+        raise VEError("Dự án này đi từ kịch bản.", f"Dùng `video-editor tts {prj.root}` thay cho transcribe.")
+    src = prj.path(prj.cfg["input"])
+    pi = M.probe(src)
+    M.check_audio(pi)
+    model = resolve_model(prj.cfg["whisper"].get("model"))
+    lang = prj.cfg["whisper"].get("language", "vi")
+    fp = fingerprint(src, model, lang)
+    if not force and prj.fresh("transcribe", fp) and out.exists():
+        info("✓ lời thoại còn mới, dùng lại")
+        return
+    vp = venv_python()
+    if not vp.exists():
+        raise VEError("Chưa cài môi trường chép lời.", "Chạy `video-editor setup`.")
+    if not model_cached(model):
+        info(f"(lần đầu: tải mô hình {model}, có thể mất vài phút)")
+    wav = prj.work / "audio.wav"
+    M.extract_wav(src, wav)
+    info(f"🎙 chép lời {pi['duration']:.0f}s bằng Whisper {model} …")
+    t0 = time.time()
+    p = run([vp, SKILL_DIR / "ve" / "whisper_worker.py", wav, out, model, lang], check=False)
+    if p.returncode == 3:
+        raise VEError("Không tải hoặc mở được mô hình Whisper.",
+                      "Mạng có thể chặn Hugging Face: mở huggingface.co, *.hf.co, *.xethub.hf.co (Claude cloud: Project settings → Cloud environment → Network access). "
+                      "Phương án thay thế: xuất phụ đề .srt từ CapCut rồi `video-editor transcribe <dự án> --from-srt file.srt`. Máy yếu: `setup --model nhe`.")
+    if p.returncode != 0:
+        raise VEError("Chép lời bị lỗi.", "Xem thông báo phía trên. Thử lại với mô hình nhẹ hơn: đặt whisper.model = \"nhe\" trong project.json.")
+    segs = read_json(out)
+    n = sum(len(s.get("words", [])) for s in segs)
+    if n == 0:
+        raise VEError("Không nhận diện được lời nói nào.", "Kiểm tra ngôn ngữ (whisper.language), âm lượng, hoặc file có phải chỉ có nhạc nền không.")
+    wav.unlink(missing_ok=True)
+    prj.mark("transcribe", fp, seconds=round(time.time() - t0), model=model)
+    prj.invalidate("build", "render", "export")
+    info(f"✓ {n} từ, {len(segs)} đoạn → {write_transcript_text(prj)}")
+
+
+def cmd_tts(prj: Project, force=False, placeholder=False) -> None:
+    from ve import tts
+    from ve.build import write_transcript_text
+
+    sp = prj.path(prj.cfg.get("script"))
+    if not sp or not sp.exists():
+        raise VEError("Dự án không có kịch bản (script).", "Dự án từ video người nói dùng `transcribe`.")
+    text = tts.clean_script(sp.read_text(encoding="utf-8"))
+    if len(text) < 20:
+        raise VEError("Kịch bản quá ngắn.")
+    voice = prj.cfg.get("voice", {})
+    use_ph = placeholder or voice.get("provider") == "placeholder"
+    fp = fingerprint(text, voice, use_ph)
+    out = prj.work / "transcript.json"
+    if not force and prj.fresh("tts", fp) and out.exists():
+        info("✓ giọng đọc còn mới, dùng lại")
+        return
+    for old in ("voice.mp3", "voice.m4a"):
+        (prj.work / old).unlink(missing_ok=True)
+    if use_ph:
+        segs = tts.placeholder(text, prj.work / "voice.m4a")
+        info("🔇 giọng tạm (im lặng) để duyệt bố cục, chưa tốn ký tự ElevenLabs")
+    else:
+        if voice.get("provider") not in ("elevenlabs", None):
+            raise VEError(f"Nhà cung cấp giọng \"{voice.get('provider')}\" chưa hỗ trợ.", "Dùng \"elevenlabs\" hoặc \"placeholder\".")
+        info(f"🗣 ElevenLabs đọc {len(text)} ký tự …")
+        segs = tts.speak(text, voice, prj.work / "voice.mp3")
+    write_json(out, segs)
+    prj.mark("tts", fp, chars=len(text), placeholder=use_ph)
+    prj.mark("transcribe", fp)
+    prj.invalidate("build", "render", "export")
+    info(f"✓ {sum(len(s['words']) for s in segs)} từ → {write_transcript_text(prj)}")
+
+
+def cmd_status(prj: Project) -> None:
+    st = prj.state()
+    first = "tts" if prj.cfg.get("script") else "transcribe"
+    for s in [first, "build", "render", "export"]:
+        x = st.get(s)
+        info(f" {'✓' if x else '○'} {s}" + (f"  ({x['at']})" if x else ""))
+    if (prj.work / "check.json").exists():
+        c = read_json(prj.work / "check.json")
+        info(f" kiểm tra gần nhất: {len(c['errors'])} lỗi, {len(c['warnings'])} cảnh báo")
+
+
+def cmd_run(prj: Project, force=False, until: str | None = None, placeholder=False) -> None:
+    from ve.build import build
+    from ve.render import export, render
+
+    steps = [("tts" if prj.cfg.get("script") else "transcribe"), "build", "render", "export"]
+    for s in steps:
+        info(f"── {s}")
+        if s == "transcribe":
+            cmd_transcribe(prj, force)
+        elif s == "tts":
+            cmd_tts(prj, force, placeholder)
+        elif s == "build":
+            build(prj, force)
+        elif s == "render":
+            render(prj, force)
+        elif s == "export":
+            export(prj)
+        if until and s == until:
+            info(f"dừng sau bước {s} theo yêu cầu")
+            return
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(prog="video-editor", description="Dựng video ngắn từ video người nói hoặc kịch bản.")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    d = sub.add_parser("doctor", help="kiểm tra môi trường")
+    d.add_argument("--json", action="store_true")
+    d.add_argument("--offline", action="store_true", help="không thử kết nối mạng")
+    s = sub.add_parser("setup", help="cài môi trường (một lần)")
+    s.add_argument("--model", help="mô hình Whisper: nhe (small), vua (medium), nang (large-v3), nhanh (large-v3-turbo)")
+    s.add_argument("--skip-model", action="store_true")
+    s.add_argument("--install-system", action="store_true", help="tự cài ffmpeg/Node bằng brew hoặc winget nếu thiếu")
+    i = sub.add_parser("init", help="tạo thư mục dự án")
+    i.add_argument("dir")
+    i.add_argument("--input", help="video hoặc âm thanh người nói")
+    i.add_argument("--script", help="kịch bản (.txt) để đọc bằng giọng AI")
+    i.add_argument("--background", help="video/ảnh nền cho video không người nói (vd. cảnh quay sản phẩm)")
+    i.add_argument("--format", default="9:16", choices=list(FORMATS))
+    i.add_argument("--template", default="trung-tinh")
+    i.add_argument("--type", choices=["talking-head", "explainer", "product"])
+    i.add_argument("--voice", choices=["elevenlabs", "placeholder"])
+    i.add_argument("--name")
+    sub.add_parser("templates", help="liệt kê mẫu nhận diện")
+
+    for name, hlp in [("transcribe", "chép lời"), ("tts", "giọng đọc cho kịch bản"), ("build", "cắt, dò mốc, kiểm tra"), ("check", "chỉ kiểm tra nội dung"),
+                      ("preview", "ảnh xem trước"), ("render", "render video"), ("export", "phụ đề, ảnh bìa, báo cáo"), ("run", "làm tiếp mọi bước"), ("status", "trạng thái")]:
+        p = sub.add_parser(name, help=hlp)
+        p.add_argument("dir")
+        if name in ("transcribe", "tts", "build", "render", "run"):
+            p.add_argument("--force", action="store_true", help="làm lại kể cả khi đầu vào không đổi")
+        if name == "transcribe":
+            p.add_argument("--from-srt")
+            p.add_argument("--from-json")
+        if name in ("tts", "run"):
+            p.add_argument("--placeholder", action="store_true", help="giọng tạm im lặng để duyệt bố cục")
+        if name == "preview":
+            p.add_argument("--draft", action="store_true", help="kèm bản nháp nửa độ phân giải")
+        if name == "run":
+            p.add_argument("--until", choices=["transcribe", "tts", "build", "render", "export"])
+    v = sub.add_parser("voices", help="liệt kê giọng ElevenLabs trong tài khoản")
+    v.add_argument("--json", action="store_true")
+    c = sub.add_parser("clone-voice", help="nhân bản giọng (ElevenLabs Starter trở lên)")
+    c.add_argument("files", nargs="+")
+    c.add_argument("--name", required=True)
+    c.add_argument("--project", help="ghi voiceId vào project.json của dự án này")
+
+    a = ap.parse_args(argv)
+    try:
+        if a.cmd == "doctor":
+            from ve.doctor import doctor
+
+            return doctor(a.json, not a.offline)
+        if a.cmd == "setup":
+            from ve.doctor import setup
+
+            return setup(a.model, a.skip_model, a.install_system)
+        if a.cmd == "templates":
+            for t in sorted(TEMPLATES.iterdir()):
+                if (t / "brand.json").exists():
+                    info(f" {t.name}: {read_json(t / 'brand.json').get('name', '')}")
+            return 0
+        if a.cmd == "init":
+            prj = init_project(Path(a.dir), a.input, a.script, a.format, a.template, a.type, a.background, a.name, a.voice)
+            if a.input and not a.script:
+                pi = M.probe(prj.path(prj.cfg["input"]))
+                info(f"nguồn: {pi['duration']:.1f}s" + (f", {pi['width']}×{pi['height']}" if pi.get("has_video") else ", chỉ âm thanh"))
+                M.check_audio(pi)
+            info(f"✓ tạo dự án {prj.root} ({prj.cfg['type']}, {prj.cfg['format']}, mẫu {prj.cfg['template']})")
+            info(f"  bước tiếp: video-editor {'tts' if a.script else 'transcribe'} {prj.root}")
+            return 0
+        if a.cmd == "voices":
+            from ve import tts
+
+            vs = tts.voices()
+            if a.json:
+                print(__import__("json").dumps(vs, ensure_ascii=False, indent=1))
+            else:
+                for x in vs:
+                    lab = ", ".join(f"{k}: {v}" for k, v in (x["labels"] or {}).items())
+                    info(f" {x['id']}  {x['name']}  [{x['category']}] {lab}")
+            return 0
+        if a.cmd == "clone-voice":
+            from ve import tts
+
+            vid = tts.clone(a.name, [Path(f) for f in a.files])
+            info(f"✓ voiceId {vid}")
+            if a.project:
+                prj = Project(Path(a.project))
+                prj.cfg["voice"]["voiceId"] = vid
+                prj.cfg["voice"]["provider"] = "elevenlabs"
+                prj.save()
+                info(f"  đã ghi vào {prj.file}")
+            return 0
+
+        prj = Project(Path(a.dir))
+        if a.cmd == "transcribe":
+            cmd_transcribe(prj, a.force, a.from_srt, a.from_json)
+        elif a.cmd == "tts":
+            cmd_tts(prj, a.force, a.placeholder)
+        elif a.cmd in ("build", "check"):
+            from ve.build import build
+
+            build(prj, getattr(a, "force", False), check_only=a.cmd == "check")
+        elif a.cmd == "preview":
+            from ve.render import preview
+
+            preview(prj, a.draft)
+        elif a.cmd == "render":
+            from ve.render import render
+
+            render(prj, a.force)
+        elif a.cmd == "export":
+            from ve.render import export
+
+            export(prj)
+        elif a.cmd == "run":
+            cmd_run(prj, a.force, a.until, a.placeholder)
+        elif a.cmd == "status":
+            cmd_status(prj)
+        return 0
+    except VEError as e:
+        print(f"\n✗ {e.what}", file=sys.stderr)
+        if e.fix:
+            print(f"  → {e.fix}", file=sys.stderr)
+        return e.code
+    except KeyboardInterrupt:
+        print("\nĐã dừng. Chạy lại cùng lệnh để làm tiếp từ bước còn dở.", file=sys.stderr)
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

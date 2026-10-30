@@ -1,0 +1,13 @@
+{
+  "name": "BTC Daily",
+  "badge": "BTC DAILY",
+  "colors": { "bg": "#050e24", "bg2": "#10306e", "panel": "#0b1b3f", "line": "#1d3566", "primary": "#2f7bff", "highlight": "#6cc4ff", "number": "#ffb547", "up": "#22c38e", "down": "#ff5a6a", "text": "#ffffff", "mute": "#9fb3d9" },
+  "font": { "family": "Be Vietnam Pro" },
+  "logo": null,
+  "hookIcon": "btc",
+  "backdrop": "grid",
+  "captions": {
+    "style": "glow",
+    "keywords": ["bitcoin", "btc", "ethereum", "eth", "solana", "etf", "altcoin", "nonfarm", "payroll", "volume", "livestream", "long", "short", "tích lũy", "cản", "chốt", "hấp thụ"]
+  }
+}

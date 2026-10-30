@@ -1,0 +1,32 @@
+{
+  "format": { "w": 1080, "h": 1920, "fps": 30 },
+  "duration": 12,
+  "mode": "faceless",
+  "brand": {
+    "name": "Trung tính",
+    "badge": "KÊNH CỦA BẠN",
+    "colors": { "bg": "#101318", "bg2": "#1e2633", "panel": "#181d26", "line": "#2b3442", "primary": "#14b8a6", "highlight": "#5eead4", "number": "#fbbf24", "up": "#22c38e", "down": "#ff5a6a", "text": "#ffffff", "mute": "#a3acbf" },
+    "font": { "family": "Be Vietnam Pro" },
+    "logo": null,
+    "hookIcon": null,
+    "backdrop": "grid"
+  },
+  "captions": { "enabled": true, "style": "glow", "position": null, "keywords": ["skill"], "maxChars": 30, "maxWords": 8, "size": 1 },
+  "media": { "main": "", "hasVideo": false, "background": null, "music": null },
+  "sfx": false,
+  "hook": { "kicker": "", "title": "Xem trước bộ dựng", "sub": "Dữ liệu mẫu" },
+  "hookSec": 2.5,
+  "outroSec": 3,
+  "cta": "Theo dõi để xem video tiếp theo",
+  "words": [
+    { "text": "Đây", "start": 0.3, "end": 0.6 }, { "text": "là", "start": 0.6, "end": 0.8 }, { "text": "dữ", "start": 0.8, "end": 1.0 },
+    { "text": "liệu", "start": 1.0, "end": 1.3 }, { "text": "mẫu", "start": 1.3, "end": 1.6 }, { "text": "của", "start": 1.6, "end": 1.8 },
+    { "text": "skill.", "start": 1.8, "end": 2.2 }, { "text": "Doanh", "start": 3.0, "end": 3.3 }, { "text": "thu", "start": 3.3, "end": 3.5 },
+    { "text": "tăng", "start": 3.5, "end": 3.8 }, { "text": "35", "start": 3.8, "end": 4.2 }, { "text": "phần", "start": 4.2, "end": 4.4 }, { "text": "trăm.", "start": 4.4, "end": 4.8 }
+  ],
+  "beats": [
+    { "start": 2.8, "end": 8.5, "head": "Kết quả quý", "g": { "type": "stat", "icon": "up", "big": "+35%", "label": "Doanh thu so với cùng kỳ", "tone": "up", "d": 1.0 } }
+  ],
+  "topics": [],
+  "zooms": []
+}

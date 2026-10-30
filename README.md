@@ -1,65 +1,93 @@
 # video-editor
 
-Skill dựng video ngắn dọc (Facebook Reels, TikTok, Shorts) tiếng Việt cho Claude. Cài một skill là đủ: quy trình từ phiếu nhận việc tới giao file, 93 skill con, mẫu Remotion, script và bộ nhận diện BTC Daily.
+Skill dựng video ngắn tiếng Việt cho Claude Code (và Codex): đưa vào **video người nói** hoặc **kịch bản**, nhận về MP4 có phụ đề, đồ hoạ bật đúng lúc nói, kèm phụ đề rời SRT/VTT, ảnh bìa và báo cáo.
+
+```
+nhận việc → doctor/setup → init → transcribe | tts → build → preview → render → export
+```
 
 ## Làm được gì
 
-**Chế độ A: dựng từ video người nói**
+**Đầu vào**
+- Video người nói, file thu âm, hoặc kịch bản đọc bằng giọng ElevenLabs (giọng có sẵn hoặc giọng nhân bản).
+- Video sản phẩm: cảnh quay làm nền, giọng AI, ảnh hoặc clip sản phẩm trong khung.
 
-Đưa vào một video người nói, nhận về một Reel hoàn chỉnh:
+**Cắt**
+- Khoảng lặng, từ đệm (ờ, ừm…), nói vấp (gợi ý hoặc tự cắt), khoảng giữ hoặc bỏ tuỳ chọn.
+- Một hệ thời gian chung, nên phụ đề, đồ hoạ và SRT không lệch sau khi cắt.
 
-1. **Nhận việc** bằng phiếu: nền tảng, độ dài, phong cách, dẫn chứng.
-2. **Chép lời tiếng Việt** có mốc từng chữ (faster-whisper large-v3), sửa chữ nghe sai, bỏ đoạn thừa.
-3. **Cắt khoảng lặng và chỗ vấp**, chuẩn hoá âm thanh về -14 LUFS.
-4. **Đồ hoạ nói tới đâu hiện tới đó:** thẻ giá, mốc hỗ trợ/kháng cự, danh sách, biểu đồ, con số lớn, thẻ chủ đề. Mỗi phần tử bật ra 0,08 giây sau từ khoá.
-5. **Phụ đề 4 kiểu** (mặc định là kiểu phát sáng): chữ đang đọc đổi màu, con số màu vàng, tối đa 2 dòng cân nhau.
-6. **Hai bố cục:** người nói toàn màn hình, hoặc đồ hoạ toàn màn hình với ô mặt ở góc. Có zoom, chuyển cảnh và hiệu ứng âm thanh.
-7. **Render và giao file:** MP4, phụ đề `.srt`, ảnh xem trước, mã nguồn, cùng báo cáo.
+**Đồ hoạ**
+- Con số lớn, giá đếm lên, mốc kháng cự/hỗ trợ, danh sách, biểu đồ vẽ dần, tiêu đề chương, ảnh/clip sản phẩm, thẻ chủ đề có tick.
+- Neo bằng cụm từ trong lời: phần tử bật 0,08 giây trước khi được nói.
 
-Số đo thật trên video 175 giây: ra Reel 173 giây, render khoảng 10 phút trên máy 4 nhân, file khoảng 90 MB.
+**Khổ hình:** 9:16, 16:9, 1:1, 4:5. Mỗi khổ có bố cục và vùng an toàn riêng.
 
-**Chế độ B: tạo video từ prompt hoặc kịch bản**
+**Nhận diện**
+- Mẫu `trung-tinh` (mặc định) và `btc-daily` (ví dụ).
+- Đổi màu, font, logo, kiểu phụ đề trong `project.json`, không cần sửa mã.
 
-- Viết kịch bản từ một câu chủ đề.
-- Đọc bằng giọng ElevenLabs: giọng có sẵn với gói Free, hoặc giọng nhân bản của chủ kênh với gói Starter trở lên.
-- Video là đồ hoạ toàn màn hình; phụ đề và đồ hoạ bám từng chữ của giọng đọc.
-- Thiết lập theo `huong-dan/elevenlabs.md`.
+**Đầu ra**
+- MP4 H.264, -14 LUFS, chỉ nén một lần.
+- Phụ đề SRT/VTT, ảnh bìa, ảnh xem trước các khoảnh khắc chính.
+- Báo cáo đồng bộ và chất lượng.
 
-**Kèm 93 skill con** để tra cứu: video quảng cáo, explainer, kinetic typography, khoảng 450 khối chuyển cảnh HyperFrames, soát lỗi khung hình.
+**Tự cài và tự kiểm tra:** `doctor` chỉ ra thiếu gì và cách sửa; `setup` cài môi trường riêng; chạy lại thì làm tiếp từ bước dở.
 
-**Chưa làm được:** quay cảnh mới hoặc tạo người thật.
+**Chưa làm được:** quay cảnh mới, tạo người thật, đăng video.
 
-## Cài đặt
-
-**Claude Code (máy cá nhân):**
+## Cài đặt (Claude Code)
 
 ```bash
 git clone https://github.com/dungdeptraiqua123-tech/video-editor.git ~/.claude/skills/video-editor
+~/.claude/skills/video-editor/bin/video-editor setup
 ```
 
-**claude.ai:**
-1. Nén thư mục này thành zip, có thể bỏ `.git` và các thư mục `demos`, `workbench`, `gallery` của video-shotcraft cho nhẹ.
-2. Vào Settings → Capabilities → Skills → Upload skill.
-
-## Môi trường cần có
-
-| Thứ cần | Dùng cho |
+| Cần có | Ghi chú |
 |---|---|
-| Python 3 và `faster-whisper` | Chép lời (chế độ A) |
-| Node 20.19+ hoặc 22.13+ hoặc 24+, Remotion 4.0.537 (`npm ci` trong bản chép của `mau-remotion/`) | Dựng video |
-| ffmpeg | Cắt, ghép |
-| Chrome Headless Shell (Remotion tự tải khi render lần đầu) | Render |
-| Mạng mở cho `huggingface.co`, `*.hf.co`, `*.xethub.hf.co` | Tải mô hình Whisper |
-| `ELEVENLABS_API_KEY` và mạng mở cho `api.elevenlabs.io` | Chế độ B |
+| Python 3.9+ | macOS/Linux thường có sẵn; Windows: python.org |
+| Node.js 20.19+, 22.13+ hoặc 24+ | nodejs.org (bản LTS) |
+| ffmpeg | `brew install ffmpeg` · `winget install Gyan.FFmpeg` · `sudo apt install ffmpeg` |
+| 4 GB trống, 8 GB RAM | Máy yếu hơn: `setup --model nhe` |
+| Mạng lúc cài | npm, huggingface.co (mô hình chép lời), remotion.media (trình duyệt render) |
+| `ELEVENLABS_API_KEY` | Chỉ khi làm video từ kịch bản, xem `huong-dan/elevenlabs.md` |
+
+`setup` cài vào `~/.video-editor/` (đổi bằng biến `VE_HOME`), không ghi vào thư mục skill.
+Sau khi cài, chỉ cần nói với Claude: *"dựng Reel từ video này"* hoặc *"làm video 45 giây từ kịch bản này"*.
+
+Đã kiểm thử trên Linux (Claude Code cloud). macOS và Windows được hỗ trợ theo thiết kế (đường dẫn, lệnh khởi chạy `.cmd`, gợi ý cài đặt) nhưng chưa chạy thử trên máy thật.
+
+## Dùng thủ công
+
+```bash
+video-editor init du-an/bitcoin --input video.mp4 --template btc-daily
+video-editor transcribe du-an/bitcoin
+# sửa du-an/bitcoin/project.json: fix, content (xem huong-dan/do-hoa.md)
+video-editor build du-an/bitcoin
+video-editor preview du-an/bitcoin
+video-editor render du-an/bitcoin
+video-editor export du-an/bitcoin
+```
 
 ## Cấu trúc
 
 | Đường dẫn | Nội dung |
 |---|---|
-| `SKILL.md` | Quy trình đầy đủ, bắt đầu đọc từ đây |
-| `mau-remotion/` | Dự án Remotion mẫu |
-| `scripts/` | `transcribe.py`, `build.py`, `export_subs.py`, `tts_elevenlabs.py` |
-| `nhan-dien/btc-daily/` | Bộ nhận diện |
+| `SKILL.md` | Quy trình cho Claude |
+| `AGENTS.md` | Hướng dẫn cho Codex và công cụ khác |
+| `bin/` | Lệnh `video-editor` (macOS/Linux) và `video-editor.cmd` (Windows) |
+| `ve/` | Công cụ điều phối (Python, chỉ thư viện chuẩn) |
+| `engine/` | Bộ dựng Remotion |
+| `templates/` | Mẫu nhận diện |
+| `examples/` | Dự án mẫu |
+| `huong-dan/` | Hướng dẫn: dự án, đồ hoạ, lỗi thường gặp, ElevenLabs |
 | `mau-tai-lieu/` | Phiếu nhận việc, khung kịch bản |
-| `huong-dan/` | Hướng dẫn thiết lập ElevenLabs |
-| `skills/`, `INDEX.md` | 93 skill con và danh mục |
+| `tests/` | Kiểm thử đơn vị và trọn quy trình |
+| `reference/` | Tài liệu tham khảo nâng cao (không cần cho quy trình chính) |
+| `THIRD_PARTY.md` | Giấy phép thành phần bên thứ ba (Remotion miễn phí tới 3 người, công ty lớn hơn cần mua giấy phép) |
+
+## Kiểm thử
+
+```bash
+python3 -m unittest discover -s tests -t .   # 26 kiểm thử đơn vị, dưới 1 giây
+python3 tests/e2e.py                          # 2 video trọn quy trình + 5 tình huống lỗi
+```

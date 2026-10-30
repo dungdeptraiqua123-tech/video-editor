@@ -1,34 +1,47 @@
 # Phiếu nhận việc dựng video
 
-Điền trước khi bắt tay vào dựng. Ô nào người dùng không trả lời thì tự suy ra từ video nguồn và ghi rõ "tự chọn" để báo lại ở bước giao file.
+Điền trước khi dựng. Hỏi người dùng gọn trong một lượt; ô nào họ không trả lời thì tự suy ra và ghi "tự chọn" để báo lại khi giao file. Mỗi ô ghi kèm khoá tương ứng trong `project.json`.
 
 ## 1. Nguồn
-- Chế độ: A (có video người nói) / B (từ prompt hoặc kịch bản, giọng AI)
-- Chế độ B: đã có `voice.json` (giọng nhân bản) chưa, có `ELEVENLABS_API_KEY` chưa: …
-- File video nguồn: …
-- Thời lượng, khổ hình, fps (lấy bằng `ffprobe`): …
-- Có kịch bản hoặc file `.srt` sẵn không: có / không
-- Ảnh, biểu đồ, số liệu thật để làm dẫn chứng: …
+
+| Câu hỏi | Lựa chọn | Khoá |
+|---|---|---|
+| Đi từ đâu? | Video người nói / file thu âm / kịch bản (giọng AI) | `init --input` hoặc `init --script` |
+| Loại video | Người nói / giải thích bằng đồ hoạ / giới thiệu sản phẩm | `type` |
+| Có cảnh quay hoặc ảnh làm nền không (video không người nói)? | đường dẫn | `background` |
+| Có phụ đề `.srt` sẵn không (thay cho chép lời)? | có / không | `transcribe --from-srt` |
+| Giọng AI: đã có key ElevenLabs? Gói gì? Đã có giọng nhân bản (voiceId)? | Free / Starter+ | `voice` |
+| Ảnh, biểu đồ, số liệu thật để làm dẫn chứng | đường dẫn | đồ hoạ `media` |
 
 ## 2. Đầu ra
-- Nền tảng đăng: Facebook Reels / TikTok / YouTube Shorts / khác
-- Khổ hình: 1080 × 1920 (mặc định) / khác
-- Độ dài mong muốn: giữ nguyên ý / tối đa … giây
-- Hạn giao: …
 
-## 3. Phong cách
-- Bộ nhận diện: BTC Daily (mặc định) / bộ khác: …
-- Kiểu phụ đề: glow (mặc định) / box / pop / plain
-- Video mẫu để học theo: …
-- Có nút kêu gọi cuối video không, nội dung gì: …
+| Câu hỏi | Mặc định | Khoá |
+|---|---|---|
+| Nền tảng đăng | Facebook Reels | quyết định khổ |
+| Khổ hình | 9:16 (Reels, TikTok, Shorts); 16:9 cho YouTube; 1:1 hoặc 4:5 cho bài đăng feed | `format` |
+| Độ dài | giữ nguyên ý, cắt lặng | `cuts` |
+| Đoạn cần bỏ / chỉ lấy một đoạn | | `cuts.drop`, `cuts.keep` |
+
+## 3. Nhận diện
+
+| Câu hỏi | Mặc định | Khoá |
+|---|---|---|
+| Mẫu | `trung-tinh`; kênh Bitcoin dùng `btc-daily` | `template` |
+| Tên kênh, logo, màu chủ đạo, font | của mẫu | `brand` |
+| Kiểu phụ đề | glow | `captions.style` |
+| Từ khoá cần tô màu trong phụ đề | của mẫu | `captions.keywords` |
+| Nhạc nền (người dùng có quyền dùng) | không | `music` |
+| Câu kêu gọi cuối video | "Theo dõi để xem video tiếp theo" | `content.cta` |
 
 ## 4. Nội dung
-- Ý chính một câu (dùng cho thẻ mở đầu): …
-- Những con số, mốc giá, danh sách cần thành đồ hoạ: …
-- Đoạn cần bỏ: …
-- Từ, tên riêng dễ nghe sai (để sửa lời): …
 
-## 5. Xác nhận trước khi render
-- [ ] Đã gửi bản lời đã sửa và các cụm chưa rõ cho người dùng
-- [ ] Đã render thử một đoạn 10 đến 15 giây có đồ hoạ để duyệt kiểu
-- [ ] Mọi đồ hoạ đều có neo `say` vào lời thoại
+- Ý chính một câu, dùng cho thẻ mở đầu: `content.hook.title`.
+- Những con số, mốc, danh sách cần thành đồ hoạ: `content.beats`.
+- Tên riêng, thuật ngữ dễ nghe sai: `fix`.
+
+## 5. Trước khi render
+
+- [ ] `build` không còn lỗi; đã xem các cảnh báo và chỗ nghi nói vấp.
+- [ ] Đã gửi người dùng các cụm lời "nghe chưa chắc" nếu không tự đoán chắc được.
+- [ ] Đã xem `out/xem-truoc.jpg`: chữ không tràn, đồ hoạ không che mặt, màu đúng nhận diện.
+- [ ] Video từ kịch bản: đã thay giọng tạm bằng giọng thật (`tts` không có `--placeholder`).

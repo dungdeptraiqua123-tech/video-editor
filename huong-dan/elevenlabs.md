@@ -45,36 +45,47 @@ Môi trường thuộc tổ chức thì chỉ đọc được: nhờ admin tổ 
 ## 4. Kiểm tra
 
 ```bash
-python3 scripts/tts_elevenlabs.py voices
+video-editor doctor          # dòng "Giọng đọc ElevenLabs": có key, kết nối OK
+video-editor voices          # liệt kê giọng trong tài khoản
 ```
 
 | Kết quả | Ý nghĩa |
 |---|---|
 | In ra danh sách giọng | Thành công |
-| `Thiếu ELEVENLABS_API_KEY` | Biến môi trường chưa vào phiên này. Mở phiên mới. |
-| `ElevenLabs 401` | Key sai hoặc thiếu quyền Voices hay Text to Speech |
-| `403` từ proxy, hoặc không kết nối được | Chưa mở `api.elevenlabs.io` |
-| Lỗi khi `clone` | Gói Free không có nhân bản giọng |
+| `Chưa có ELEVENLABS_API_KEY` | Biến môi trường chưa vào phiên này. Mở phiên hoặc terminal mới |
+| `ElevenLabs từ chối key (401)` | Key sai hoặc thiếu quyền Voices hay Text to Speech |
+| `Mạng chặn api.elevenlabs.io` | Chưa mở domain |
+| `Gói … không nhân bản giọng được` khi `clone-voice` | Gói Free không có nhân bản giọng |
 
-## 5. Dùng theo gói
+## 5. Dùng trong dự án
 
 **Gói Free (giọng có sẵn):**
 
-```bash
-python3 scripts/tts_elevenlabs.py voices
-python3 scripts/tts_elevenlabs.py speak kichban.txt --voice <voice_id>
-```
+1. Chạy `video-editor voices` và chọn một giọng đọc tiếng Việt tự nhiên.
+2. Ghi `voice.voiceId` vào `project.json`.
+3. Chạy `video-editor tts <dự án>`.
 
-Chạy lệnh đầu để xem danh sách giọng, rồi chọn một giọng đọc tiếng Việt tự nhiên cho lệnh thứ hai. Đọc thử một câu ngắn trước để tiết kiệm ký tự.
+Video làm bằng gói Free không được đăng cho kênh kiếm tiền hoặc bán hàng.
 
 **Gói Starter trở lên (giọng nhân bản):**
 
 ```bash
 ffmpeg -i video-cu.mp4 -ss 10 -t 150 -vn -ac 1 -ar 44100 mau-giong.mp3
-python3 scripts/tts_elevenlabs.py clone --name "BTC Daily" mau-giong.mp3
-python3 scripts/tts_elevenlabs.py speak kichban.txt
+video-editor clone-voice --name "Tên kênh" mau-giong.mp3 --project du-an/<tên>
+video-editor tts du-an/<tên>
 ```
 
-- Lệnh `clone` ghi `voice.json`. Giữ file này cho các video sau.
-- Mẫu giọng nên là 1 đến 3 phút nói rõ, không nhạc nền, không người khác chen vào.
-- Chỉ nhân bản giọng của chính mình hoặc người đã đồng ý.
+- Mẫu giọng nên dài 1 đến 3 phút, nói rõ, không có nhạc nền, không có người khác chen vào.
+- `voiceId` được ghi vào dự án. Với video sau, chép `voice.voiceId` sang `project.json` mới, không cần nhân bản lại.
+- Chỉ nhân bản giọng của chính mình hoặc của người đã đồng ý.
+
+**Tiết kiệm ký tự:**
+- Duyệt bố cục bằng `video-editor tts <dự án> --placeholder` trước (giọng tạm im lặng, không tốn ký tự).
+- Chỉ tạo giọng thật khi kịch bản đã chốt.
+- `tts` chỉ gọi lại ElevenLabs khi kịch bản hoặc cài đặt giọng thay đổi.
+
+**Chỉnh giọng trong `voice`:**
+- `speed`: 0,7 đến 1,2, mặc định 1,05.
+- `stability`: thấp hơn thì cảm xúc hơn, mặc định 0,45.
+- `style`: 0 đến 1.
+- `model`: `eleven_turbo_v2_5` (mặc định, hỗ trợ tiếng Việt), `eleven_flash_v2_5` (rẻ, nhanh), `eleven_v3` (biểu cảm hơn).

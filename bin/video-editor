@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Lệnh video-editor (macOS, Linux). Chỉ cần Python 3.9+ có sẵn trên máy.
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PY="$(command -v python3 || command -v python)"
+[ -z "$PY" ] && { echo "✗ Chưa có Python 3. Cài từ python.org rồi chạy lại." >&2; exit 2; }
+exec "$PY" "$DIR/ve/cli.py" "$@"

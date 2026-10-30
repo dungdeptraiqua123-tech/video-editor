@@ -1,6 +1,6 @@
 node_modules/
 *.mp4
-!mau-remotion/public/**/*.mp4
+!reference/**/*.mp4
 audio.wav
 .DS_Store
 __pycache__/

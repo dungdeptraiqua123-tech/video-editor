@@ -1,0 +1,10 @@
+{
+  "name": "Trung tính",
+  "badge": "",
+  "colors": { "bg": "#101318", "bg2": "#1e2633", "panel": "#181d26", "line": "#2b3442", "primary": "#14b8a6", "highlight": "#5eead4", "number": "#fbbf24", "up": "#22c38e", "down": "#ff5a6a", "text": "#ffffff", "mute": "#a3acbf" },
+  "font": { "family": "Be Vietnam Pro" },
+  "logo": null,
+  "hookIcon": null,
+  "backdrop": "grid",
+  "captions": { "style": "glow", "keywords": [] }
+}
