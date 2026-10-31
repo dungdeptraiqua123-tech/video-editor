@@ -10,7 +10,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-from .env import (CONFIG, ENGINE, ENGINE_SRC, HOME, IS_WIN, SKILL_DIR, VENV, VEError, find_browser, info, load_config, npx,
+from .env import (CONFIG, ENGINE, ENGINE_SRC, HOME, IS_WIN, SKILL_DIR, VENV, VEError, find_browser, has_related_skills, info, load_config, npx,
                   remotion_browser_ready, run, save_config, venv_python, warn, which)
 
 MODELS = {"nang": "large-v3", "nhanh": "large-v3-turbo", "vua": "medium", "nhe": "small"}
@@ -131,6 +131,8 @@ def checks(online_checks: bool = True) -> list[dict]:
     if key and online_checks:
         el += ", kết nối OK" if online("https://api.elevenlabs.io/v1/models") else ", KHÔNG kết nối được api.elevenlabs.io"
     add("Giọng đọc ElevenLabs", key, el, "Xem huong-dan/elevenlabs.md", need=False)
+    if not has_related_skills():
+        return out  # bản gọn: không kèm skill liên quan
     from .skills import status
 
     try:
@@ -164,7 +166,7 @@ def doctor(as_json: bool = False, online_checks: bool = True) -> int:
 def setup(model: str | None = None, skip_model: bool = False, install_system: bool = False, skills: bool = True, skills_dir: str | None = None) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     # 0. skill liên quan (chỉ chép file, không cần mạng): làm trước để có ngay cả khi các bước sau còn thiếu công cụ
-    if skills:
+    if skills and has_related_skills():
         from .skills import install
 
         info("▶ cài các skill liên quan")

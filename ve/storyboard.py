@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import os
 import random
 import re
 import shutil
@@ -108,7 +109,9 @@ figcaption span{{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:ver
     b = browser_exe()
     png = image.with_suffix(".png")
     if b:
-        p = subprocess.run([b, "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
+        # Chrome không chạy được dưới quyền root nếu còn sandbox (thường gặp trong container); máy thường giữ sandbox
+        root = hasattr(os, "geteuid") and os.geteuid() == 0
+        p = subprocess.run([b, "--headless", *(["--no-sandbox"] if root else []), "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
                             f"--window-size={W},{H}", f"--screenshot={png}", page.resolve().as_uri()], capture_output=True, timeout=120)
         if p.returncode == 0 and png.exists():
             run(["ffmpeg", "-y", "-loglevel", "error", "-i", png, "-q:v", "3", image])

@@ -4,6 +4,7 @@ Repo này là skill `video-editor`: dựng video ngắn tiếng Việt từ vide
 
 - **Dùng skill để dựng video:** làm theo `SKILL.md`. Mọi bước chạy qua `bin/video-editor` (Windows: `bin\video-editor.cmd`). Bắt đầu bằng `bin/video-editor doctor`.
 - **Cài skill:** clone repo vào thư mục skills của công cụ (Claude Code: `~/.claude/skills/video-editor`) rồi chạy `bin/video-editor setup`. Lệnh này cài luôn 93 skill liên quan trong `reference/` thành skill riêng cạnh nó (thư mục khác: `--skills-dir`).
+- **Tải lên làm skill cá nhân** (nền tảng có bước quét an toàn): `python3 tools/dong-goi.py` tạo bản gọn `dist/video-editor-skill.zip`, chỉ gồm phần lõi. Phạm vi hoạt động: `AN-TOAN.md`.
 - **Sửa chính skill:**
   - mã điều phối Python (chỉ dùng thư viện chuẩn): `ve/`;
   - bộ dựng Remotion: `engine/src`;

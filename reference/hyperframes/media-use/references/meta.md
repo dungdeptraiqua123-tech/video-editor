@@ -35,6 +35,8 @@ npx hyperframes media-use resolve --stats --project . --days 7
 
 ## Telemetry
 
+**In the copy bundled with video-editor, telemetry is off by default.** Nothing is sent unless the person sets `MEDIA_USE_TELEMETRY=1` themselves. The rest of this section describes what is sent once it is turned on.
+
 `resolve` and the edit tools (transcribe / transcript-cut / audio-duck) send a
 usage event to PostHog (`scripts/lib/telemetry.mjs`), so we can see which
 capabilities are actually used. It is anonymous until you sign in to HeyGen

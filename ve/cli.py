@@ -243,6 +243,10 @@ def main(argv=None) -> int:
 
             return setup(a.model, a.skip_model, a.install_system, not a.no_skills, a.skills_dir)
         if a.cmd == "skills":
+            from ve.env import has_related_skills
+
+            if not has_related_skills():
+                raise VEError("Bản này là bản gọn, không kèm các skill liên quan.", "Muốn cài 93 skill liên quan: clone bản đầy đủ từ repo rồi chạy `video-editor skills install`.")
             from ve import skills as SK
 
             if a.action == "install":

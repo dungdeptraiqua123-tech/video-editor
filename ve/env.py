@@ -33,6 +33,11 @@ class VEError(Exception):
         self.what, self.fix, self.code = what, fix, code
 
 
+def has_related_skills() -> bool:
+    """Bản đầy đủ (clone từ repo) kèm reference/ và bộ cài skill liên quan. Bản gọn để tải lên làm skill cá nhân thì không."""
+    return (SKILL_DIR / "reference").is_dir() and (SKILL_DIR / "ve" / "skills.py").exists()
+
+
 def info(msg: str) -> None:
     print(msg, flush=True)
 

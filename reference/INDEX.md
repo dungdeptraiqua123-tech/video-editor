@@ -5,6 +5,8 @@ Gồm 93 skill từ 7 bộ, chép nguyên bản (tiếng Anh). Phần lớn nh�
 
 `video-editor setup` cài cả 93 skill này thành skill riêng cạnh `video-editor` (xem, gỡ: `video-editor skills`). Khi đó Claude tự gọi đúng skill theo yêu cầu; danh mục dưới đây vẫn dùng để tra cứu.
 
+Đã chỉnh hai điểm so với bản gốc để bảo vệ dữ liệu người dùng: thu thập số liệu của hyperframes/media-use tắt mặc định, và hyperframes chỉ gửi phản hồi cho HeyGen khi người dùng đồng ý. Chi tiết và danh sách dịch vụ ngoài mà các skill này gọi: `AN-TOAN.md`.
+
 Giấy phép từng bộ: xem `THIRD_PARTY.md`. Bốn bộ hyperframes, herk-edit-kit, iart-ai, motion-graphics chưa xác minh được giấy phép phân phối lại.
 
 ## Khi nào đọc gì

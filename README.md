@@ -66,6 +66,17 @@ git clone https://github.com/dungdeptraiqua123-tech/video-editor.git ~/.claude/s
 - **Cài công cụ** vào `~/.video-editor/` (đổi bằng biến `VE_HOME`), không ghi vào thư mục skill.
 
 Quản lý skill liên quan: `video-editor skills` (xem), `skills install --only gsap,hyperframes` (chỉ cài vài bộ), `skills remove` (gỡ hết bản do video-editor cài). Không muốn cài: `setup --no-skills`.
+
+## Tải lên làm skill cá nhân (bản gọn)
+
+Nền tảng cho tải skill lên (skill cá nhân trên claude.ai và các nền tảng tương tự) thường quét an toàn trước khi nhận. Đừng tải cả repo: thư mục `reference/` chứa 93 skill của bên thứ ba, có mã gọi dịch vụ ngoài, và bộ cài chép skill vào thư mục skills của trợ lý, nên dễ bị chặn. Tạo bản gọn chỉ gồm phần lõi:
+
+```bash
+python3 tools/dong-goi.py        # → dist/video-editor-skill.zip (khoảng 0,5 MB)
+```
+
+Bản gọn vẫn dựng video đầy đủ. Nó chỉ không kèm thư viện tham khảo và lệnh `video-editor skills`. Skill ghi file ở đâu, gọi mạng tới đâu: `AN-TOAN.md`.
+Môi trường chạy skill tải lên thường chặn mạng tới huggingface.co và nơi tải trình duyệt render; khi đó `doctor` báo thiếu mô hình chép lời hoặc trình duyệt. Chép lời có thể thay bằng phụ đề có sẵn (`transcribe --from-srt`).
 Sau khi cài, chỉ cần nói với Claude: *"dựng Reel từ video này"* hoặc *"làm video 45 giây từ kịch bản này"*.
 
 Đã kiểm thử trên Linux (Claude Code cloud). macOS và Windows được hỗ trợ theo thiết kế (đường dẫn, lệnh khởi chạy `.cmd`, gợi ý cài đặt) nhưng chưa chạy thử trên máy thật.

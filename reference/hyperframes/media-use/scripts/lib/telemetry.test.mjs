@@ -17,6 +17,8 @@ const ENV_KEYS = [
   "NODE_ENV",
 ];
 const savedEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+// Bộ video-editor tắt telemetry mặc định; các ca dưới đây kiểm tra nhánh đã bật.
+process.env.MEDIA_USE_TELEMETRY = "1";
 const home = mkdtempSync(join(tmpdir(), "mu-telemetry-"));
 const configPath = join(home, ".hyperframes", "config.json");
 

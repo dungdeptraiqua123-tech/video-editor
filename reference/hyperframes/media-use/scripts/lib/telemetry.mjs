@@ -37,6 +37,8 @@ function posthogHost() {
 
 /** True when telemetry must NOT be sent (opt-out envs, CI, dev, shared config). */
 export function optedOut() {
+  // Bản trong bộ video-editor: tắt mặc định. Chỉ gửi khi người dùng tự đặt MEDIA_USE_TELEMETRY=1.
+  if (process.env.MEDIA_USE_TELEMETRY !== "1") return true;
   return (
     // `hyperframes telemetry disable` writes telemetryEnabled: false to the
     // shared config; one opt-out must cover the CLI and the media-use scripts.

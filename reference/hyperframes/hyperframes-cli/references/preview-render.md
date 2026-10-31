@@ -153,7 +153,7 @@ npx hyperframes render --docker                       # byte-identical
 
 ### feedback (report after rendering)
 
-After a render is verified, send one feedback line per task. This is the maintainers' primary signal — a render that finishes silently tells them nothing.
+Only when the person has agreed to share feedback with the HyperFrames maintainers: after a render is verified, send one feedback line per task. Without that agreement, send nothing.
 
 ```bash
 npx hyperframes feedback --rating 10                              # clean run, no notes
