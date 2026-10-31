@@ -19,8 +19,8 @@ def _esc(s) -> str:
     return str(s or "").replace("|", "\\|").replace("\n", " ")
 
 
-def write(path: Path, name: str, words: list, tl=None, events: list | None = None) -> Path:
-    """words: các từ sau khi sửa, thời gian gốc (Word). tl: Timeline sau khi cắt (None nếu chưa dựng)."""
+def write(path: Path, name: str, words: list, tl=None, events: list | None = None, keep: list | None = None) -> Path:
+    """words: các từ sau khi sửa, thời gian gốc (Word). tl: Timeline sau khi cắt (None nếu chưa dựng). keep: cuts.keep."""
     out = [f"# Bảng quy chiếu thời gian: {name}", ""]
     if tl is None:
         out += ["Chưa dựng nên mới có thời gian theo file gốc. Chạy `video-editor build` để có cột **Video** (thời điểm trong video đã cắt) và lịch xuất hiện các phần tử.", ""]
@@ -48,6 +48,8 @@ def write(path: Path, name: str, words: list, tl=None, events: list | None = Non
                 video, notes = "—", notes + [REASON.get(kind, "cắt")]
             elif any(a <= mid <= b for a, b in tl.segments):
                 video = clock(tl.map(w.start))
+            elif keep and not any(a <= mid <= b for a, b in keep):
+                video, notes = "—", notes + [REASON["outside_keep"]]
             else:
                 video, notes = "—", notes + ["cắt: khoảng lặng"]
         out.append(f"| {i} | {_esc(w.text)} | {video} | {w.start:.2f}–{w.end:.2f} | {', '.join(notes)} |")

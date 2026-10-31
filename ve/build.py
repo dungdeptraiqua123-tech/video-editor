@@ -69,7 +69,7 @@ def brand_for(prj: Project) -> tuple[dict, dict]:
     return b, cap_tpl
 
 
-SFX_ROLES = ("whoosh", "impact", "riser", "click")
+SFX_ROLES = ("whoosh", "impact", "riser", "click", "pop", "tick")
 
 
 def sfx_for(prj: Project, place: bool = True):
@@ -194,7 +194,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     if dens in GRAPHICS_EVERY and duration > 20:
         want = max(1, round((duration - data["hookSec"] - data["outroSec"]) / GRAPHICS_EVERY[dens]))
         info(f"🎨 {len(data['beats'])} khung đồ hoạ / {duration:.0f}s; mật độ \"{dens}\" gợi ý khoảng {want} khung")
-    bang.write(prj.work / "bang-quy-chieu.md", cfg["name"], words, tl, rep.events)
+    bang.write(prj.work / "bang-quy-chieu.md", cfg["name"], words, tl, rep.events, cut_settings(cfg).get("keep"))
     if tl.suggestions["stumble"]:
         info(f"💡 {len(tl.suggestions['stumble'])} chỗ có thể là nói vấp (chưa cắt): " + "; ".join(f"\"{s['text']}\" @{s['start']}s" for s in tl.suggestions["stumble"][:6]))
         info("   Cắt hết: đặt cuts.stumbles = \"auto\". Cắt từng chỗ: thêm [giây đầu, giây cuối] vào cuts.drop.")

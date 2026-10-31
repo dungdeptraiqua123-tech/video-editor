@@ -221,6 +221,15 @@ const Outro: React.FC<{ L: Layout; cta: string; buttons: string[] }> = ({ L, cta
   );
 };
 
+/** Thời điểm (giây tính từ lúc khung mở) các phần tử trong khung đồ hoạ bật ra: mọi khoá d / xxxD. */
+const elementTimes = (o: unknown): number[] => {
+  if (Array.isArray(o)) return o.flatMap(elementTimes);
+  if (!o || typeof o !== "object") return [];
+  return Object.entries(o as Record<string, unknown>).flatMap(([k, v]) =>
+    typeof v === "number" ? (k === "d" || /[a-z]D$/.test(k) ? [v] : []) : elementTimes(v),
+  );
+};
+
 export const Video: React.FC<Props> = (props) => {
   const { brand, media, captions, beats, topics, zooms, words, hook } = props;
   applyBrand(brand);
@@ -232,7 +241,7 @@ export const Video: React.FC<Props> = (props) => {
   const t = frame / fps;
   const p = modeAt(frame, fps, beats);
   const faceless = props.mode === "faceless" || !media.hasVideo;
-  const sfx = (role: "whoosh" | "impact" | "riser" | "click") => (props.sfx ? props.sfx.files[role] : undefined);
+  const sfx = (role: "whoosh" | "impact" | "riser" | "click" | "pop" | "tick") => (props.sfx ? props.sfx.files[role] : undefined);
   const sfxVol = props.sfx ? props.sfx.volume : 0;
 
   // zoom cắt nhảy khi người nói toàn màn hình: luân phiên khung rộng / khung chặt
@@ -305,6 +314,31 @@ export const Video: React.FC<Props> = (props) => {
               <Audio src={asset(sfx("whoosh")!)} volume={0.17 * sfxVol} />
             </Sequence>
           ))
+        : null}
+
+      {/* pop: từng phần tử trong khung đồ hoạ bật ra (bỏ phần tử bật ngay lúc khung mở, đã có whoosh) */}
+      {sfx("pop")
+        ? beats.flatMap((b, i) =>
+            elementTimes(b.g)
+              .filter((d) => d > 0.25)
+              .map((d, k) => (
+                <Sequence key={`p${i}-${k}`} from={Math.round((b.start + d) * fps)} durationInFrames={15}>
+                  <Audio src={asset(sfx("pop")!)} volume={0.22 * sfxVol} />
+                </Sequence>
+              )),
+          )
+        : null}
+      {/* tick: ý trong thẻ chủ đề được đánh dấu (chỉ khi thẻ đang hiện) */}
+      {sfx("tick") && !faceless
+        ? topics.flatMap((tp, i) =>
+            tp.items
+              .filter((it) => it.at >= props.hookSec && it.at * fps < outroFrom)
+              .map((it, k) => (
+                <Sequence key={`t${i}-${k}`} from={Math.round(it.at * fps)} durationInFrames={15}>
+                  <Audio src={asset(sfx("tick")!)} volume={0.5 * sfxVol} />
+                </Sequence>
+              )),
+          )
         : null}
 
       {topic && t >= props.hookSec && frame < outroFrom ? <TopicCard L={L} topic={topic} o={1 - p} /> : null}

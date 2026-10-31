@@ -246,7 +246,9 @@ def build_timeline(words: list[Word], src_duration: float, cfg: CutConfig) -> Ti
     js = lambda idx: [{"text": words[i].text, "start": round(words[i].start, 2), "end": round(words[i].end, 2)} for i in idx]
     jr = lambda pairs: [{"text": " ".join(x.text for x in words[a:b + 1]), "start": round(words[a].start, 2), "end": round(words[b].end, 2)} for a, b in pairs]
     tl.removed = {"filler": js(removed["filler"]), "stumble": jr(removed["stumble"]), "drop": js(removed["drop"]), "outside_keep": len(removed["outside_keep"])}
-    tl.suggestions = {"filler": js(suggestions["filler"]), "stumble": jr(suggestions["stumble"])}
+    # chỉ gợi ý chỗ nằm trong phần video được giữ (bỏ chỗ ngoài cuts.keep / cuts.drop)
+    live = lambda idx: [i for i in idx if _covered(words[i], tl.segments)]
+    tl.suggestions = {"filler": js(live(suggestions["filler"])), "stumble": jr([(a, b) for a, b in suggestions["stumble"] if _covered(words[a], tl.segments)])}
     return tl
 
 

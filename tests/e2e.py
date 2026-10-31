@@ -100,7 +100,7 @@ def talking(tmp):
     check("bảng quy chiếu: có lịch phần tử và đánh dấu từ đệm bị cắt", "## Lịch xuất hiện" in bang and "| ờ | — |" in bang and "cắt: từ đệm" in bang)
     sfx = d["sfx"]["files"]
     check("âm thanh hiệu ứng là file thu thật (mp3 Mixkit), không có file tạo bằng code",
-          set(sfx) == {"whoosh", "impact", "riser", "click"} and all(v.endswith(".mp3") and (prj / "media" / v).exists() for v in sfx.values()))
+          set(sfx) == {"whoosh", "impact", "riser", "click", "pop", "tick"} and all(v.endswith(".mp3") and (prj / "media" / v).exists() for v in sfx.values()))
 
     # chạy lại build không cắt lại (dùng bản cắt cũ)
     p = ve("build", prj)

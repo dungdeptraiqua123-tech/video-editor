@@ -35,7 +35,7 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `fix` | `[]` | Sửa chữ nghe sai: `[["lon sọt", "long short"], ["bên hiểm", ""]]`. Cụm sửa rỗng = xoá. Không phân biệt hoa thường và dấu câu |
 | `dropSegments` | `[]` | Bỏ hẳn một đoạn Whisper bịa ra: ghi giây bắt đầu của đoạn (xem `transcript.json`) |
 | `music` | `null` | Nhạc nền: `{"file": "nhac.mp3", "volume": 0.08}`. Người dùng phải có quyền dùng bản nhạc |
-| `sfx` | `{"enabled":true,"volume":1,"files":{}}` | Âm thanh hiệu ứng thu thật (Mixkit): `whoosh` khi khung đồ hoạ mở, `impact` ở mở đầu, `riser` trước phần kết, `click` ở nút theo dõi. `volume` nhân âm lượng chung. `files` thay từng âm bằng file của bạn (`{"impact": "am-thanh/trong.mp3"}`) hoặc tắt riêng một âm (`{"click": ""}`). `false` = tắt hết. Không dùng âm tạo bằng code |
+| `sfx` | `{"enabled":true,"volume":1,"files":{}}` | Âm thanh hiệu ứng thu thật (Mixkit): `whoosh` khi khung đồ hoạ mở, `pop` khi từng phần tử trong khung bật ra, `tick` khi ý trong thẻ chủ đề được đánh dấu, `impact` ở mở đầu, `riser` trước phần kết, `click` ở nút theo dõi. `volume` nhân âm lượng chung. `files` thay từng âm bằng file của bạn (`{"impact": "am-thanh/trong.mp3"}`) hoặc tắt riêng một âm (`{"click": ""}`). `false` = tắt hết. Không dùng âm tạo bằng code |
 | `render` | `{"crf":20}` | `concurrency`: số luồng render (mặc định để Remotion chọn) |
 | `content` | | Nội dung đồ hoạ, xem `do-hoa.md` |
 
