@@ -43,7 +43,9 @@ def ram_gb() -> float:
 
 def auto_model() -> str:
     r = ram_gb()
-    return "large-v3" if r == 0 or r >= 8 else "medium" if r >= 5 else "small"
+    # Đo trên 4 nhân, video 176 giây: turbo 3 phút 10 giây, RAM 2,2 GB, giống large-v3 93,6%;
+    # medium 4 phút 48 giây, 2,6 GB, giống 88,9%. Turbo hơn medium cả tốc độ lẫn độ đúng.
+    return "large-v3" if r == 0 or r >= 12 else "large-v3-turbo" if r >= 4 else "small"
 
 
 def resolve_model(name: str | None) -> str:
@@ -113,7 +115,7 @@ def checks(online_checks: bool = True) -> list[dict]:
     free = shutil.disk_usage(HOME if HOME.exists() else Path.home()).free / 1e9
     add("Dung lượng trống", free >= 4, f"{free:.0f} GB", "Cần ít nhất 4 GB (mô hình Whisper ~3 GB, bộ dựng ~0,3 GB, mỗi video vài trăm MB)")
     r = ram_gb()
-    add("RAM", r == 0 or r >= 4, f"{r:.0f} GB → mô hình gợi ý: {auto_model()}" if r else "không đọc được", "Máy dưới 4 GB RAM nên dùng mô hình nhẹ: `video-editor setup --model nhe`", need=False)
+    add("RAM", r == 0 or r >= 4, f"{r:.0f} GB → mô hình gợi ý: {auto_model()}" if r else "không đọc được", "Máy dưới 4 GB RAM nên dùng mô hình nhẹ: `video-editor setup --model nhe`. Render tự giảm số luồng theo RAM còn trống", need=False)
     vp = venv_python()
     fw = vp.exists() and subprocess.run([str(vp), "-c", "import faster_whisper"], capture_output=True).returncode == 0
     add("Môi trường chép lời", fw, str(VENV) if fw else "chưa cài", "Chạy `video-editor setup`")

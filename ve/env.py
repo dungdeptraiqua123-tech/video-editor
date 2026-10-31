@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,75 @@ class VEError(Exception):
     def __init__(self, what: str, fix: str = "", code: int = 2):
         super().__init__(what)
         self.what, self.fix, self.code = what, fix, code
+
+
+def _cgroup_room() -> float | None:
+    """Byte còn lại trong giới hạn RAM của container (cgroup v1/v2); None nếu không giới hạn hoặc không đọc được."""
+    try:
+        base = Path("/sys/fs/cgroup")
+        cands = []
+        for ln in Path("/proc/self/cgroup").read_text().splitlines():
+            _, ctrl, path = ln.split(":", 2)
+            if ctrl == "":  # v2
+                cands += [(base / path.lstrip("/") / "memory.max", base / path.lstrip("/") / "memory.current"), (base / "memory.max", base / "memory.current")]
+            elif "memory" in ctrl.split(","):  # v1
+                d = base / "memory"
+                cands += [(d / path.lstrip("/") / "memory.limit_in_bytes", d / path.lstrip("/") / "memory.usage_in_bytes"), (d / "memory.limit_in_bytes", d / "memory.usage_in_bytes")]
+        for lim, use in cands:
+            if lim.exists() and use.exists():
+                v = lim.read_text().strip()
+                if v == "max" or int(v) >= 1 << 60:
+                    return None
+                return max(0.0, int(v) - int(use.read_text().strip()))
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def mem_available_gb() -> float:
+    """RAM còn trống (GB) lúc này, tính cả giới hạn của container. 0 nếu không đọc được."""
+    try:
+        if sys.platform.startswith("linux"):
+            avail = next((int(l.split()[1]) * 1024 for l in open("/proc/meminfo") if l.startswith("MemAvailable")), 0)
+            room = _cgroup_room()
+            return (min(avail, room) if room is not None else avail) / 1e9
+        if sys.platform == "darwin":
+            out = subprocess.check_output(["vm_stat"], text=True)
+            page = int(re.search(r"page size of (\d+)", out).group(1))
+            pages = sum(int(re.search(rf"{k}:\s+(\d+)", out).group(1)) for k in ("Pages free", "Pages inactive", "Pages speculative"))
+            return pages * page / 1e9
+        if IS_WIN:
+            import ctypes
+
+            class M(ctypes.Structure):
+                _fields_ = [("l", ctypes.c_ulong), ("m", ctypes.c_ulong), ("t", ctypes.c_ulonglong), ("a", ctypes.c_ulonglong), ("x", ctypes.c_ulonglong * 5)]
+
+            m = M()
+            m.l = ctypes.sizeof(M)
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+            return m.a / 1e9
+    except Exception:
+        pass
+    return 0.0
+
+
+def render_plan(avail_gb: float, cpus: int) -> tuple[int, int]:
+    """Số luồng render và bộ đệm khung hình (byte) vừa với RAM còn trống.
+
+    Đo trên máy 4 nhân, giới hạn 4,9 GB, video 1080×1920: 4 luồng với bộ đệm mặc định của Remotion
+    (một nửa RAM) bị tràn RAM ở khoảng 50%; 4 luồng với bộ đệm 1 GB chạy hết, đỉnh 4,1 GB.
+    """
+    n = cpus if cpus <= 4 else min(16, cpus - 1)  # gần hết số nhân nhanh hơn ~25% so với mặc định
+    if avail_gb <= 0:  # không đọc được: giữ mức an toàn vừa phải
+        return min(n, 4), 1 << 30
+    if avail_gb < 2.5:
+        n = 1
+    elif avail_gb < 3.5:
+        n = min(n, 2)
+    elif avail_gb < 8:
+        n = min(n, 4)
+    cache = int(min(2.0, max(0.5, avail_gb * 0.2)) * (1 << 30))
+    return n, cache
 
 
 def has_related_skills() -> bool:

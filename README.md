@@ -58,6 +58,18 @@ git clone https://github.com/dungdeptraiqua123-tech/video-editor.git ~/.claude/s
 | ffmpeg | `brew install ffmpeg` · `winget install Gyan.FFmpeg` · `sudo apt install ffmpeg` |
 | 4 GB trống, 8 GB RAM | Máy yếu hơn: `setup --model nhe` |
 | Mạng lúc cài | npm, huggingface.co (mô hình chép lời), remotion.media (trình duyệt render) |
+
+**Tốc độ đo thật** trên máy 4 vCPU, giới hạn RAM 4,9 GB (ngày 31/10/2026):
+
+| Việc | Thời gian | RAM cao nhất |
+|---|---|---|
+| Chép lời video 176 giây, `large-v3-turbo` (mặc định cho máy 4–12 GB) | 3 phút 10 giây | 2,2 GB |
+| Chép lời video 176 giây, `medium` | 4 phút 48 giây | 2,6 GB |
+| Storyboard 7 ảnh | 16 giây | |
+| Bản nháp 540×960, video 33 giây | 2 phút 16 giây | |
+| Bản chính 1080×1920, video 33 giây | 2 phút 54 giây | 4,4 GB |
+
+Bản chính mất khoảng 5,3 lần độ dài video: video 1 phút cần khoảng 5 phút render. Máy ít RAM nên thêm swap.
 | `ELEVENLABS_API_KEY` | Chỉ khi làm video từ kịch bản, xem `huong-dan/elevenlabs.md` |
 
 `setup` làm hai việc:

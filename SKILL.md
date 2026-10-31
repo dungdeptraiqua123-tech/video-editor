@@ -42,7 +42,7 @@ Chi tiết ở `AN-TOAN.md`. Tóm tắt:
 - Lệnh này cài môi trường Python riêng, thư viện đúng phiên bản, bộ dựng Remotion và trình duyệt render vào `~/.video-editor`, rồi tải mô hình Whisper.
 - Bản đầy đủ (clone từ repo, có thư mục `reference/`) cài thêm 93 skill liên quan thành skill riêng cạnh `video-editor`. Bản gọn (tải lên làm skill cá nhân) không kèm phần này.
 - Người dùng nhờ "cài skill" từ link repo: clone vào `~/.claude/skills/video-editor` rồi chạy `setup`. Báo họ mở phiên mới để thấy các skill liên quan.
-- Máy yếu (dưới 8 GB RAM): `setup --model nhe`.
+- Mô hình chép lời tự chọn theo RAM: từ 12 GB dùng `large-v3`, 4–12 GB dùng `large-v3-turbo`, dưới 4 GB dùng `small` (ép mô hình nhẹ: `setup --model nhe`). Render tự giảm số luồng và bộ đệm khung hình khi RAM còn ít.
 - Thiếu ffmpeg hoặc Node: làm theo dòng `→` mà doctor in ra, hoặc `setup --install-system` (macOS/Windows).
 
 **3. Tạo dự án** trong thư mục làm việc của người dùng. Không tạo trong thư mục skill.

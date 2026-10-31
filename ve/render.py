@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import media as M
 from . import subs
-from .env import ENGINE, ENGINE_SRC, VEError, find_browser, info, npx, read_json, remotion_browser_ready, run, warn
+from .env import ENGINE, ENGINE_SRC, VEError, find_browser, info, mem_available_gb, npx, read_json, remotion_browser_ready, render_plan, run, warn
 from .project import Project, fingerprint
 from .serve import media_server
 from .env import write_json
@@ -103,9 +103,13 @@ def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None)
     cfg = prj.cfg.get("render") or {}
     with _props(prj) as pp:
         args = [npx(), "remotion", "render", b, "Video", out, f"--props={pp}", f"--crf={crf or cfg.get('crf', 20)}", "--audio-bitrate=192k", f"--scale={scale}", *_browser_args()]
-        # Remotion mặc định chỉ dùng nửa số nhân; dùng gần hết nhân nhanh hơn ~25% (đo trên máy 4 nhân)
-        n = os.cpu_count() or 2
-        args.append(f"--concurrency={cfg.get('concurrency') or (n if n <= 4 else min(16, n - 1))}")
+        # số luồng và bộ đệm khung hình theo RAM còn trống: bộ đệm mặc định của Remotion (nửa RAM) làm máy ít RAM bị tràn
+        avail = mem_available_gb()
+        conc, cache = render_plan(avail, os.cpu_count() or 2)
+        conc = int(cfg.get("concurrency") or conc)
+        cache = int(cfg["cacheMB"]) << 20 if cfg.get("cacheMB") else cache
+        args += [f"--concurrency={conc}", f"--offthreadvideo-cache-size-in-bytes={cache}"]
+        info(f"  RAM trống {avail:.1f} GB → {conc} luồng, bộ đệm khung hình {cache / (1 << 30):.1f} GB" if avail else f"  {conc} luồng, bộ đệm khung hình {cache / (1 << 30):.1f} GB")
         _run_progress(args)
 
 
