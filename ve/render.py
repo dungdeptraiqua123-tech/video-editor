@@ -134,7 +134,7 @@ def render(prj: Project, force: bool = False) -> Path:
     data = _data(prj)
     require_approval(prj, data)
     final = prj.out / f"{prj.slug}.mp4"
-    fp = fingerprint(data, ENGINE_SRC / "src", prj.media, prj.cfg.get("render"))
+    fp = fingerprint(read_json(data), ENGINE_SRC / "src", prj.media, prj.cfg.get("render"))
     if not force and prj.fresh("render", fp) and final.exists():
         info(f"✓ video còn mới, bỏ qua render: {final}")
         return final

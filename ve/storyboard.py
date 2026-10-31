@@ -21,6 +21,11 @@ from .env import VEError, browser_exe, info, read_json, run, warn, write_json
 from .project import Project, fingerprint, rules_text
 
 
+def data_fp(path: Path) -> str:
+    """Dấu vân tay theo nội dung data.json (build lại mà không đổi gì thì không mất lần duyệt)."""
+    return fingerprint(read_json(path))
+
+
 def frame_count(duration: float) -> int:
     """Số ảnh storyboard: khoảng một ảnh mỗi 8 giây, tối thiểu 6, tối đa 24."""
     return max(6, min(24, round(duration / 8)))
@@ -124,7 +129,7 @@ def preview(prj: Project, draft: bool = False, seed: int | None = None) -> list[
 
     dpath = _data(prj)
     d = read_json(dpath)
-    fp = fingerprint(dpath)
+    fp = data_fp(dpath)
     if seed is None:
         seed = int(hashlib.sha1(fp.encode()).hexdigest()[:8], 16)
     sb = prj.out / "storyboard"
@@ -160,7 +165,7 @@ def preview(prj: Project, draft: bool = False, seed: int | None = None) -> list[
 def approve(prj: Project, note: str = "") -> None:
     from .render import _data
 
-    fp = fingerprint(_data(prj))
+    fp = data_fp(_data(prj))
     st = prj.state().get("preview")
     if not st:
         raise VEError("Chưa có storyboard để duyệt.", f"Chạy `video-editor preview {prj.root}` rồi gửi out/storyboard.jpg cho người dùng.")
@@ -171,7 +176,7 @@ def approve(prj: Project, note: str = "") -> None:
 
 
 def require_approval(prj: Project, data: Path) -> None:
-    if not prj.fresh("approve", fingerprint(data)):
+    if not prj.fresh("approve", data_fp(data)):
         old = prj.state().get("approve")
         why = "nội dung đã đổi sau lần duyệt" if old else "chưa được duyệt"
         raise VEError(f"Storyboard {why}: chưa render.",

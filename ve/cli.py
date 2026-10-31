@@ -138,9 +138,9 @@ def cmd_run(prj: Project, force=False, until: str | None = None, placeholder=Fal
     for s in steps:
         info(f"── {s}")
         if s == "preview":
-            from ve.storyboard import preview
+            from ve.storyboard import data_fp, preview
 
-            fp = fingerprint(prj.work / "data.json")
+            fp = data_fp(prj.work / "data.json")
             if prj.fresh("approve", fp):
                 info("✓ storyboard đã được duyệt")
                 continue
