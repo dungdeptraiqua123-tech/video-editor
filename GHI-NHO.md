@@ -6,3 +6,5 @@ Thêm dòng bằng `video-editor note "nội dung" --project <dự án> --loai <
 Loại: nhip, cat, phu-de, do-hoa, am-thanh, mau-sac, bo-cuc, noi-dung, khac.
 
 ## Góp ý
+- [2026-10-31 · khac · BTC 30 giây - âm thanh thật] Video test hoặc video thử: chỉ làm storyboard và bản nháp để xem, nghe; không render bản chính, không export, trừ khi người dùng yêu cầu
+- [2026-10-31 · am-thanh · BTC 30 giây - âm thanh thật] Âm hiệu ứng thu thật gắn vào từng chuyển động (impact mở đầu, whoosh khung mở, pop từng con số, tick ý được đánh dấu, riser trước kết, click nút theo dõi), nằm dưới giọng 7-15 dB: người dùng khen rất tốt, giữ cách này
