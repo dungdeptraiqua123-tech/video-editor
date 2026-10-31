@@ -19,7 +19,7 @@ def engine_ready() -> None:
     if not (ENGINE / "node_modules" / "remotion").exists():
         raise VEError("Bộ dựng chưa được cài.", "Chạy `video-editor setup` (một lần).")
     # đồng bộ mã nguồn bộ dựng từ skill sang bản đã cài (nhanh, chỉ vài file)
-    for name in ("src", "remotion.config.ts", "tsconfig.json"):
+    for name in ("src", "remotion.config.ts", "tsconfig.json", "stills.mjs"):
         s, d = ENGINE_SRC / name, ENGINE / name
         if s.is_dir():
             if d.exists() and fingerprint(s) == fingerprint(d):
@@ -78,71 +78,24 @@ def still(prj: Project, sec: float, out: Path, scale: float = 1.0, props: Path |
     return out
 
 
-def key_moments(d: dict, limit: int = 16) -> list[tuple[float, str]]:
-    """Các khoảnh khắc nên xem: mở đầu, mỗi khung đồ hoạ khi đã hiện đủ phần tử, thẻ chủ đề, phần kết."""
-    ts = [(min(1.2, d["hookSec"] - 0.3), "mo-dau")]
-    for i, b in enumerate(d["beats"]):
-        ds = [v for k, v in _walk(b["g"]) if k == "d" or k.endswith("D")]
-        t = b["start"] + (max(ds) + 0.7 if ds else 1.2)
-        ts.append((min(t, b["end"] - 0.3), f"do-hoa-{i + 1}"))
-    for i, tp in enumerate(d["topics"]):
-        last = max([it["at"] for it in tp["items"]] or [tp["start"]])
-        ts.append((min(last + 0.6, tp["end"] - 0.2), f"chu-de-{i + 1}"))
-    ts.append((d["duration"] - d["outroSec"] + 1.5, "ket"))
-    seen, out = set(), []
-    for t, n in sorted(ts):
-        k = round(t, 1)
-        if n.startswith("chu-de") and t < d["hookSec"]:
-            continue  # thẻ chủ đề bị thẻ mở đầu che
-        if k not in seen and 0 <= t < d["duration"]:
-            seen.add(k)
-            out.append((t, n))
-    if len(out) > limit:  # rải đều, luôn giữ mở đầu và kết
-        idx = sorted({round(i * (len(out) - 1) / (limit - 1)) for i in range(limit)})
-        out = [out[i] for i in idx]
-    return out
-
-
-def _walk(o):
-    if isinstance(o, dict):
-        for k, v in o.items():
-            if isinstance(v, (int, float)):
-                yield k, v
-            else:
-                yield from _walk(v)
-    elif isinstance(o, list):
-        for x in o:
-            yield from _walk(x)
-
-
-def preview(prj: Project, draft: bool = False) -> list[Path]:
+def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, props: Path | None = None) -> list[Path]:
+    """Chụp nhiều khung trong một lần mở trình duyệt; lỗi thì chụp từng ảnh bằng `remotion still`."""
+    b = bundle()
     d = read_json(_data(prj))
-    pv = prj.out / "xem-truoc"
-    shutil.rmtree(pv, ignore_errors=True)
-    pv.mkdir(parents=True)
-    shots = []
-    t0 = time.time()
-    moments = key_moments(d)
-    with _props(prj) as pp:
-        for t, name in moments:
-            p = pv / f"{len(shots) + 1:02d}-{name}-{t:05.1f}s.jpg"
-            still(prj, t, p, scale=0.5, props=pp)
-            shots.append(p)
-            info(f"  🖼 {p.name}")
-    sheet = prj.out / "xem-truoc.jpg"
-    cols = 4 if d["format"]["w"] < d["format"]["h"] else 3
-    rows = (len(shots) + cols - 1) // cols
-    run(["ffmpeg", "-y", "-loglevel", "error", "-pattern_type", "glob", "-i", str(pv / "*.jpg"), "-vf", f"scale=-1:480,tile={cols}x{rows}:padding=8:color=black", "-frames:v", "1", sheet] if os.name != "nt" else
-        ["ffmpeg", "-y", "-loglevel", "error", *sum([["-i", s] for s in shots], []), "-filter_complex", "".join(f"[{i}]scale=-1:480[s{i}];" for i in range(len(shots))) + "".join(f"[s{i}]" for i in range(len(shots))) + f"hstack=inputs={len(shots)}", sheet], check=False)
-    info(f"✓ {len(shots)} ảnh xem trước trong {time.time() - t0:.0f}s → {sheet}")
-    out = [sheet, *shots]
-    if draft:
-        p = prj.out / "ban-nhap.mp4"
-        info("🎞 render bản nháp nửa độ phân giải …")
-        _render(prj, p, scale=0.5, crf=30)
-        out.append(p)
-        info(f"✓ bản nháp → {p}")
-    return out
+    fps, last = d["format"]["fps"], int(d["duration"] * d["format"]["fps"]) - 1
+    jobs = [{"frame": max(0, min(int(round(t * fps)), last)), "output": str(Path(o).resolve())} for t, o in shots]
+    with (contextlib.nullcontext(props) if props else _props(prj)) as pp:
+        jp = prj.work / "stills.json"
+        write_json(jp, jobs)
+        exe = "" if remotion_browser_ready() else (find_browser() or "")
+        n = os.cpu_count() or 2
+        p = run(["node", ENGINE / "stills.mjs", b, pp, jp, scale, max(1, min(4, n - 1)), exe], cwd=ENGINE, quiet=True, check=False)
+        if p.returncode != 0 or not all(Path(j["output"]).exists() for j in jobs):
+            warn("Chụp gộp không chạy được, chụp từng ảnh (chậm hơn).")
+            for t, o in shots:
+                if not Path(o).exists():
+                    still(prj, t, Path(o), scale=scale, props=pp)
+    return [Path(o) for _, o in shots]
 
 
 def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None) -> None:
@@ -176,7 +129,10 @@ def _run_progress(args: list) -> None:
 
 
 def render(prj: Project, force: bool = False) -> Path:
+    from .storyboard import require_approval
+
     data = _data(prj)
+    require_approval(prj, data)
     final = prj.out / f"{prj.slug}.mp4"
     fp = fingerprint(data, ENGINE_SRC / "src", prj.media, prj.cfg.get("render"))
     if not force and prj.fresh("render", fp) and final.exists():
@@ -200,8 +156,14 @@ def export(prj: Project) -> list[Path]:
     final = prj.out / f"{prj.slug}.mp4"
     if not final.exists():
         raise VEError("Chưa có video.", f"Chạy `video-editor render {prj.root}` trước.")
+    from .storyboard import qa
+
     srt, vtt, n = subs.write(d, prj.out / f"{prj.slug}")
     cover = still(prj, min(1.2, d["hookSec"] - 0.3), prj.out / "anh-bia.jpg")
+    check = qa(prj, final)
+    table = prj.out / "bang-quy-chieu.md"
+    if (prj.work / "bang-quy-chieu.md").exists():
+        shutil.copy2(prj.work / "bang-quy-chieu.md", table)
     fi = M.probe(final)
     lo = M.loudness(final)
     tl = read_json(prj.work / "timeline.json")
@@ -231,8 +193,19 @@ def export(prj: Project) -> list[Path]:
         f"| Phụ đề | {n} dòng, kiểu {d['captions']['style']} |",
         f"| Đồng bộ | {'✓ khớp' if sync_ok and last_sub <= fi['duration'] + 0.05 else '✗ LỆCH, cần kiểm tra'} |",
         f"| Thời gian render | {st.get('render', {}).get('seconds', '?')}s |",
+        f"| Nhịp, mật độ đồ hoạ | {(prj.cfg.get('style') or {}).get('pace', 'vua')}, {(prj.cfg.get('style') or {}).get('graphics', 'vua')} |",
+        f"| Âm thanh hiệu ứng | {'tắt' if not d.get('sfx') else 'file thu thật: ' + ', '.join(f'{k} ({Path(v).name})' for k, v in d['sfx']['files'].items())} |",
+        f"| Storyboard | duyệt lúc {st.get('approve', {}).get('at', '?')} |",
+        "",
+        "## Tự kiểm tra khung hình",
+        "",
+        f"- {len(check['frames'])} khung lấy từ chính file video, xem ở `kiem-tra.jpg` và thư mục `kiem-tra/`.",
+        *([f"- ⚠ {x}" for x in check["issues"]] or ["- Dò tự động: không thấy khung đen, hình đứng yên hay khoảng câm bất thường."]),
         "",
     ]
+    rules = [r for r in prj.cfg.get("rules") or [] if str(r).strip()]
+    if rules:
+        lines += ["## Quy tắc riêng của video này", "", "Đối chiếu với các khung trong `kiem-tra.jpg` trước khi giao.", ""] + [f"- [ ] {r}" for r in rules] + [""]
     if placeholder:
         lines += ["> ⚠ Video đang dùng **giọng tạm (im lặng)** để duyệt bố cục. Tạo giọng thật bằng `video-editor tts` trước khi đăng.", ""]
     sug = tl.get("suggestions", {})
@@ -240,9 +213,11 @@ def export(prj: Project) -> list[Path]:
         lines += ["## Chỗ có thể nói vấp (chưa cắt)", ""] + [f"- \"{s['text']}\" lúc {s['start']}s" for s in sug["stumble"]] + [""]
     if chk.get("warnings"):
         lines += ["## Cảnh báo khi dựng", ""] + [f"- {w}" for w in chk["warnings"]] + [""]
-    lines += ["## File giao", "", f"- `{final.name}`: video", f"- `{srt.name}`, `{vtt.name}`: phụ đề rời", f"- `{cover.name}`: ảnh bìa", "- `xem-truoc.jpg`: ảnh các khoảnh khắc chính (nếu đã chạy preview)", ""]
+    lines += ["## File giao", "", f"- `{final.name}`: video", f"- `{srt.name}`, `{vtt.name}`: phụ đề rời", f"- `{cover.name}`: ảnh bìa",
+              "- `storyboard.jpg`: storyboard đã duyệt", "- `kiem-tra.jpg`: khung hình tự kiểm tra từ video cuối",
+              "- `bang-quy-chieu.md`: lịch xuất hiện các phần tử và từng chữ kèm thời gian video", ""]
     rp = prj.out / "bao-cao.md"
     rp.write_text("\n".join(lines), encoding="utf-8")
     prj.mark("export", fingerprint(final))
-    info(f"✓ xuất: {srt.name}, {vtt.name} ({n} dòng), {cover.name}, {rp.name}")
-    return [final, srt, vtt, cover, rp]
+    info(f"✓ xuất: {srt.name}, {vtt.name} ({n} dòng), {cover.name}, {table.name}, {rp.name}")
+    return [final, srt, vtt, cover, table, rp, prj.out / "kiem-tra.jpg"]

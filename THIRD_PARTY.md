@@ -19,7 +19,7 @@ Rà soát ngày 30/10/2026. Đây là ghi chú để tra cứu, không phải t�
 | Thành phần | Giấy phép | Ghi chú |
 |---|---|---|
 | Be Vietnam Pro, Inter, Montserrat (qua @fontsource) | SIL Open Font License 1.1 | Cài qua npm, không chép file font vào repo |
-| `engine/public/sfx/*.wav` | Tự tạo bằng ffmpeg (sóng sin, nhiễu) | Không vướng bản quyền |
+| `engine/public/sfx/*.mp3` | Mixkit Sound Effects Free License | Âm thu thật, dùng miễn phí trong video kể cả thương mại. Nguồn từng file ở `engine/public/sfx/NGUON.md` |
 | `templates/btc-daily/logo.png`, `icon.png` | Của chủ kênh BTC Daily | Chỉ dùng cho kênh đó |
 | `reference/ghost-editor` | MIT © kurbaitaev | Kèm font OFL có file LICENSE riêng |
 | `reference/gsap` | MIT (ghi trong từng SKILL.md) | Tài liệu; thư viện GSAP có giấy phép riêng của GreenSock |

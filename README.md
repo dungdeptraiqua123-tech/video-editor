@@ -3,8 +3,17 @@
 Skill dựng video ngắn tiếng Việt cho Claude Code (và Codex): đưa vào **video người nói** hoặc **kịch bản**, nhận về MP4 có phụ đề, đồ hoạ bật đúng lúc nói, kèm phụ đề rời SRT/VTT, ảnh bìa và báo cáo.
 
 ```
-nhận việc → doctor/setup → init → transcribe | tts → build → preview → render → export
+nhận việc (phong cách, nhịp, quy tắc riêng) → doctor/setup → init → transcribe | tts → build
+  → storyboard → người dùng duyệt (approve) → render → tự kiểm tra khung hình → export
 ```
+
+**Quy trình có kiểm soát**
+- Bước nhận việc hỏi phong cách và nhịp (`nhanh`/`vua`/`cham`), mật độ đồ hoạ, và quy tắc riêng chỉ áp dụng cho video đang làm.
+- Bảng quy chiếu `bang-quy-chieu.md`: từng chữ kèm thời gian trong video, lịch xuất hiện mọi phần tử.
+- Storyboard ảnh ngẫu nhiên có tiêu đề để duyệt; chưa duyệt thì không render.
+- Tự kiểm tra khung hình lấy từ chính file MP4, dò khung đen, hình đứng yên, khoảng câm trước khi giao.
+- `GHI-NHO.md` ghi góp ý của người dùng qua từng video, áp dụng cho video sau.
+- Âm thanh hiệu ứng là âm thu thật (Mixkit), không tạo bằng code.
 
 ## Làm được gì
 
@@ -64,13 +73,15 @@ Sau khi cài, chỉ cần nói với Claude: *"dựng Reel từ video này"* ho�
 ## Dùng thủ công
 
 ```bash
-video-editor init du-an/bitcoin --input video.mp4 --template btc-daily
+video-editor init du-an/bitcoin --input video.mp4 --template btc-daily --pace nhanh --rule "Không dùng màu đỏ cho số tăng"
 video-editor transcribe du-an/bitcoin
-# sửa du-an/bitcoin/project.json: fix, content (xem huong-dan/do-hoa.md)
+# sửa du-an/bitcoin/project.json: fix, content (xem huong-dan/do-hoa.md); soát work/bang-quy-chieu.md
 video-editor build du-an/bitcoin
-video-editor preview du-an/bitcoin
+video-editor preview du-an/bitcoin        # out/storyboard.jpg → gửi người dùng duyệt
+video-editor approve du-an/bitcoin        # khi người dùng đồng ý
 video-editor render du-an/bitcoin
-video-editor export du-an/bitcoin
+video-editor export du-an/bitcoin         # tự kiểm tra (out/kiem-tra.jpg), phụ đề, báo cáo
+video-editor note "Phụ đề to hơn" --project du-an/bitcoin --loai phu-de   # ghi nhớ góp ý cho video sau
 ```
 
 ## Cấu trúc
@@ -78,6 +89,7 @@ video-editor export du-an/bitcoin
 | Đường dẫn | Nội dung |
 |---|---|
 | `SKILL.md` | Quy trình cho Claude |
+| `GHI-NHO.md` | Góp ý của người dùng qua các video, Claude đọc ở đầu mỗi video |
 | `AGENTS.md` | Hướng dẫn cho Codex và công cụ khác |
 | `bin/` | Lệnh `video-editor` (macOS/Linux) và `video-editor.cmd` (Windows) |
 | `ve/` | Công cụ điều phối (Python, chỉ thư viện chuẩn) |

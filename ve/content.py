@@ -35,6 +35,12 @@ MAXLEN = {"label": 28, "title": 34, "text": 40, "big": 10, "kicker": 28, "head":
 class Report:
     errors: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
+    # lịch xuất hiện: {"t": giây trong video đã cắt, "what": phần tử, "say": cụm neo}
+    events: list = field(default_factory=list)
+
+    def at(self, t: float, what: str, say=None) -> None:
+        anchor = f"\"{say}\"" if isinstance(say, str) else (f"giây {say} của file gốc" if isinstance(say, (int, float)) else "")
+        self.events.append({"t": round(float(t), 2), "what": what, "say": anchor})
 
     def err(self, where: str, msg: str) -> None:
         self.errors.append(f"{where}: {msg}")
@@ -106,6 +112,9 @@ def _resolve_anchors(obj, finder: Finder, lo: float, hi: float, base: float, rep
                 rep.err(where, f"từ khoá \"{v}\" không được nói trong lúc khung này hiện ({lo:.1f}–{hi:.1f}s)" + (f". Gần giống: {', '.join(repr(s) for s in sug)}" if sug else ""))
                 continue
             out[key] = round(max(0.0, hit[0] - LEAD - base), 2)
+            field_ = k[:-3] if k != "say" else None
+            label = obj.get(field_) if field_ else next((obj[x] for x in ("text", "label", "value", "big", "title") if obj.get(x) not in (None, "")), "")
+            rep.at(base + out[key], f"{where} · {label}" if label != "" else where, v)
         else:
             out[k] = _resolve_anchors(v, finder, lo, hi, base, rep, where)
     return out
@@ -151,7 +160,7 @@ def check_graphic(g: dict, where: str, rep: Report, media_ok=lambda p: True) -> 
         rep.err(where, f"không thấy file \"{g['src']}\" trong thư mục media của dự án")
 
 
-def resolve_content(content: dict, words: list, duration: float, tl=None, mode: str = "talking", media_ok=lambda p: True) -> tuple[dict, Report]:
+def resolve_content(content: dict, words: list, duration: float, tl=None, mode: str = "talking", media_ok=lambda p: True, zoom_every: float = 3.0) -> tuple[dict, Report]:
     """Trả về (dữ liệu đã có mốc thời gian theo bản cắt, báo cáo lỗi/cảnh báo)."""
     rep = Report()
     finder = Finder(words)
@@ -205,7 +214,9 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
                 rep.err(where, "bị khung trước che hết")
                 continue
         cursor = s
-        gg = _resolve_anchors(g, finder, s - 1.0, e + 0.5, s, rep, where)
+        rep.at(s, f"{where} mở: {g.get('title') or g.get('text') or g.get('label') or g.get('type')}", b.get("start"))
+        rep.at(e, f"{where} đóng", b.get("end"))
+        gg = _resolve_anchors(g, finder, s - 1.0, e + 0.5, s, rep, f"  {where}")
         beats.append({"start": round(s, 2), "end": round(e, 2), "head": b.get("head", ""), "g": gg})
 
     topics = []
@@ -224,12 +235,14 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
             if hit[0] > end:
                 rep.warn(f"topics[{i}].items[{k}]", f"\"{it.get('say')}\" được nói lúc {hit[0]:.1f}s, sau khi thẻ đã ẩn ({end:.1f}s), ý này sẽ không hiện")
             items.append({"at": round(hit[0] - LEAD, 2), "text": it.get("text", "")})
+            rep.at(hit[0] - LEAD, f"  topics[{i}].items[{k}] · {it.get('text', '')}", it.get("say"))
         if end - starts[i] < 1.5:
             rep.warn(f"topics[{i}]", f"thẻ chỉ hiện {max(0, end - starts[i]):.1f}s (bị chủ đề sau hoặc phần kết chặn)")
         topics.append({"start": round(starts[i], 2), "end": round(end, 2), "kicker": t.get("kicker", ""), "title": t.get("title", ""), "items": items})
+        rep.at(starts[i], f"topics[{i}] thẻ chủ đề: {t.get('title', '')}", t.get("start"))
 
     z = content.get("zooms", "auto")
-    zooms = auto_zooms(words, beats) if z == "auto" and mode == "talking" else [round(tl.map(x) if tl else x, 2) for x in (z if isinstance(z, list) else [])]
+    zooms = auto_zooms(words, beats, zoom_every) if z == "auto" and mode == "talking" else [round(tl.map(x) if tl else x, 2) for x in (z if isinstance(z, list) else [])]
 
     data = {
         "hook": content.get("hook", {"title": ""}),
@@ -242,6 +255,9 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
     }
     if duration < hook_sec + outro_sec + 2:
         rep.err("video", f"chỉ dài {duration:.1f}s, không đủ chỗ cho mở đầu và kết")
+    rep.at(0, f"mở đầu: {data['hook'].get('title', '')}")
+    rep.at(duration - outro_sec, f"kết: {data['cta']}")
+    rep.events.sort(key=lambda e: e["t"])
     return data, rep
 
 

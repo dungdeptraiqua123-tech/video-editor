@@ -232,6 +232,8 @@ export const Video: React.FC<Props> = (props) => {
   const t = frame / fps;
   const p = modeAt(frame, fps, beats);
   const faceless = props.mode === "faceless" || !media.hasVideo;
+  const sfx = (role: "whoosh" | "impact" | "riser" | "click") => (props.sfx ? props.sfx.files[role] : undefined);
+  const sfxVol = props.sfx ? props.sfx.volume : 0;
 
   // zoom cắt nhảy khi người nói toàn màn hình: luân phiên khung rộng / khung chặt
   const zi = zooms.filter((z) => z <= t).length;
@@ -297,10 +299,10 @@ export const Video: React.FC<Props> = (props) => {
         );
       })}
 
-      {props.sfx
+      {sfx("whoosh")
         ? beats.map((b, i) => (
-            <Sequence key={`w${i}`} from={Math.max(0, Math.round(b.start * fps) - 6)} durationInFrames={20}>
-              <Audio src={asset("sfx/whoosh.wav")} volume={0.16} />
+            <Sequence key={`w${i}`} from={Math.max(0, Math.round(b.start * fps) - 6)} durationInFrames={24}>
+              <Audio src={asset(sfx("whoosh")!)} volume={0.17 * sfxVol} />
             </Sequence>
           ))
         : null}
@@ -309,7 +311,11 @@ export const Video: React.FC<Props> = (props) => {
 
       <Sequence durationInFrames={Math.round(props.hookSec * fps)}>
         <Hook L={L} hook={hook} brand={brand} sec={props.hookSec} />
-        {props.sfx ? <Audio src={asset("sfx/impact.wav")} volume={0.3} /> : null}
+        {sfx("impact") ? (
+          <Sequence durationInFrames={40}>
+            <Audio src={asset(sfx("impact")!)} volume={0.19 * sfxVol} />
+          </Sequence>
+        ) : null}
       </Sequence>
 
       {captions.enabled ? <Captions words={words} y={capY} cfg={captions} side={L.capSide} u={L.u} /> : null}
@@ -317,15 +323,15 @@ export const Video: React.FC<Props> = (props) => {
       <Sequence from={outroFrom}>
         <Outro L={L} cta={props.cta} buttons={props.ctaButtons ?? ["Theo dõi", "Thích", "Chia sẻ"]} />
       </Sequence>
-      {props.sfx ? (
-        <>
-          <Sequence from={Math.max(0, outroFrom - 20)} durationInFrames={50}>
-            <Audio src={asset("sfx/riser.wav")} volume={0.18} />
-          </Sequence>
-          <Sequence from={outroFrom + 30} durationInFrames={20}>
-            <Audio src={asset("sfx/click.wav")} volume={0.3} />
-          </Sequence>
-        </>
+      {sfx("riser") ? (
+        <Sequence from={Math.max(0, outroFrom - 30)} durationInFrames={40}>
+          <Audio src={asset(sfx("riser")!)} volume={0.21 * sfxVol} />
+        </Sequence>
+      ) : null}
+      {sfx("click") ? (
+        <Sequence from={outroFrom + 30} durationInFrames={20}>
+          <Audio src={asset(sfx("click")!)} volume={0.41 * sfxVol} />
+        </Sequence>
       ) : null}
 
       {/* thanh tiến độ */}

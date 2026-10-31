@@ -1,6 +1,6 @@
 # Phiếu nhận việc dựng video
 
-Điền trước khi dựng. Hỏi người dùng gọn trong một lượt; ô nào họ không trả lời thì tự suy ra và ghi "tự chọn" để báo lại khi giao file. Mỗi ô ghi kèm khoá tương ứng trong `project.json`.
+Điền trước khi dựng. **Đọc `GHI-NHO.md` trước** (góp ý từ các video trước) để không hỏi lại điều người dùng đã dặn. Hỏi người dùng gọn trong một lượt; ô nào họ không trả lời thì tự suy ra và ghi "tự chọn" để báo lại khi giao file. Mỗi ô ghi kèm khoá tương ứng trong `project.json`.
 
 ## 1. Nguồn
 
@@ -22,7 +22,22 @@
 | Độ dài | giữ nguyên ý, cắt lặng | `cuts` |
 | Đoạn cần bỏ / chỉ lấy một đoạn | | `cuts.drop`, `cuts.keep` |
 
-## 3. Nhận diện
+## 3. Phong cách và nhịp
+
+| Câu hỏi | Lựa chọn | Khoá |
+|---|---|---|
+| Muốn video dựng theo nhịp nào? | `nhanh`: dồn dập, cắt sát, hợp Reels/TikTok · `vua` (mặc định) · `cham`: giữ hơi thở, hợp kể chuyện, phân tích | `style.pace` (`init --pace`) |
+| Bao nhiêu đồ hoạ? | `it` (~1 khung/30s) · `vua` (~1/15s) · `nhieu` (~1/8s) | `style.graphics` (`init --graphics`) |
+| Có video mẫu muốn giống không? Cảm giác mong muốn (nghiêm túc, năng động, sang trọng…)? | link, mô tả | `style.reference`, `style.notes` |
+| Kiểu phụ đề | glow · box · pop · plain | `captions.style` |
+| Âm thanh hiệu ứng | bật (âm thu thật) · tắt · dùng file riêng | `sfx` |
+
+**Quy tắc riêng cho video này.** Hỏi: "Video này có điều gì bắt buộc phải làm hoặc tránh không?" Ví dụ: không dùng màu đỏ, giữ nguyên đoạn chào đầu, không hiện logo đối thủ, không cắt đoạn 1:20–1:35. Ghi vào `rules` (`init --rule "…"`, hoặc `video-editor rules <dự án> --add "…"`).
+
+- Quy tắc này **chỉ áp dụng cho video đang làm**. Không chép sang dự án khác, không ghi vào `GHI-NHO.md`.
+- Người dùng muốn giữ quy tắc cho mọi video về sau thì ghi thêm bằng `video-editor note`.
+
+## 4. Nhận diện
 
 | Câu hỏi | Mặc định | Khoá |
 |---|---|---|
@@ -33,15 +48,24 @@
 | Nhạc nền (người dùng có quyền dùng) | không | `music` |
 | Câu kêu gọi cuối video | "Theo dõi để xem video tiếp theo" | `content.cta` |
 
-## 4. Nội dung
+## 5. Nội dung
 
 - Ý chính một câu, dùng cho thẻ mở đầu: `content.hook.title`.
 - Những con số, mốc, danh sách cần thành đồ hoạ: `content.beats`.
 - Tên riêng, thuật ngữ dễ nghe sai: `fix`.
 
-## 5. Trước khi render
+## 6. Trước khi gửi storyboard
 
 - [ ] `build` không còn lỗi; đã xem các cảnh báo và chỗ nghi nói vấp.
+- [ ] Đã soát `work/bang-quy-chieu.md`: phần tử nào cũng hiện đúng lúc lời được nói.
 - [ ] Đã gửi người dùng các cụm lời "nghe chưa chắc" nếu không tự đoán chắc được.
-- [ ] Đã xem `out/xem-truoc.jpg`: chữ không tràn, đồ hoạ không che mặt, màu đúng nhận diện.
+- [ ] Đã tự xem từng ảnh trong `out/storyboard/`: chữ không tràn, đồ hoạ không che mặt, màu đúng nhận diện, đúng từng quy tắc riêng và góp ý trong `GHI-NHO.md`.
 - [ ] Video từ kịch bản: đã thay giọng tạm bằng giọng thật (`tts` không có `--placeholder`).
+
+## 7. Trước khi giao video
+
+- [ ] Người dùng đã đồng ý storyboard, đã chạy `video-editor approve`.
+- [ ] Đã xem từng khung trong `out/kiem-tra.jpg` (lấy từ chính file MP4) và đối chiếu với storyboard đã duyệt.
+- [ ] Phần "Tự kiểm tra" trong `bao-cao.md` không còn cảnh báo, hoặc đã giải thích được.
+- [ ] Đã tích từng quy tắc riêng trong báo cáo.
+- [ ] Góp ý mới của người dùng (nếu có) đã ghi bằng `video-editor note`.

@@ -114,6 +114,17 @@ def find_browser() -> str | None:
     return None
 
 
+def browser_exe() -> str | None:
+    """Đường dẫn trình duyệt chạy được (Chrome Headless Shell của Remotion, hoặc trình duyệt tìm thấy) để chụp trang HTML."""
+    d = ENGINE / "node_modules" / ".remotion" / "chrome-headless-shell"
+    name = "chrome-headless-shell.exe" if IS_WIN else "chrome-headless-shell"
+    if d.exists():
+        hits = [p for p in d.rglob(name) if p.is_file()]
+        if hits:
+            return str(hits[0])
+    return find_browser()
+
+
 def remotion_browser_ready() -> bool:
     """Remotion tự tải Chrome Headless Shell vào node_modules/.remotion khi chạy `browser ensure`. Chỉ tính khi có file chạy được."""
     d = ENGINE / "node_modules" / ".remotion" / "chrome-headless-shell"

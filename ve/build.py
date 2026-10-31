@@ -8,7 +8,8 @@ from pathlib import Path
 from . import media as M
 from .content import resolve_content
 from .env import ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
-from .project import Project, _merge, fingerprint
+from . import bang
+from .project import GRAPHICS_EVERY, Project, _merge, cut_settings, fingerprint, pace_of
 from .timeline import CutConfig, apply_fixes, build_timeline, words_from_transcript
 
 
@@ -68,6 +69,32 @@ def brand_for(prj: Project) -> tuple[dict, dict]:
     return b, cap_tpl
 
 
+SFX_ROLES = ("whoosh", "impact", "riser", "click")
+
+
+def sfx_for(prj: Project, place: bool = True):
+    """Âm thanh hiệu ứng: file thu thật trong engine/public/sfx (Mixkit), hoặc file riêng của người dùng. Không tạo âm bằng code."""
+    s = prj.cfg.get("sfx", True)
+    if s is False or (isinstance(s, dict) and s.get("enabled") is False):
+        return False
+    s = s if isinstance(s, dict) else {}
+    own = s.get("files") or {}
+    bad = [k for k in own if k not in SFX_ROLES]
+    if bad:
+        raise VEError(f"sfx.files có khoá lạ: {', '.join(bad)}.", f"Dùng các khoá: {', '.join(SFX_ROLES)}.")
+    files = {}
+    for role in SFX_ROLES:
+        f = own.get(role)
+        if f is False or f == "":
+            continue  # tắt riêng âm này
+        if f:
+            files[role] = _place(prj, f, "sfx-rieng") if place else f
+        else:
+            src = ENGINE_SRC / "public" / "sfx" / f"{role}.mp3"
+            files[role] = _place(prj, str(src), "sfx") if place else f"sfx/{src.name}"
+    return {"files": files, "volume": float(s.get("volume", 1.0))}
+
+
 def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     cfg = prj.cfg
     tpath = prj.work / "transcript.json"
@@ -80,7 +107,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     if not words:
         raise VEError("Lời thoại rỗng: không có từ nào để dựng.", "Kiểm tra file nguồn có tiếng nói, hoặc ngôn ngữ trong whisper.language.")
     try:
-        tl = build_timeline(words, pinfo["duration"], CutConfig.from_dict(cfg.get("cuts")))
+        tl = build_timeline(words, pinfo["duration"], CutConfig.from_dict(cut_settings(cfg)))
     except ValueError as e:
         raise VEError(str(e))
 
@@ -115,7 +142,8 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         b["g"] = g
         beats.append(b)
     content["beats"] = beats
-    data, rep = resolve_content(content, tl.words, duration, tl, "faceless" if faceless else "talking", media_ok=lambda p: p not in missing)
+    data, rep = resolve_content(content, tl.words, duration, tl, "faceless" if faceless else "talking", media_ok=lambda p: p not in missing,
+                                zoom_every=pace_of(cfg)["zoomEvery"])
 
     brand, cap_tpl = brand_for(prj)
     cap = _merge({"enabled": True, "style": "glow", "position": None, "keywords": [], "maxChars": None, "maxWords": 8, "size": 1}, cap_tpl)
@@ -137,10 +165,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         mu = cfg["music"] if isinstance(cfg["music"], dict) else {"file": cfg["music"]}
         m["music"] = {"src": _place(prj, mu["file"], "assets"), "volume": float(mu.get("volume", 0.08))}
 
-    if not check_only:
-        sfx_dst = prj.media / "sfx"
-        if not sfx_dst.exists():
-            shutil.copytree(ENGINE_SRC / "public" / "sfx", sfx_dst)
+    sfx = sfx_for(prj, place=not check_only)
 
     props = {
         "format": {"w": W, "h": H, "fps": int(cfg.get("fps", 30))},
@@ -149,7 +174,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         "brand": brand,
         "captions": cap,
         "media": m,
-        "sfx": bool(cfg.get("sfx", True)),
+        "sfx": sfx,
         "words": tl.words,
         **data,
         "ctaButtons": content.get("ctaButtons") or ["Theo dõi", "Thích", "Chia sẻ"],
@@ -165,6 +190,11 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
 
     for w_ in rep.warnings:
         warn(w_)
+    dens = (cfg.get("style") or {}).get("graphics") or "vua"
+    if dens in GRAPHICS_EVERY and duration > 20:
+        want = max(1, round((duration - data["hookSec"] - data["outroSec"]) / GRAPHICS_EVERY[dens]))
+        info(f"🎨 {len(data['beats'])} khung đồ hoạ / {duration:.0f}s; mật độ \"{dens}\" gợi ý khoảng {want} khung")
+    bang.write(prj.work / "bang-quy-chieu.md", cfg["name"], words, tl, rep.events)
     if tl.suggestions["stumble"]:
         info(f"💡 {len(tl.suggestions['stumble'])} chỗ có thể là nói vấp (chưa cắt): " + "; ".join(f"\"{s['text']}\" @{s['start']}s" for s in tl.suggestions["stumble"][:6]))
         info("   Cắt hết: đặt cuts.stumbles = \"auto\". Cắt từng chỗ: thêm [giây đầu, giây cuối] vào cuts.drop.")
@@ -187,4 +217,6 @@ def write_transcript_text(prj: Project) -> Path:
         lines.append(f"[{s['start']:7.2f} – {s['end']:7.2f}] {s['text'].strip()}{flag}")
     out = prj.work / "loi-thoai.txt"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    words = apply_fixes(words_from_transcript(segs, prj.cfg.get("dropSegments")), prj.cfg.get("fix", []))
+    bang.write(prj.work / "bang-quy-chieu.md", prj.cfg["name"], words)
     return out

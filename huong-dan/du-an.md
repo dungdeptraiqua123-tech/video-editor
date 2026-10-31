@@ -5,8 +5,8 @@ du-an/<tên>/
   project.json     cài đặt + nội dung (file duy nhất cần sửa tay)
   kichban.txt      kịch bản (dự án từ kịch bản)
   media/           file đưa vào render: bản cắt, logo, ảnh sản phẩm, âm thanh hiệu ứng (công cụ tự quản)
-  work/            file trung gian: transcript.json, loi-thoai.txt, timeline.json, data.json, state.json
-  out/             file giao: <tên>.mp4, .srt, .vtt, anh-bia.jpg, xem-truoc.jpg, bao-cao.md
+  work/            file trung gian: transcript.json, loi-thoai.txt, bang-quy-chieu.md, timeline.json, data.json, qa.json, state.json
+  out/             storyboard.jpg (+ storyboard/), file giao: <tên>.mp4, .srt, .vtt, anh-bia.jpg, bang-quy-chieu.md, kiem-tra.jpg (+ kiem-tra/), bao-cao.md
 ```
 
 Môi trường cài đặt dùng chung cho mọi dự án nằm ở `~/.video-editor/` (đổi bằng biến `VE_HOME`): `venv/`, `engine-<phiên bản>/`, `config.json`.
@@ -24,6 +24,8 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `format` | `9:16` | `9:16`, `16:9`, `1:1`, `4:5`. Bố cục, vùng an toàn, cỡ chữ đổi theo khổ |
 | `fps` | `30` | |
 | `template` | `trung-tinh` | Thư mục trong `templates/` |
+| `style` | `{"pace":"vua","graphics":"vua"}` | Phong cách và nhịp hỏi ở bước nhận việc, xem dưới |
+| `rules` | `[]` | Quy tắc riêng của **video này**: `["Không dùng màu đỏ", "Giữ nguyên câu chào đầu"]`. Mọi lệnh dựng in lại để không quên; báo cáo có danh sách để tích. Không áp dụng cho video khác (góp ý dùng lâu dài ghi vào `GHI-NHO.md` bằng `video-editor note`) |
 | `brand` | `{}` | Ghi đè thương hiệu của mẫu, xem dưới |
 | `captions` | | Phụ đề, xem dưới |
 | `face` | `{"x":0.5,"y":0.4}` | Vị trí mắt người nói trong video gốc (tỉ lệ 0–1). Dùng để canh khi khổ ra khác khổ gốc và để thu về ô góc. `pipScale` chỉnh độ phóng trong ô góc |
@@ -33,7 +35,7 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `fix` | `[]` | Sửa chữ nghe sai: `[["lon sọt", "long short"], ["bên hiểm", ""]]`. Cụm sửa rỗng = xoá. Không phân biệt hoa thường và dấu câu |
 | `dropSegments` | `[]` | Bỏ hẳn một đoạn Whisper bịa ra: ghi giây bắt đầu của đoạn (xem `transcript.json`) |
 | `music` | `null` | Nhạc nền: `{"file": "nhac.mp3", "volume": 0.08}`. Người dùng phải có quyền dùng bản nhạc |
-| `sfx` | `true` | Âm thanh hiệu ứng (whoosh khi đổi cảnh, impact mở đầu, riser và click ở kết) |
+| `sfx` | `{"enabled":true,"volume":1,"files":{}}` | Âm thanh hiệu ứng thu thật (Mixkit): `whoosh` khi khung đồ hoạ mở, `impact` ở mở đầu, `riser` trước phần kết, `click` ở nút theo dõi. `volume` nhân âm lượng chung. `files` thay từng âm bằng file của bạn (`{"impact": "am-thanh/trong.mp3"}`) hoặc tắt riêng một âm (`{"click": ""}`). `false` = tắt hết. Không dùng âm tạo bằng code |
 | `render` | `{"crf":20}` | `concurrency`: số luồng render (mặc định để Remotion chọn) |
 | `content` | | Nội dung đồ hoạ, xem `do-hoa.md` |
 
@@ -72,16 +74,27 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `maxChars` / `maxWords` | 30 (44 với 16:9) / 8 | Độ dài tối đa một cụm phụ đề |
 | `size` | `1` | Hệ số cỡ chữ |
 
-### cuts
+### style
 
 | Khoá | Mặc định | |
 |---|---|---|
-| `gap` | `0.55` | Khoảng lặng dài hơn mức này thì cắt (giây) |
-| `pad` | `0.12` | Chừa trước và sau mỗi từ |
+| `pace` | `vua` | Nhịp dựng. `nhanh`: cắt lặng trên 0,35s, chừa 0,08s, tự cắt từ đệm và nói vấp, đổi khung mỗi 2,2s. `vua`: 0,55s / 0,12s, cắt từ đệm, nói vấp chỉ gợi ý, đổi khung mỗi 3s. `cham`: 0,9s / 0,18s, từ đệm và nói vấp chỉ gợi ý, đổi khung mỗi 5s |
+| `graphics` | `vua` | Mật độ đồ hoạ gợi ý khi viết `content`: `it` khoảng 1 khung mỗi 30s, `vua` mỗi 15s, `nhieu` mỗi 8s. `build` in số khung hiện có so với gợi ý |
+| `reference` | `""` | Link hoặc mô tả video tham khảo về phong cách |
+| `notes` | `""` | Ghi chú thêm về phong cách (màu, cảm xúc, kiểu phụ đề mong muốn) |
+
+### cuts
+
+Khoá nào để `null` thì lấy theo nhịp (`style.pace`); ghi số hay giá trị cụ thể thì ghi đè nhịp.
+
+| Khoá | Mặc định | |
+|---|---|---|
+| `gap` | theo nhịp (`0.55` với `vua`) | Khoảng lặng dài hơn mức này thì cắt (giây) |
+| `pad` | theo nhịp (`0.12` với `vua`) | Chừa trước và sau mỗi từ |
 | `silence` | `true` | `false` = không cắt lặng (giữ nhịp tự nhiên) |
-| `fillers` | `auto` | Từ đệm (ờ, ừm, ơ…): `auto` cắt, `suggest` chỉ liệt kê, `off` bỏ qua |
+| `fillers` | theo nhịp | Từ đệm (ờ, ừm, ơ…): `auto` cắt, `suggest` chỉ liệt kê, `off` bỏ qua |
 | `filler_words` | danh sách mặc định | Đổi danh sách từ đệm |
-| `stumbles` | `suggest` | Nói vấp (cụm 1–3 từ lặp liền nhau, trừ từ láy như "từ từ"): `auto` / `suggest` / `off` |
+| `stumbles` | theo nhịp | Nói vấp (cụm 1–3 từ lặp liền nhau, trừ từ láy như "từ từ"): `auto` / `suggest` / `off` |
 | `drop` | `[]` | Bỏ các khoảng `[[giây đầu, giây cuối], ...]`, theo giây gốc |
 | `keep` | `[]` | Chỉ giữ các khoảng này, để dựng một đoạn ngắn từ video dài |
 

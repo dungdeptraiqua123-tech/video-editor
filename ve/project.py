@@ -31,14 +31,50 @@ DEFAULT = {
     "face": {"x": 0.5, "y": 0.4},
     "voice": {"provider": "recorded", "voiceId": None, "model": "eleven_turbo_v2_5", "speed": 1.05, "stability": 0.45, "style": 0.2},
     "whisper": {"model": "auto", "language": "vi"},
-    "cuts": {"gap": 0.55, "pad": 0.12, "fillers": "auto", "stumbles": "suggest", "drop": [], "keep": []},
+    # phong cách và nhịp (hỏi ở bước nhận việc); null trong cuts = lấy theo nhịp
+    "style": {"pace": "vua", "graphics": "vua", "reference": "", "notes": ""},
+    # quy tắc riêng của video này, chỉ áp dụng cho dự án này (không mang sang video khác)
+    "rules": [],
+    "cuts": {"gap": None, "pad": None, "fillers": None, "stumbles": None, "drop": [], "keep": []},
     "fix": [],
     "dropSegments": [],
     "music": None,
-    "sfx": True,
+    # âm thanh hiệu ứng thu thật: false = tắt; files ghi đè từng âm bằng file của bạn (whoosh, impact, riser, click)
+    "sfx": {"enabled": True, "volume": 1.0, "files": {}},
     "render": {"crf": 20, "concurrency": None},
     "content": {"hook": {"kicker": "", "title": "", "sub": ""}, "cta": "Theo dõi để xem video tiếp theo", "beats": [], "topics": [], "zooms": "auto"},
 }
+
+
+# nhịp dựng: mức cắt lặng, xử lý từ đệm/nói vấp, khoảng cách đổi khung, mật độ đồ hoạ gợi ý
+PACES = {
+    "nhanh": {"label": "nhanh (Reels/TikTok dồn dập)", "cuts": {"gap": 0.35, "pad": 0.08, "fillers": "auto", "stumbles": "auto"}, "zoomEvery": 2.2},
+    "vua": {"label": "vừa", "cuts": {"gap": 0.55, "pad": 0.12, "fillers": "auto", "stumbles": "suggest"}, "zoomEvery": 3.0},
+    "cham": {"label": "chậm (giữ hơi thở, kể chuyện)", "cuts": {"gap": 0.9, "pad": 0.18, "fillers": "suggest", "stumbles": "suggest"}, "zoomEvery": 5.0},
+}
+# số giây trung bình cho mỗi khung đồ hoạ theo mật độ mong muốn
+GRAPHICS_EVERY = {"it": 30, "vua": 15, "nhieu": 8}
+
+
+def pace_of(cfg: dict) -> dict:
+    p = (cfg.get("style") or {}).get("pace") or "vua"
+    if p not in PACES:
+        raise VEError(f"Nhịp \"{p}\" không có.", f"style.pace chọn một trong: {', '.join(PACES)}")
+    return PACES[p]
+
+
+def cut_settings(cfg: dict) -> dict:
+    """Cài đặt cắt = mặc định của nhịp, ghi đè bằng giá trị khác null trong cuts."""
+    out = dict(pace_of(cfg)["cuts"])
+    out.update({k: v for k, v in (cfg.get("cuts") or {}).items() if v is not None})
+    return out
+
+
+def rules_text(cfg: dict) -> str:
+    rs = [r for r in cfg.get("rules") or [] if str(r).strip()]
+    if not rs:
+        return ""
+    return "📌 Quy tắc riêng của video này (chỉ áp dụng cho dự án này):\n" + "\n".join(f"   {i}. {r}" for i, r in enumerate(rs, 1))
 
 
 def _merge(base: dict, over: dict) -> dict:
@@ -136,7 +172,8 @@ def fingerprint(*parts) -> str:
     return h.hexdigest()[:16]
 
 
-def init_project(root: Path, input: str | None, script: str | None, fmt: str, template: str, typ: str | None, background: str | None, name: str | None, voice: str | None) -> Project:
+def init_project(root: Path, input: str | None, script: str | None, fmt: str, template: str, typ: str | None, background: str | None, name: str | None, voice: str | None,
+                 pace: str | None = None, graphics: str | None = None, rules: list | None = None) -> Project:
     root = Path(root).resolve()
     if (root / "project.json").exists():
         raise VEError(f"{root} đã có project.json.", "Dùng thư mục khác, hoặc sửa project.json hiện có.")
@@ -172,5 +209,13 @@ def init_project(root: Path, input: str | None, script: str | None, fmt: str, te
         cfg["background"] = str(Path(background).expanduser().resolve())
     if cfg["type"] not in TYPES:
         raise VEError(f"Loại video \"{cfg['type']}\" chưa hỗ trợ.", f"Chọn: {', '.join(sorted(TYPES))}")
+    if pace:
+        cfg["style"]["pace"] = pace
+        pace_of(cfg)
+    if graphics:
+        if graphics not in GRAPHICS_EVERY:
+            raise VEError(f"Mật độ đồ hoạ \"{graphics}\" không có.", f"Chọn: {', '.join(GRAPHICS_EVERY)}")
+        cfg["style"]["graphics"] = graphics
+    cfg["rules"] = [r.strip() for r in rules or [] if r.strip()]
     write_json(root / "project.json", cfg)
     return Project(root)

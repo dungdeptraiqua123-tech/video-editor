@@ -24,5 +24,10 @@ Mỗi lỗi của `video-editor` in hai dòng: `✗` là nguyên nhân, `→` l�
 | Render chậm hoặc hết RAM | Máy yếu, video dài | `render.concurrency: 2`; xem trước bằng `preview --draft` (nửa độ phân giải) |
 | Bị ngắt giữa chừng | Mất mạng, tắt máy | Chạy lại đúng lệnh hoặc `video-editor run <dự án>`: bước đã xong được bỏ qua nhờ `work/state.json` |
 | Muốn làm lại một bước dù đầu vào không đổi | | Thêm `--force` |
+| Storyboard chưa được duyệt: chưa render | Chưa gửi storyboard, hoặc người dùng chưa đồng ý | `preview`, tự xem, gửi `out/storyboard.jpg`; người dùng đồng ý thì `approve` |
+| Storyboard đã cũ / nội dung đã đổi sau lần duyệt | Sửa `project.json` sau khi duyệt | `build`, `preview` lại và gửi người dùng duyệt bản mới. Sửa nhỏ cũng phải duyệt lại để video giao đúng thứ người dùng đã xem |
+| Chụp gộp không chạy được, chụp từng ảnh | Thiếu `@remotion/renderer` hoặc trình duyệt lỗi | Vẫn ra storyboard, chỉ chậm hơn. Chạy lại `video-editor setup` |
+| Storyboard không có chữ dưới ảnh | Không chụp được trang HTML bằng trình duyệt | Mở `out/storyboard.html` để xem tiêu đề, hoặc đặt `VE_BROWSER` |
+| Tự kiểm tra báo "Khung đen", "Hình đứng yên", "Không có tiếng" | Bản cắt lỗi, nguồn có đoạn đen hoặc câm | Xem khung đó trong `out/kiem-tra/`, sửa `cuts.drop` hoặc nguồn, rồi build → preview → duyệt → render lại |
 | Không thấy các skill liên quan trong Claude Code | Chưa chạy `setup`, hoặc phiên đang mở từ trước khi cài | `video-editor skills` để xem đã cài chưa, `video-editor skills install` để cài, rồi mở phiên Claude Code mới |
 | "Bỏ qua … skill vì đã có skill cùng tên" | Bạn tự cài một skill trùng tên trước đó | Giữ bản của bạn, hoặc xoá thư mục đó rồi chạy lại `video-editor skills install` |

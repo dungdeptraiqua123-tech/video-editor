@@ -6,6 +6,7 @@
 Không dùng mạng, không cần Whisper hay ElevenLabs: lời thoại nạp từ dữ liệu giả, giọng đọc dùng giọng tạm.
 """
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -73,8 +74,11 @@ def talking(tmp):
     tr.write_text(json.dumps([{"start": ws[0]["s"], "end": ws[-1]["e"], "text": " ".join(w["w"] for w in ws), "words": ws}], ensure_ascii=False), encoding="utf-8")
 
     prj = tmp / "a"
-    ve("init", prj, "--input", src, "--template", "btc-daily")
+    ve("note", "Phụ đề to hơn một chút", "--loai", "phu-de")
+    p = ve("init", prj, "--input", src, "--template", "btc-daily", "--pace", "vua", "--rule", "Đồ hoạ không che mặt người nói")
+    check("bước 1: in quy tắc riêng và ghi nhớ góp ý cũ", "Đồ hoạ không che mặt" in p.stdout and "Phụ đề to hơn" in p.stdout)
     ve("transcribe", prj, "--from-json", tr)
+    check("bước 4: có bảng từng chữ kèm thời gian", "## Từng chữ" in (prj / "work/bang-quy-chieu.md").read_text(encoding="utf-8"))
     edit(prj, lambda c: c.update(content={
         "hook": {"title": "Bitcoin lên 87K"}, "hookSec": 1.5, "outroSec": 2.0, "cta": "Theo dõi",
         "beats": [{"start": "giá Bitcoin", "end": "85 ngàn đô", "head": "Mốc giá", "g": {"type": "levels", "title": "Các mốc", "levels": [
@@ -90,23 +94,44 @@ def talking(tmp):
     w85 = next(w for w in d["words"] if w["text"] == "85")
     check("mốc 87K bật đúng lúc nói (theo bản đã cắt)", abs(d["beats"][0]["start"] + lv[0]["d"] - (w87["start"] - 0.08)) < 0.02)
     check("mốc 85K bật đúng lúc nói sau đoạn cắt", abs(d["beats"][0]["start"] + lv[1]["d"] - (w85["start"] - 0.08)) < 0.02)
+    bang = (prj / "work/bang-quy-chieu.md").read_text(encoding="utf-8")
+    m = re.search(r"\| \d+ \| 85 \| 00:(\d\d\.\d\d) \|", bang)
+    check("bảng quy chiếu: chữ \"85\" mang thời gian video sau khi cắt", bool(m) and abs(float(m.group(1)) - w85["start"]) < 0.01)
+    check("bảng quy chiếu: có lịch phần tử và đánh dấu từ đệm bị cắt", "## Lịch xuất hiện" in bang and "| ờ | — |" in bang and "cắt: từ đệm" in bang)
+    sfx = d["sfx"]["files"]
+    check("âm thanh hiệu ứng là file thu thật (mp3 Mixkit), không có file tạo bằng code",
+          set(sfx) == {"whoosh", "impact", "riser", "click"} and all(v.endswith(".mp3") and (prj / "media" / v).exists() for v in sfx.values()))
 
     # chạy lại build không cắt lại (dùng bản cắt cũ)
     p = ve("build", prj)
     check("build lần hai dùng lại bản cắt", "dùng lại" in p.stdout)
 
+    p = ve("render", prj, ok=False)
+    check("chưa duyệt storyboard thì không render", p.returncode == 2 and "chưa được duyệt" in p.stderr)
+    p = ve("preview", prj)
+    shots = list((prj / "out/storyboard").glob("*.jpg"))
+    check("storyboard có ảnh kèm tiêu đề", (prj / "out/storyboard.jpg").exists() and len(shots) >= 6 and "Đồ hoạ: Mốc giá" in (prj / "out/storyboard.html").read_text(encoding="utf-8"), f"{len(shots)} ảnh")
+    ve("approve", prj)
     t0 = time.time()
     ve("render", prj)
     took = time.time() - t0
-    ve("export", prj)
+    p = ve("export", prj)
     mp4 = prj / "out" / "a.mp4"
     check("có MP4", mp4.exists(), f"render {took:.0f}s")
     check("thời lượng video khớp dữ liệu", abs(dur(mp4) - d["duration"]) < 0.1, f"{dur(mp4):.2f}s / {d['duration']:.2f}s")
     check("phụ đề không vượt video", srt_end(prj / "out/a.srt") <= dur(mp4) + 0.05)
     check("có VTT, ảnh bìa, báo cáo", all((prj / "out" / f).exists() for f in ("a.vtt", "anh-bia.jpg", "bao-cao.md")))
-    check("báo cáo xác nhận đồng bộ", "✓ khớp" in (prj / "out/bao-cao.md").read_text(encoding="utf-8"))
+    rp = (prj / "out/bao-cao.md").read_text(encoding="utf-8")
+    check("báo cáo xác nhận đồng bộ", "✓ khớp" in rp)
+    qa = json.loads((prj / "work/qa.json").read_text(encoding="utf-8"))
+    check("tự kiểm tra khung hình từ video cuối", (prj / "out/kiem-tra.jpg").exists() and len(qa["frames"]) >= 6 and not qa["issues"], f"{len(qa['frames'])} khung, {qa['issues'] or 'không lỗi'}")
+    check("báo cáo có phần tự kiểm tra và quy tắc riêng", "## Tự kiểm tra khung hình" in rp and "- [ ] Đồ hoạ không che mặt người nói" in rp)
     p = ve("render", prj)
     check("render lại khi không đổi gì thì bỏ qua", "bỏ qua" in p.stdout)
+    edit(prj, lambda c: c["content"].update(cta="Theo dõi kênh"))
+    ve("build", prj)
+    p = ve("render", prj, ok=False)
+    check("đổi nội dung sau khi duyệt thì phải duyệt lại", p.returncode == 2 and "đã đổi sau lần duyệt" in p.stderr)
 
 
 def script(tmp):
@@ -133,7 +158,8 @@ def script(tmp):
     check("ảnh sản phẩm được đưa vào media/", (prj / "media" / d["beats"][1]["g"]["src"]).exists())
     check("ghi chú [..] và tiêu đề # không bị đọc", not any("ghi" in w["text"] or "tiêu" in w["text"] for w in d["words"]))
     ve("preview", prj)
-    check("có ảnh xem trước", (prj / "out/xem-truoc.jpg").exists())
+    check("có storyboard", (prj / "out/storyboard.jpg").exists())
+    ve("approve", prj)
     ve("render", prj)
     ve("export", prj)
     mp4 = prj / "out" / "b.mp4"
@@ -165,6 +191,7 @@ def errors(tmp):
 
 if __name__ == "__main__":
     tmp = Path(tempfile.mkdtemp(prefix="ve-e2e-"))
+    os.environ["VE_NOTES"] = str(tmp / "ghi-nho.md")  # không ghi vào GHI-NHO.md thật của skill
     t0 = time.time()
     try:
         talking(tmp)

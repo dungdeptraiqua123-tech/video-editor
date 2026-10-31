@@ -65,7 +65,8 @@ export type Props = {
     background?: { src: string; duration: number } | null;
     music?: { src: string; volume: number } | null;
   };
-  sfx: boolean;
+  /** Âm thanh hiệu ứng (file thu thật trong media/): false = tắt. */
+  sfx: false | { files: Partial<Record<"whoosh" | "impact" | "riser" | "click" | "pop" | "tick", string>>; volume: number };
   hook: { kicker?: string; title: string; sub?: string };
   hookSec: number;
   outroSec: number;

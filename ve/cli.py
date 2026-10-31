@@ -7,10 +7,13 @@
   video-editor transcribe <dự án>          chép lời (hoặc --from-srt / --from-json)
   video-editor tts <dự án> [--placeholder] giọng đọc cho kịch bản
   video-editor build <dự án> [--check]     cắt + dò mốc đồ hoạ + kiểm tra
-  video-editor preview <dự án> [--draft]   ảnh các khoảnh khắc chính (và bản nháp)
+  video-editor preview <dự án> [--seed N]  storyboard ảnh ngẫu nhiên có tiêu đề để người dùng duyệt
+  video-editor approve <dự án>             ghi nhận đã duyệt storyboard (render chỉ chạy sau bước này)
   video-editor render <dự án>              render MP4
-  video-editor export <dự án>              phụ đề SRT/VTT, ảnh bìa, báo cáo
-  video-editor run <dự án>                 làm tiếp mọi bước còn thiếu
+  video-editor export <dự án>              tự kiểm tra khung hình, phụ đề SRT/VTT, ảnh bìa, bảng quy chiếu, báo cáo
+  video-editor run <dự án>                 làm tiếp mọi bước còn thiếu (dừng chờ duyệt storyboard)
+  video-editor rules <dự án> [--add ...]   quy tắc riêng của video này
+  video-editor note "góp ý" [--project]    ghi nhớ góp ý để áp dụng cho các video sau
   video-editor status <dự án>
 """
 from __future__ import annotations
@@ -25,7 +28,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ve import media as M  # noqa: E402
 from ve.env import SKILL_DIR, TEMPLATES, VEError, info, read_json, run, venv_python, warn, write_json  # noqa: E402
-from ve.project import FORMATS, Project, fingerprint, init_project  # noqa: E402
+from ve import notes  # noqa: E402
+from ve.notes import KINDS as NOTE_KINDS  # noqa: E402
+from ve.project import FORMATS, GRAPHICS_EVERY, PACES, Project, fingerprint, init_project, rules_text  # noqa: E402
 
 
 def cmd_transcribe(prj: Project, force=False, from_srt=None, from_json=None) -> None:
@@ -129,9 +134,20 @@ def cmd_run(prj: Project, force=False, until: str | None = None, placeholder=Fal
     from ve.build import build
     from ve.render import export, render
 
-    steps = [("tts" if prj.cfg.get("script") else "transcribe"), "build", "render", "export"]
+    steps = [("tts" if prj.cfg.get("script") else "transcribe"), "build", "preview", "render", "export"]
     for s in steps:
         info(f"── {s}")
+        if s == "preview":
+            from ve.storyboard import preview
+
+            fp = fingerprint(prj.work / "data.json")
+            if prj.fresh("approve", fp):
+                info("✓ storyboard đã được duyệt")
+                continue
+            if not prj.fresh("preview", fp):
+                preview(prj)
+            info(f"⏸ Dừng chờ duyệt storyboard (out/storyboard.jpg). Người dùng đồng ý thì `video-editor approve {prj.root}` rồi chạy lại `video-editor run {prj.root}`.")
+            return
         if s == "transcribe":
             cmd_transcribe(prj, force)
         elif s == "tts":
@@ -174,10 +190,27 @@ def main(argv=None) -> int:
     i.add_argument("--type", choices=["talking-head", "explainer", "product"])
     i.add_argument("--voice", choices=["elevenlabs", "placeholder"])
     i.add_argument("--name")
+    i.add_argument("--pace", choices=list(PACES), help="nhịp dựng: nhanh, vua (mặc định), cham")
+    i.add_argument("--graphics", choices=list(GRAPHICS_EVERY), help="mật độ đồ hoạ: it, vua (mặc định), nhieu")
+    i.add_argument("--rule", action="append", default=[], help="quy tắc riêng cho video này (lặp lại được), không áp dụng cho video khác")
     sub.add_parser("templates", help="liệt kê mẫu nhận diện")
+    r = sub.add_parser("rules", help="xem/thêm quy tắc riêng của một video")
+    r.add_argument("dir")
+    r.add_argument("--add", action="append", default=[], help="thêm quy tắc (lặp lại được)")
+    r.add_argument("--remove", type=int, action="append", default=[], help="xoá quy tắc số N")
+    n = sub.add_parser("note", help="ghi nhớ góp ý của người dùng để áp dụng cho các video sau")
+    n.add_argument("text")
+    n.add_argument("--project", help="dự án nhận góp ý (ghi tên kèm theo)")
+    n.add_argument("--loai", default="khac", choices=NOTE_KINDS)
+    sub.add_parser("notes", help="xem ghi nhớ góp ý")
+    ap_ = sub.add_parser("approve", help="ghi nhận người dùng đã duyệt storyboard (sau đó mới render được)")
+    ap_.add_argument("dir")
+    ap_.add_argument("--note", default="", help="ghi chú của người duyệt")
+    q = sub.add_parser("qa", help="tự kiểm tra khung hình video đã render")
+    q.add_argument("dir")
 
     for name, hlp in [("transcribe", "chép lời"), ("tts", "giọng đọc cho kịch bản"), ("build", "cắt, dò mốc, kiểm tra"), ("check", "chỉ kiểm tra nội dung"),
-                      ("preview", "ảnh xem trước"), ("render", "render video"), ("export", "phụ đề, ảnh bìa, báo cáo"), ("run", "làm tiếp mọi bước"), ("status", "trạng thái")]:
+                      ("preview", "storyboard để người dùng duyệt"), ("render", "render video"), ("export", "tự kiểm tra, phụ đề, ảnh bìa, báo cáo"), ("run", "làm tiếp mọi bước"), ("status", "trạng thái")]:
         p = sub.add_parser(name, help=hlp)
         p.add_argument("dir")
         if name in ("transcribe", "tts", "build", "render", "run"):
@@ -189,8 +222,9 @@ def main(argv=None) -> int:
             p.add_argument("--placeholder", action="store_true", help="giọng tạm im lặng để duyệt bố cục")
         if name == "preview":
             p.add_argument("--draft", action="store_true", help="kèm bản nháp nửa độ phân giải")
+            p.add_argument("--seed", type=int, help="đổi bộ ảnh ngẫu nhiên")
         if name == "run":
-            p.add_argument("--until", choices=["transcribe", "tts", "build", "render", "export"])
+            p.add_argument("--until", choices=["transcribe", "tts", "build", "preview", "render", "export"])
     v = sub.add_parser("voices", help="liệt kê giọng ElevenLabs trong tài khoản")
     v.add_argument("--json", action="store_true")
     c = sub.add_parser("clone-voice", help="nhân bản giọng (ElevenLabs Starter trở lên)")
@@ -229,13 +263,25 @@ def main(argv=None) -> int:
                     info(f" {t.name}: {read_json(t / 'brand.json').get('name', '')}")
             return 0
         if a.cmd == "init":
-            prj = init_project(Path(a.dir), a.input, a.script, a.format, a.template, a.type, a.background, a.name, a.voice)
+            prj = init_project(Path(a.dir), a.input, a.script, a.format, a.template, a.type, a.background, a.name, a.voice, a.pace, a.graphics, a.rule)
             if a.input and not a.script:
                 pi = M.probe(prj.path(prj.cfg["input"]))
                 info(f"nguồn: {pi['duration']:.1f}s" + (f", {pi['width']}×{pi['height']}" if pi.get("has_video") else ", chỉ âm thanh"))
                 M.check_audio(pi)
-            info(f"✓ tạo dự án {prj.root} ({prj.cfg['type']}, {prj.cfg['format']}, mẫu {prj.cfg['template']})")
+            st = prj.cfg["style"]
+            info(f"✓ tạo dự án {prj.root} ({prj.cfg['type']}, {prj.cfg['format']}, mẫu {prj.cfg['template']}, nhịp {st['pace']}, đồ hoạ {st['graphics']})")
+            if rules_text(prj.cfg):
+                info(rules_text(prj.cfg))
+            notes.show()
             info(f"  bước tiếp: video-editor {'tts' if a.script else 'transcribe'} {prj.root}")
+            return 0
+        if a.cmd == "note":
+            notes.add(a.text, Project(Path(a.project)).cfg.get("name", "") if a.project else "", a.loai)
+            return 0
+        if a.cmd == "notes":
+            if not notes.entries():
+                info(f"Chưa có góp ý nào ({notes.path()}).")
+            notes.show(limit=1000)
             return 0
         if a.cmd == "voices":
             from ve import tts
@@ -262,6 +308,33 @@ def main(argv=None) -> int:
             return 0
 
         prj = Project(Path(a.dir))
+        if a.cmd in ("build", "preview", "render", "export", "run", "qa") and rules_text(prj.cfg):
+            info(rules_text(prj.cfg))
+        if a.cmd == "rules":
+            rs = [x for x in prj.cfg.get("rules") or []]
+            for k in sorted(set(a.remove), reverse=True):
+                if not 1 <= k <= len(rs):
+                    raise VEError(f"Không có quy tắc số {k}.", f"Đang có {len(rs)} quy tắc.")
+                rs.pop(k - 1)
+            rs += [x.strip() for x in a.add if x.strip()]
+            if a.add or a.remove:
+                prj.cfg["rules"] = rs
+                prj.save()
+            info(rules_text(prj.cfg) or "Video này chưa có quy tắc riêng.")
+            return 0
+        if a.cmd == "approve":
+            from ve.storyboard import approve
+
+            approve(prj, a.note)
+            return 0
+        if a.cmd == "qa":
+            from ve.storyboard import qa
+
+            final = prj.out / f"{prj.slug}.mp4"
+            if not final.exists():
+                raise VEError("Chưa có video.", f"Chạy `video-editor render {prj.root}` trước.")
+            qa(prj, final)
+            return 0
         if a.cmd == "transcribe":
             cmd_transcribe(prj, a.force, a.from_srt, a.from_json)
         elif a.cmd == "tts":
@@ -271,9 +344,9 @@ def main(argv=None) -> int:
 
             build(prj, getattr(a, "force", False), check_only=a.cmd == "check")
         elif a.cmd == "preview":
-            from ve.render import preview
+            from ve.storyboard import preview
 
-            preview(prj, a.draft)
+            preview(prj, a.draft, a.seed)
         elif a.cmd == "render":
             from ve.render import render
 
