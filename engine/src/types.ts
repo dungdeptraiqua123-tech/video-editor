@@ -62,6 +62,8 @@ export type Props = {
     srcW?: number;
     srcH?: number;
     face?: { x: number; y: number; pipScale?: number; fit?: "auto" | "cover" | "contain" };
+    /** Đường đi của mặt người nói theo thời gian bản cắt: [giây, x, y] tỉ lệ 0–1 của khung gốc (bám mặt khi đổi khổ). */
+    faceTrack?: number[][];
     background?: { src: string; duration: number } | null;
     music?: { src: string; volume: number } | null;
   };

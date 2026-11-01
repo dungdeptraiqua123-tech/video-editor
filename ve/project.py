@@ -28,7 +28,8 @@ DEFAULT = {
     "template": "trung-tinh",
     "brand": {},
     "captions": {"enabled": True, "style": "glow", "position": None, "keywords": [], "maxChars": None, "maxWords": 8},
-    "face": {"x": 0.5, "y": 0.4},
+    # vị trí mặt trong khung gốc (tỉ lệ 0–1); track "auto": tự dò và bám mặt khi khổ gốc khác khổ ra
+    "face": {"x": 0.5, "y": 0.4, "track": "auto"},
     "voice": {"provider": "recorded", "voiceId": None, "model": "eleven_turbo_v2_5", "speed": 1.05, "stability": 0.45, "style": 0.2},
     "whisper": {"model": "auto", "language": "vi"},
     # phong cách và nhịp (hỏi ở bước nhận việc); null trong cuts = lấy theo nhịp

@@ -28,7 +28,8 @@
 |---|---|---|
 | Muốn video dựng theo nhịp nào? | `nhanh`: dồn dập, cắt sát, hợp Reels/TikTok · `vua` (mặc định) · `cham`: giữ hơi thở, hợp kể chuyện, phân tích | `style.pace` (`init --pace`) |
 | Bao nhiêu đồ hoạ? | `it` (~1 khung/30s) · `vua` (~1/15s) · `nhieu` (~1/8s) | `style.graphics` (`init --graphics`) |
-| Có video mẫu muốn giống không? Cảm giác mong muốn (nghiêm túc, năng động, sang trọng…)? | link, mô tả | `style.reference`, `style.notes` |
+| Có video mẫu muốn giống không? Cảm giác mong muốn (nghiêm túc, năng động, sang trọng…)? | file video mẫu (link thì nhờ người dùng tải về), mô tả | `video-editor mau <file> --project <dự án>` → `style.reference`; `style.notes` |
+| Video dài muốn cắt thành nhiều short? Bao nhiêu short, mỗi short dài bao nhiêu? | 25–60 giây, 8 đoạn đề xuất | `video-editor shorts <dự án dài> --so N --min --max` |
 | Kiểu phụ đề | glow · box · pop · plain | `captions.style` |
 | Âm thanh hiệu ứng | bật (âm thu thật) · tắt · dùng file riêng | `sfx` |
 

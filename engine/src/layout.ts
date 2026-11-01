@@ -94,3 +94,23 @@ export const fitVideo = (L: Layout, srcW: number, srcH: number, fx: number, fy: 
   const oy = m === "cover" ? clamp(L.h * L.eyeLine - fy * vh, L.h - vh, 0) : (L.h - vh) / 2;
   return { mode: m, vw, vh, ox, oy, faceX: ox + fx * vw, faceY: oy + fy * vh };
 };
+
+/** Vị trí mặt lúc t (giây) theo đường đi đã làm mượt; nội suy tuyến tính giữa hai mốc. Không có đường đi thì dùng vị trí cố định. */
+export const faceAt = (track: number[][] | undefined, t: number, x: number, y: number): [number, number] => {
+  if (!track || track.length === 0) return [x, y];
+  const first = track[0];
+  const last = track[track.length - 1];
+  if (t <= first[0]) return [first[1], first[2]];
+  if (t >= last[0]) return [last[1], last[2]];
+  let lo = 0;
+  let hi = track.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (track[mid][0] <= t) lo = mid;
+    else hi = mid;
+  }
+  const [t0, x0, y0] = track[lo];
+  const [t1, x1, y1] = track[hi];
+  const k = t1 > t0 ? (t - t0) / (t1 - t0) : 0;
+  return [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k];
+};

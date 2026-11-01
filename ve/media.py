@@ -77,9 +77,13 @@ def extract_wav(src: Path, dst: Path) -> None:
 
 def cut(src: Path, segments: list, dst: Path, has_video: bool, size: tuple | None = None) -> None:
     """Giữ các đoạn segments (giây, file gốc), chuẩn hoá -14 LUFS. Video: H.264 CRF 17 (bản trung gian, chỉ nén một lần nữa khi render)."""
-    sel = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b in segments)
+    # video dài mà chỉ giữ một khúc (short cắt từ livestream): nhảy thẳng tới khúc đó thay vì giải mã cả file
+    off = max(0.0, min(a for a, _ in segments) - 2.0)
+    off = off if off >= 5 else 0.0
+    span = max(b for _, b in segments) - off + 2.0
+    sel = "+".join(f"between(t,{a - off:.3f},{b - off:.3f})" for a, b in segments)
     af = f"aselect='{sel}',asetpts=N/SR/TB,loudnorm=I=-14:TP=-1.5:LRA=11"
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", src]
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", *(["-ss", f"{off:.3f}"] if off else []), "-i", src, "-t", f"{span:.3f}"]
     if has_video:
         vf = f"select='{sel}',setpts=N/FRAME_RATE/TB"
         cmd += ["-vf", vf, "-af", af, "-ar", "48000", "-c:v", "libx264", "-crf", "17", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", dst]

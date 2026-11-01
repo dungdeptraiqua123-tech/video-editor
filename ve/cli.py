@@ -14,6 +14,9 @@
   video-editor run <dự án>                 làm tiếp mọi bước còn thiếu (dừng chờ duyệt storyboard)
   video-editor rules <dự án> [--add ...]   quy tắc riêng của video này
   video-editor note "góp ý" [--project]    ghi nhớ góp ý để áp dụng cho các video sau
+  video-editor shorts <dự án dài> [--so 8]  đề xuất các đoạn 25–60 giây hay nhất để cắt thành short
+  video-editor shorts <dự án dài> --tao 1,3  tạo mỗi đoạn thành một dự án short (dùng lại lời thoại)
+  video-editor mau <video mẫu> [--project <dự án>] [--ap-dung]  phân tích video mẫu: nhịp cắt, tốc độ nói, câu mở, ảnh kiểu phụ đề
   video-editor status <dự án>
 """
 from __future__ import annotations
@@ -208,6 +211,21 @@ def main(argv=None) -> int:
     ap_.add_argument("--note", default="", help="ghi chú của người duyệt")
     q = sub.add_parser("qa", help="tự kiểm tra khung hình video đã render")
     q.add_argument("dir")
+    sh = sub.add_parser("shorts", help="cắt video dài thành nhiều short: đề xuất đoạn hay, tạo dự án cho từng đoạn")
+    sh.add_argument("dir", help="dự án của video dài (đã chép lời)")
+    sh.add_argument("--so", type=int, default=8, help="số đoạn đề xuất (mặc định 8)")
+    sh.add_argument("--min", type=float, default=25, help="độ dài ngắn nhất, giây (mặc định 25)")
+    sh.add_argument("--max", type=float, default=60, help="độ dài dài nhất, giây (mặc định 60)")
+    sh.add_argument("--tao", help="tạo dự án cho các đoạn: số thứ tự trong đề xuất (1,3) hoặc mốc giây gốc (35.4-69)")
+    sh.add_argument("--vao", help="thư mục chứa các dự án short (mặc định <dự án dài>/shorts)")
+    mp = sub.add_parser("mau", aliases=["ref"], help="phân tích video mẫu (file trên máy): nhịp đổi cảnh, tốc độ nói, quãng nghỉ, câu mở đầu → gợi ý nhịp")
+    mp.add_argument("video", help="đường dẫn video mẫu trên máy")
+    mp.add_argument("--project", help="dự án sẽ dựng theo mẫu: lưu phân tích vào work/mau/ và ghi style.reference")
+    mp.add_argument("--ap-dung", action="store_true", help="ghi luôn nhịp, mật độ đồ hoạ, mức cắt lặng gợi ý vào dự án (cần --project)")
+    mp.add_argument("--ra", help="thư mục ghi kết quả khi không có --project (mặc định ./phan-tich-mau/<tên video>)")
+    mp.add_argument("--khong-loi", action="store_true", help="bỏ phần chép lời (nhanh hơn, không có số đo tốc độ nói)")
+    mp.add_argument("--ngon-ngu", default="vi", help="ngôn ngữ lời nói trong video mẫu (mặc định vi)")
+    mp.add_argument("--toi-da", type=float, default=180, help="chỉ chép lời bấy nhiêu giây đầu (mặc định 180)")
 
     for name, hlp in [("transcribe", "chép lời"), ("tts", "giọng đọc cho kịch bản"), ("build", "cắt, dò mốc, kiểm tra"), ("check", "chỉ kiểm tra nội dung"),
                       ("preview", "storyboard để người dùng duyệt"), ("render", "render video"), ("export", "tự kiểm tra, phụ đề, ảnh bìa, báo cáo"), ("run", "làm tiếp mọi bước"), ("status", "trạng thái")]:
@@ -311,6 +329,29 @@ def main(argv=None) -> int:
                 info(f"  đã ghi vào {prj.file}")
             return 0
 
+        if a.cmd in ("mau", "ref"):
+            from ve import mau as MAU
+
+            if a.ap_dung and not a.project:
+                raise VEError("--ap-dung cần --project.", "Ví dụ: `video-editor mau mau.mp4 --project du-an --ap-dung`.")
+            name = MAU._slug(Path(a.video).stem)
+            prj = Project(Path(a.project)) if a.project else None
+            work = prj.work / "mau" / name if prj else (Path(a.ra) if a.ra else Path.cwd() / "phan-tich-mau" / name).resolve()
+            r = MAU.analyze(a.video, work, a.ngon_ngu, not a.khong_loi, a.toi_da)
+            sg = r["suggest"]
+            info(f"✓ phân tích xong → {work / 'phan-tich.md'}")
+            info(f"  gợi ý: nhịp {MAU.PACE_LABEL[sg['pace']]}, đồ hoạ {MAU.GRAPHICS_LABEL[sg['graphics']]}" + (f", cắt lặng từ {sg['gap']:.2f}s" if sg["gap"] else ""))
+            for w_ in sg["why"]:
+                info(f"   · {w_}")
+            info(f"  ảnh: {r['images']['toan-canh']} · {r['images']['mo-dau']}")
+            if prj:
+                rel = str((work / "phan-tich.md").relative_to(prj.root))
+                for c in MAU.apply(prj, r, rel, a.ap_dung):
+                    info(f"  ghi {c}")
+                if not a.ap_dung:
+                    info(f"  Hỏi người dùng có theo gợi ý không, đồng ý thì chạy lại với --ap-dung (hoặc sửa project.json).")
+            return 0
+
         prj = Project(Path(a.dir))
         if a.cmd in ("build", "preview", "render", "export", "run", "qa") and rules_text(prj.cfg):
             info(rules_text(prj.cfg))
@@ -325,6 +366,19 @@ def main(argv=None) -> int:
                 prj.cfg["rules"] = rs
                 prj.save()
             info(rules_text(prj.cfg) or "Video này chưa có quy tắc riêng.")
+            return 0
+        if a.cmd == "shorts":
+            from ve import shorts as SH
+            from ve.bang import clock
+
+            if a.tao:
+                SH.make(prj, a.tao, Path(a.vao).resolve() if a.vao else None)
+                return 0
+            res = SH.suggest(prj, a.so, a.min, a.max)
+            info(f"✂ {len(res)} đoạn đề xuất (điểm 0–100) → {prj.work / 'de-xuat-short.md'}")
+            for r in res:
+                info(f"  {r['i']:>2}. {clock(r['start'])}–{clock(r['end'])} {r['duration']:>3.0f}s  {r['score']:>3.0f} điểm  {r['title']}")
+            info(f"  Đọc lại từng đoạn trong de-xuat-short.md, bỏ đoạn lạc đề, gửi người dùng chọn. Tạo dự án: `video-editor shorts {prj.root} --tao 1,3`.")
             return 0
         if a.cmd == "approve":
             from ve.storyboard import approve

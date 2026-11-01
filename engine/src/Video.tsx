@@ -18,7 +18,7 @@ import { Captions } from "./Captions";
 import { GraphicPanel } from "./Graphics";
 import { asset, setMediaBase } from "./assets";
 import { Icon } from "./Icons";
-import { fitVideo, Layout, layoutFor } from "./layout";
+import { faceAt, fitVideo, Layout, layoutFor } from "./layout";
 import { alpha, applyBrand, C, glow } from "./theme";
 import { Brand, Props, Topic } from "./types";
 
@@ -248,7 +248,9 @@ export const Video: React.FC<Props> = (props) => {
   const zi = zooms.filter((z) => z <= t).length;
   const zoom = zi % 2 ? 1.1 : 1;
 
-  const fit = !faceless && media.srcW && media.srcH ? fitVideo(L, media.srcW, media.srcH, media.face?.x ?? 0.5, media.face?.y ?? 0.4, media.face?.fit) : null;
+  // bám mặt: tâm khung đi theo người nói (đường đi đã làm mượt, nhảy thẳng ở chỗ cắt)
+  const [faceNX, faceNY] = faceAt(media.faceTrack, t, media.face?.x ?? 0.5, media.face?.y ?? 0.4);
+  const fit = !faceless && media.srcW && media.srcH ? fitVideo(L, media.srcW, media.srcH, faceNX, faceNY, media.face?.fit) : null;
   // nền thương hiệu: luôn có khi không người nói hoặc khi video gốc khác khổ (contain), còn lại chỉ khi hiện đồ hoạ
   const bg = faceless || fit?.mode === "contain" ? 1 : p;
   const pipScale = media.face?.pipScale ?? (L.pip.h * 0.5) / ((fit?.vh ?? L.h) * 0.26);

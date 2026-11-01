@@ -1,2 +1,4 @@
 faster-whisper==1.2.1
 numpy>=1.26
+# dò mặt để bám khung khi đổi khổ (bộ dò Haar có sẵn trong gói, không tải mô hình)
+opencv-python-headless==4.13.0.92

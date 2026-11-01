@@ -8,7 +8,8 @@ Tài liệu này nói rõ skill `video-editor` làm gì trên máy: ghi file ở
 
 | Nơi | Ghi gì | Khi nào |
 |---|---|---|
-| Thư mục dự án người dùng chọn (`video-editor init <thư mục>`) | `project.json`, `media/`, `work/`, `out/` | Mọi lệnh dựng |
+| Thư mục dự án người dùng chọn (`video-editor init <thư mục>`) | `project.json`, `media/`, `work/`, `out/`; dự án short trong `<dự án dài>/shorts/`; phân tích video mẫu trong `work/mau/` | Mọi lệnh dựng |
+| `./phan-tich-mau/` trong thư mục đang đứng (đổi bằng `--ra`) | Phân tích video mẫu khi không gắn với dự án nào | `video-editor mau` không có `--project` |
 | `~/.video-editor/` (đổi bằng `VE_HOME`) | Môi trường Python riêng, bộ dựng Remotion, `config.json` (đường dẫn trình duyệt, mô hình đã chọn) | `setup` |
 | Bộ nhớ đệm Hugging Face (`~/.cache/huggingface`) | Mô hình chép lời Whisper | `setup` |
 | `GHI-NHO.md` trong thư mục skill (thư mục chỉ đọc thì `~/.video-editor/GHI-NHO.md`) | Góp ý dựng video của người dùng | `video-editor note` |
@@ -19,14 +20,14 @@ Tài liệu này nói rõ skill `video-editor` làm gì trên máy: ghi file ở
 
 | Địa chỉ | Để làm gì | Khi nào |
 |---|---|---|
-| pypi.org, files.pythonhosted.org | Cài `faster-whisper` theo phiên bản ghi cứng trong `requirements.txt` | `setup` |
+| pypi.org, files.pythonhosted.org | Cài `faster-whisper` và `opencv-python-headless` (dò mặt) theo phiên bản ghi cứng trong `requirements.txt` | `setup` |
 | registry.npmjs.org | Cài Remotion và React theo `engine/package-lock.json` | `setup` |
 | huggingface.co (*.hf.co) | Tải mô hình Whisper | `setup` |
 | remotion.media | Remotion tải trình duyệt render Chrome Headless Shell | `setup` |
 | api.elevenlabs.io | Đổi kịch bản thành giọng đọc | Chỉ `video-editor tts`, khi người dùng chọn giọng AI và tự đặt key |
 | 127.0.0.1 (cổng ngẫu nhiên) | Máy chủ cục bộ đưa file media của dự án cho bộ dựng | Trong lúc render, tắt ngay sau đó; chỉ nghe trên máy, máy khác không vào được |
 
-Video, âm thanh và lời thoại của người dùng không được gửi đi đâu: chép lời chạy trên máy. Skill không có thu thập số liệu sử dụng, không đăng video lên mạng xã hội.
+Video, âm thanh và lời thoại của người dùng không được gửi đi đâu: chép lời, dò mặt (`face_worker.py`, bộ dò Haar có sẵn trong gói OpenCV), chấm điểm đoạn short và phân tích video mẫu đều chạy trên máy. Lệnh `mau` chỉ đọc file trên máy, từ chối link và không tải video từ mạng. Skill không có thu thập số liệu sử dụng, không đăng video lên mạng xã hội.
 
 ### Khoá API
 

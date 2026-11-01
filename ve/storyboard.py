@@ -86,10 +86,10 @@ def describe(d: dict, t: float) -> tuple[str, str]:
     return scene, (f"“{said}”" if said else "")
 
 
-def _sheet(page: Path, image: Path, title: str, notes: list[str], tiles: list[tuple[str, str, str]], portrait: bool) -> Path:
+def _sheet(page: Path, image: Path, title: str, notes: list[str], tiles: list[tuple[str, str, str]], portrait: bool, cols: int | None = None) -> Path:
     """Trang HTML ghép ảnh kèm tiêu đề, chụp thành JPG bằng trình duyệt render. Không có trình duyệt thì ghép ảnh không chữ bằng ffmpeg."""
     tw, th = (240, 427) if portrait else (400, 225)
-    cols = 5 if portrait else 3
+    cols = cols or (5 if portrait else 3)
     cap_h, gap, pad = 92, 14, 24
     rows = (len(tiles) + cols - 1) // cols
     head_h = 70 + 22 * len(notes)

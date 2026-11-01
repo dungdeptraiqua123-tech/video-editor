@@ -9,6 +9,7 @@ from . import media as M
 from .content import resolve_content
 from .env import ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
 from . import bang
+from . import face as FACE
 from .project import GRAPHICS_EVERY, Project, _merge, cut_settings, fingerprint, pace_of
 from .timeline import CutConfig, apply_fixes, build_timeline, words_from_transcript
 
@@ -156,7 +157,16 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
 
     m = {"main": main, "hasVideo": has_video}
     if has_video:
-        m.update(srcW=pinfo["width"], srcH=pinfo["height"], face=cfg.get("face") or {"x": 0.5, "y": 0.4})
+        face = {k: v for k, v in (cfg.get("face") or {"x": 0.5, "y": 0.4}).items() if k != "track"}
+        m.update(srcW=pinfo["width"], srcH=pinfo["height"], face=face)
+        if not check_only and FACE.wanted(cfg, pinfo["width"], pinfo["height"], W, H):
+            ft = FACE.track(prj, prj.media / main, tl.segments, force)
+            if ft and ft["coverage"] >= FACE.MIN_COVERAGE:
+                m["faceTrack"] = ft["track"]
+                face.setdefault("fit", "cover")  # bám được mặt thì phủ kín khung thay vì để viền nền
+                info(f"🙂 bám mặt: thấy mặt {ft['coverage'] * 100:.0f}% thời lượng, khung đi theo người nói")
+            elif ft:
+                warn(f"Chỉ thấy mặt {ft['coverage'] * 100:.0f}% thời lượng nên giữ khung cố định theo face.x/face.y. Tắt hẳn: face.track = false.")
     if cfg.get("background") and faceless:
         bp = prj.path(cfg["background"])
         bi = M.probe(bp) if bp and bp.suffix.lower() in M.VIDEO_EXT else {"duration": 9999}

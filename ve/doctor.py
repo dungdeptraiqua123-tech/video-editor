@@ -119,6 +119,8 @@ def checks(online_checks: bool = True) -> list[dict]:
     vp = venv_python()
     fw = vp.exists() and subprocess.run([str(vp), "-c", "import faster_whisper"], capture_output=True).returncode == 0
     add("Môi trường chép lời", fw, str(VENV) if fw else "chưa cài", "Chạy `video-editor setup`")
+    cv = fw and subprocess.run([str(vp), "-c", "import cv2"], capture_output=True).returncode == 0
+    add("Bám mặt (OpenCV)", cv, "có" if cv else "chưa cài", "Chạy lại `video-editor setup`. Thiếu thì khi đổi khổ 16:9 → 9:16 khung giữ cố định", need=False)
     eng = (ENGINE / "node_modules" / "remotion").exists()
     add("Bộ dựng Remotion", eng, str(ENGINE) if eng else "chưa cài", "Chạy `video-editor setup`")
     br = remotion_browser_ready() or find_browser()
@@ -190,7 +192,7 @@ def setup(model: str | None = None, skip_model: bool = False, install_system: bo
     if not vp.exists():
         info(f"▶ tạo môi trường Python riêng: {VENV}")
         run([sys.executable, "-m", "venv", VENV])
-    info("▶ cài thư viện chép lời (faster-whisper, đúng phiên bản trong requirements.txt)")
+    info("▶ cài thư viện chép lời và dò mặt (faster-whisper, OpenCV; đúng phiên bản trong requirements.txt)")
     run([vp, "-m", "pip", "install", "-q", "--upgrade", "pip"], quiet=True)
     run([vp, "-m", "pip", "install", "-q", "-r", SKILL_DIR / "requirements.txt"], quiet=True)
 

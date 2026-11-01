@@ -28,7 +28,7 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `rules` | `[]` | Quy tắc riêng của **video này**: `["Không dùng màu đỏ", "Giữ nguyên câu chào đầu"]`. Mọi lệnh dựng in lại để không quên; báo cáo có danh sách để tích. Không áp dụng cho video khác (góp ý dùng lâu dài ghi vào `GHI-NHO.md` bằng `video-editor note`) |
 | `brand` | `{}` | Ghi đè thương hiệu của mẫu, xem dưới |
 | `captions` | | Phụ đề, xem dưới |
-| `face` | `{"x":0.5,"y":0.4}` | Vị trí mắt người nói trong video gốc (tỉ lệ 0–1). Dùng để canh khi khổ ra khác khổ gốc và để thu về ô góc. `pipScale` chỉnh độ phóng trong ô góc |
+| `face` | `{"x":0.5,"y":0.4,"track":"auto"}` | Mặt người nói, xem dưới |
 | `voice` | | Giọng AI: `provider` (`elevenlabs` / `placeholder`), `voiceId`, `model`, `speed`, `stability`, `style` |
 | `whisper` | `{"model":"auto","language":"vi"}` | `model`: `auto`, `nhe` (small), `vua` (medium), `nang` (large-v3), `nhanh` (large-v3-turbo) |
 | `cuts` | | Cắt, xem dưới |
@@ -80,8 +80,19 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 |---|---|---|
 | `pace` | `vua` | Nhịp dựng. `nhanh`: cắt lặng trên 0,35s, chừa 0,08s, tự cắt từ đệm và nói vấp, đổi khung mỗi 2,2s. `vua`: 0,55s / 0,12s, cắt từ đệm, nói vấp chỉ gợi ý, đổi khung mỗi 3s. `cham`: 0,9s / 0,18s, từ đệm và nói vấp chỉ gợi ý, đổi khung mỗi 5s |
 | `graphics` | `vua` | Mật độ đồ hoạ gợi ý khi viết `content`: `it` khoảng 1 khung mỗi 30s, `vua` mỗi 15s, `nhieu` mỗi 8s. `build` in số khung hiện có so với gợi ý |
-| `reference` | `""` | Link hoặc mô tả video tham khảo về phong cách |
+| `reference` | `""` | Link hoặc mô tả video tham khảo về phong cách. `video-editor mau <file> --project <dự án>` tự ghi tóm tắt số đo vào đây |
 | `notes` | `""` | Ghi chú thêm về phong cách (màu, cảm xúc, kiểu phụ đề mong muốn) |
+
+### face
+
+| Khoá | Mặc định | |
+|---|---|---|
+| `track` | `"auto"` | Bám mặt khi khung gốc rộng hơn khổ ra (16:9 sang 9:16, 1:1, 4:5): `build` dò mặt 4 lần mỗi giây trên bản cắt (OpenCV, chạy trên máy), làm mượt trong từng đoạn, nhảy thẳng ở chỗ cắt, rồi phủ kín khổ ra với mặt ở giữa. Kết quả ở `work/face.json`. Thấy mặt dưới 50% thời lượng thì giữ khung cố định. `true`: luôn bám; `false`: tắt |
+| `x`, `y` | `0.5`, `0.4` | Vị trí mắt người nói trong video gốc (tỉ lệ 0–1) khi không bám mặt. Dùng để canh khi khổ ra khác khổ gốc và để thu về ô góc |
+| `fit` | tự chọn | `cover` phủ kín (mặc định khi bám được mặt), `contain` giữ trọn khung gốc có viền nền, `auto` theo độ lệch khổ |
+| `pipScale` | tự tính | Độ phóng của người nói trong ô góc khi hiện đồ hoạ |
+
+Đo trên clip thử 24 giây 16:9 (người nói trượt từ trái sang phải): dò mặt 2,5 giây, thấy mặt 91% thời lượng, tâm khung lệch trung bình 1,2% bề ngang so với vị trí thật. Video có hai người: khung bám người có mặt lớn nhất trong mỗi đoạn, không tự đổi theo người đang nói.
 
 ### cuts
 

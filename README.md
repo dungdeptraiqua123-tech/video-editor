@@ -24,6 +24,11 @@ nhận việc (phong cách, nhịp, quy tắc riêng) → doctor/setup → init 
 **Cắt**
 - Khoảng lặng, từ đệm (ờ, ừm…), nói vấp (gợi ý hoặc tự cắt), khoảng giữ hoặc bỏ tuỳ chọn.
 - Một hệ thời gian chung, nên phụ đề, đồ hoạ và SRT không lệch sau khi cắt.
+- **Video dài thành nhiều short:** chấm điểm mọi đoạn 25–60 giây theo lời (câu mở có móc, trọn ý, nhiều con số), đề xuất các đoạn không trùng nhau, tạo mỗi đoạn thành một dự án dùng lại lời thoại đã chép.
+
+**Học từ video mẫu:** đo nhịp đổi cảnh, quãng nghỉ, tốc độ nói, câu mở 3 giây đầu, chụp ảnh toàn cảnh để chép kiểu phụ đề; gợi ý nhịp, mật độ đồ hoạ, mức cắt lặng cho dự án.
+
+**Bám mặt khi đổi khổ:** video quay ngang xuất dọc (9:16, 1:1, 4:5) thì khung tự đi theo người nói, phủ kín khổ dọc, nhảy thẳng ở chỗ cắt.
 
 **Đồ hoạ**
 - Con số lớn, giá đếm lên, mốc kháng cự/hỗ trợ, danh sách, biểu đồ vẽ dần, tiêu đề chương, ảnh/clip sản phẩm, thẻ chủ đề có tick.
@@ -105,6 +110,13 @@ video-editor approve du-an/bitcoin        # khi người dùng đồng ý
 video-editor render du-an/bitcoin
 video-editor export du-an/bitcoin         # tự kiểm tra (out/kiem-tra.jpg), phụ đề, báo cáo
 video-editor note "Phụ đề to hơn" --project du-an/bitcoin --loai phu-de   # ghi nhớ góp ý cho video sau
+
+# học nhịp từ video mẫu (file trên máy)
+video-editor mau ~/Downloads/mau.mp4 --project du-an/bitcoin [--ap-dung]
+
+# video dài → nhiều short
+video-editor shorts du-an/podcast             # work/de-xuat-short.md: các đoạn hay nhất kèm lý do
+video-editor shorts du-an/podcast --tao 1,3   # mỗi đoạn một dự án trong du-an/podcast/shorts/
 ```
 
 ## Cấu trúc
@@ -128,6 +140,6 @@ video-editor note "Phụ đề to hơn" --project du-an/bitcoin --loai phu-de   
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -t .   # 26 kiểm thử đơn vị, dưới 1 giây
+python3 -m unittest discover -s tests -t .   # 77 kiểm thử đơn vị, dưới 1 giây
 python3 tests/e2e.py                          # 2 video trọn quy trình + 5 tình huống lỗi
 ```
