@@ -75,6 +75,7 @@ video-editor init du-an/<tên> --script kichban.txt [--type explainer|product] [
 - **Chữ đập** (`content.punches`): con số, ý mạnh đập to giữa màn hình, khung rung nhẹ. Tối đa một chữ mỗi 6–8 giây.
 - **Chuyển cảnh** `style.transition`: `auto` (theo nhịp), `mem`, `vuot`, `zoom`, `flash`, `glitch`.
 - **Giá thật cho biểu đồ:** `video-editor gia <dự án> --coin bitcoin --den <ngày quay> [--ngay 30]` rồi trong khung `chart`/`price` ghi `"data": {"coin": "bitcoin", "ngay": 7}`. Build in giá thật để đối chiếu với lời người nói; lệch thì báo người dùng, không sửa lời.
+- **Ảnh người dùng đưa (ảnh chụp app, sản phẩm, biểu đồ):** ảnh **không tự vào video**. Mỗi ảnh cần một khung `{"start": "cụm nói về nó", "g": {"type": "media", "src": "anh/app-1.png", "fit": "contain"}}` trong `content.beats`; ảnh chụp màn hình điện thoại dùng `"fit": "contain"` để không bị cắt. Build cảnh báo "ảnh chưa dùng" khi trong dự án có ảnh mà `project.json` không nhắc tới: gặp cảnh báo này thì thêm khung, đừng giao video.
 - **B-roll:** `video-editor broll <dự án> "bitcoin coin"` tải video miễn phí Pexels vào `broll/` (cần `PEXELS_API_KEY`), chèn bằng khung `media` có `"full": true` và `credit`.
 - **Phụ đề:** `captions.style: "karaoke"`; song ngữ: `video-editor dich <dự án> --ngon-ngu en`, điền `work/dich.json`, đặt `captions.second: "en"`.
 - **Âm thanh:** `audio.clean` (`nhe` mặc định, `manh`, `false`) làm sạch giọng bằng bộ lọc ffmpeg; `music` có `duck` (tự hạ khi nói), `fade`, `start`, `sync` (dò nhịp nhạc để hạt nền và đổi khung nảy theo phách).

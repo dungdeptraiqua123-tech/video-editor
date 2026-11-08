@@ -1,4 +1,5 @@
 """Kiểm thử phần 0.3: icon theo lời, giá thật, dò nhịp, đồ hoạ mới, chữ đập, phụ đề song ngữ, làm sạch giọng."""
+import json
 import math
 import tempfile
 import unittest
@@ -245,3 +246,24 @@ class Test5Fixes(unittest.TestCase):
         from ve.render import LIMITER
         self.assertIn("loudnorm=I=-13.5", LIMITER)
         self.assertIn("alimiter", LIMITER)
+
+
+class UnusedImages(unittest.TestCase):
+    def test_reports_images_not_in_project_json(self):
+        import tempfile
+        from ve.build import unused_images
+        from ve.project import Project
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "project.json").write_text(json.dumps({"name": "t", "input": "a.mp4", "content": {"beats": [{"g": {"type": "media", "src": "anh/dung.png"}}]}}), encoding="utf-8")
+            (root / "anh").mkdir()
+            for n in ("dung.png", "app-1.jpg"):
+                (root / "anh" / n).write_bytes(b"x")
+            (root / "media" / "assets").mkdir(parents=True)
+            (root / "media" / "assets" / "dung.png").write_bytes(b"x")
+            (root / "media" / "icons").mkdir()
+            (root / "media" / "icons" / "x.png").write_bytes(b"x")
+            (root / "out").mkdir()
+            (root / "out" / "storyboard.jpg").write_bytes(b"x")
+            self.assertEqual(unused_images(Project(root)), ["anh/app-1.jpg"])

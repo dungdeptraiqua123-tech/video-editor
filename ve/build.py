@@ -1,6 +1,7 @@
 """Bước dựng dữ liệu: sửa lời → cắt (lặng, từ đệm, vấp, đoạn bỏ) → dò mốc đồ hoạ → kiểm tra → work/data.json."""
 from __future__ import annotations
 
+import json
 import os
 import shutil
 from pathlib import Path
@@ -55,6 +56,33 @@ def _place(prj: Project, src: str, sub: str) -> str:
         except OSError:
             shutil.copy2(p, dst)
     return f"{sub}/{p.name}"
+
+
+IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+
+
+def unused_images(prj: Project) -> list[str]:
+    """Ảnh người dùng bỏ vào dự án (ngoài media/, work/, out/; cả media/assets/) mà project.json không nhắc tới.
+    Ảnh không tự vào video: phải có khung media trỏ tới, nên báo để khỏi tưởng đã có."""
+    blob = json.dumps(prj.cfg, ensure_ascii=False).replace("\\\\", "/")
+    found = []
+    skip = {"media", "work", "out", "node_modules"}
+    for dirpath, dirs, files in os.walk(prj.root):
+        rel_dir = Path(dirpath).relative_to(prj.root)
+        depth = len(rel_dir.parts)
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and depth < 3
+                         and not (depth == 0 and d in skip and d != "media")
+                         and not (rel_dir.parts[:1] == ("media",) and depth == 1 and d != "assets"))
+        if rel_dir.parts[:1] == ("media",) and rel_dir.parts[:2] != ("media", "assets"):
+            continue
+        for f in sorted(files):
+            if Path(f).suffix.lower() not in IMG_EXT or f.startswith("."):
+                continue
+            name = (rel_dir / f).as_posix()
+            if f in blob or name in blob:
+                continue
+            found.append(name)
+    return found
 
 
 def brand_for(prj: Project) -> tuple[dict, dict]:
@@ -250,6 +278,11 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     }
     for msg in SOAT.check_content(cfg.get("content") or {}, sugs):
         rep.warn("soát chữ", msg)
+    idle_imgs = unused_images(prj)
+    if idle_imgs:
+        rep.warn("ảnh chưa dùng", f"{len(idle_imgs)} ảnh trong dự án chưa có khung nào dùng nên sẽ KHÔNG hiện trong video: "
+                 + ", ".join(idle_imgs[:8]) + (" …" if len(idle_imgs) > 8 else "")
+                 + ". Thêm vào content.beats khung {\"type\": \"media\", \"src\": \"<đường dẫn>\"} neo vào câu nói về nó")
     write_json(prj.work / "timeline.json", {"source": str(src), "sourceDuration": pinfo["duration"], "duration": duration, "segments": tl.segments, "removed": tl.removed, "removedSeconds": removed_sec, "suggestions": tl.suggestions})
     write_json(prj.work / "check.json", {"errors": rep.errors, "warnings": rep.warnings})
 
