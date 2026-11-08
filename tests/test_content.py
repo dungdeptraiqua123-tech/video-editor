@@ -94,3 +94,35 @@ class Resolve(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Test5ContentChecks(unittest.TestCase):
+    """Các lỗi nội dung thấy ở video test5: thẻ chữ thay cho ảnh app, thẻ đứng yên, đồ hoạ che gần hết, thẻ chủ đề loé lên."""
+
+    def setUp(self):
+        self.w = words(TEXT, step=0.6)
+        self.dur = self.w[-1]["end"] + 3
+        self.base = {"hook": {"title": "Bitcoin 87K"}, "hookSec": 1.0, "outroSec": 2.0, "cta": "Theo dõi"}
+
+    def warns(self, c, mode="talking"):
+        return " | ".join(resolve_content(c, self.w, self.dur, mode=mode)[1].warnings)
+
+    def test_app_card_without_media(self):
+        c = dict(self.base, beats=[{"start": "hôm nay", "end": "87 ngàn", "head": "Giao diện app", "g": {"type": "title", "kicker": "App", "text": "Rất dễ dùng"}}])
+        self.assertIn("ảnh chụp màn hình", self.warns(c))
+        c["beats"][0]["g"] = {"type": "media", "src": "anh/app.png"}
+        self.assertNotIn("ảnh chụp màn hình", self.warns(c))
+
+    def test_static_title_too_long(self):
+        c = dict(self.base, beats=[{"start": "hôm nay", "end": "hỗ trợ", "g": {"type": "title", "kicker": "Mở", "text": "Cùng tìm hiểu nhé"}}])
+        self.assertIn("đứng yên", self.warns(c))
+
+    def test_graphics_cover_most_of_video(self):
+        c = dict(self.base, beats=[{"start": "chào các", "end": "cảm ơn", "g": {"type": "list", "title": "Ý", "items": [{"text": "a", "say": "Bitcoin"}, {"text": "b", "say": "altcoin"}]}}])
+        self.assertIn("người nói bị thu nhỏ", self.warns(c))
+        self.assertNotIn("người nói bị thu nhỏ", self.warns(c, mode="faceless"))
+
+    def test_topic_hidden_by_beat(self):
+        c = dict(self.base, topics=[{"start": "hôm nay", "title": "Hermes Agent"}],
+                 beats=[{"start": "Bitcoin tăng", "end": "rất nhiều", "g": {"type": "list", "title": "Ý", "items": [{"text": "a", "say": "87"}, {"text": "b", "say": "altcoin"}]}}])
+        self.assertIn("thẻ chủ đề chỉ hiện rõ", self.warns(c))
