@@ -30,11 +30,14 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `captions` | | Phụ đề, xem dưới |
 | `face` | `{"x":0.5,"y":0.4,"track":"auto"}` | Mặt người nói, xem dưới |
 | `voice` | | Giọng AI: `provider` (`elevenlabs` / `placeholder`), `voiceId`, `model`, `speed`, `stability`, `style` |
-| `whisper` | `{"model":"auto","language":"vi"}` | `model`: `auto`, `nhe` (small), `vua` (medium), `nang` (large-v3), `nhanh` (large-v3-turbo) |
+| `whisper` | `{"model":"auto","language":"vi"}` | `model`: `auto`, `nhe` (small), `vua` (medium), `nang` (large-v3), `nhanh` (large-v3-turbo). `terms`: tên riêng trong video (`["Claude", "ChatGPT"]`), mồi cho Whisper viết đúng; đổi thì chép lời lại |
+| `soat` | `{}` | Soát chữ nghe nhầm theo `data/nghe-nham.json`. `auto: true` tự áp dụng các mục từ điển (không áp dụng mục "gần giống"); `extra`: mục riêng `[{"sai": ["ây gần"], "dung": "agent", "ngu_canh": ["ai"]}]` |
 | `cuts` | | Cắt, xem dưới |
 | `fix` | `[]` | Sửa chữ nghe sai: `[["lon sọt", "long short"], ["bên hiểm", ""]]`. Cụm sửa rỗng = xoá. Không phân biệt hoa thường và dấu câu |
 | `dropSegments` | `[]` | Bỏ hẳn một đoạn Whisper bịa ra: ghi giây bắt đầu của đoạn (xem `transcript.json`) |
-| `music` | `null` | Nhạc nền: `{"file": "nhac.mp3", "volume": 0.08}`. Người dùng phải có quyền dùng bản nhạc |
+| `music` | `null` | Nhạc nền: `{"file": "nhac.mp3", "volume": 0.12, "duck": 0.35, "fade": 1, "start": 0, "sync": true}`. `duck`: hệ số âm lượng khi có người nói (nhạc tự hạ, nghỉ nói thì lên lại). `fade`: giây tăng/giảm dần ở đầu/cuối. `start`: bắt đầu từ giây nào của bài. `sync`: dò nhịp bài nhạc (lưu ở `work/nhip.json`) để hạt nền nảy theo phách; nhịp `nhanh` hoặc `sync: "cat"` thì kéo mốc đổi khung về phách gần nhất (lệch ≤ 0,18s). Người dùng phải có quyền dùng bản nhạc |
+| `audio` | `{"clean":"nhe"}` | Làm sạch giọng khi cắt, bằng bộ lọc có sẵn của ffmpeg: `nhe` (lọc ù, khử ồn nhẹ, giảm xì), `manh` (thêm khử ồn mạnh và nén, cho phòng có quạt, điều hoà), `false` giữ nguyên. Đổi mức thì build cắt lại |
+| `icons` | `{"auto":true,…}` | Icon tự hiện theo lời, xem dưới. `false` = tắt hết |
 | `sfx` | `{"enabled":true,"volume":1,"files":{}}` | Âm thanh hiệu ứng thu thật (Mixkit): `whoosh` khi khung đồ hoạ mở, `pop` khi từng phần tử trong khung bật ra, `tick` khi ý trong thẻ chủ đề được đánh dấu, `impact` ở mở đầu, `riser` trước phần kết, `click` ở nút theo dõi. `volume` nhân âm lượng chung. `files` thay từng âm bằng file của bạn (`{"impact": "am-thanh/trong.mp3"}`) hoặc tắt riêng một âm (`{"click": ""}`). `false` = tắt hết. Không dùng âm tạo bằng code |
 | `render` | `{"crf":20}` | `concurrency`: số luồng render; `cacheMB`: bộ đệm khung hình (MB). Mặc định tự chọn theo RAM còn trống để không tràn RAM |
 | `content` | | Nội dung đồ hoạ, xem `do-hoa.md` |
@@ -68,11 +71,13 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | Khoá | Mặc định | |
 |---|---|---|
 | `enabled` | `true` | Tắt nếu nền tảng tự làm phụ đề |
-| `style` | `glow` | `glow` (chữ đang đọc phát sáng), `box` (ô màu sau chữ đang đọc), `pop` (chữ viền dày, nảy), `plain` |
+| `style` | `glow` | `glow` (chữ đang đọc phát sáng), `box` (ô màu sau chữ đang đọc), `pop` (chữ viền dày, nảy), `karaoke` (màu chạy dần qua từng chữ theo giọng), `plain` |
 | `position` | theo khổ | Tâm phụ đề theo tỉ lệ chiều cao, ví dụ `0.72` |
 | `keywords` | của mẫu | Từ được tô màu `highlight`. Con số luôn tô màu `number` |
 | `maxChars` / `maxWords` | 30 (44 với 16:9) / 8 | Độ dài tối đa một cụm phụ đề |
 | `size` | `1` | Hệ số cỡ chữ |
+| `icons` | `true` | Icon nhỏ cạnh từ được nhắc tới (logo, khái niệm) |
+| `second` | `null` | Phụ đề song ngữ: mã ngôn ngữ (`"en"`). Chạy `video-editor dich <dự án> --ngon-ngu en`, điền ô `dich` trong `work/dich.json`. Dòng dịch hiện nhỏ dưới phụ đề chính; `export` xuất thêm `<tên>.en.srt` |
 
 ### style
 
@@ -82,6 +87,24 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `graphics` | `vua` | Mật độ đồ hoạ gợi ý khi viết `content`: `it` khoảng 1 khung mỗi 30s, `vua` mỗi 15s, `nhieu` mỗi 8s. `build` in số khung hiện có so với gợi ý |
 | `reference` | `""` | Link hoặc mô tả video tham khảo về phong cách. `video-editor mau <file> --project <dự án>` tự ghi tóm tắt số đo vào đây |
 | `notes` | `""` | Ghi chú thêm về phong cách (màu, cảm xúc, kiểu phụ đề mong muốn) |
+| `transition` | `auto` | Chuyển cảnh: `auto` (theo nhịp), `mem`, `vuot`, `zoom`, `flash`, `glitch` |
+| `shake` | `true` | Rung khung nhẹ khi chữ đập |
+| `particles` | `true` | Hạt sáng trôi trên nền, nảy theo phách nhạc |
+
+### icons
+
+| Khoá | Mặc định | |
+|---|---|---|
+| `auto` | `true` | Dùng từ điển có sẵn (`data/icon-tu-dien.json`: logo thương hiệu và icon khái niệm) |
+| `pops` | `true` | Icon lớn bật lên giữa màn hình khi được nhắc |
+| `inline` | `true` | Icon nhỏ cạnh chữ trong phụ đề (cùng icon cách nhau ≥ 4s) |
+| `concepts` | `true` | Gồm cả icon khái niệm (ngân hàng, lãi suất…), `false` = chỉ logo thương hiệu |
+| `gap` | theo nhịp | Giây tối thiểu giữa hai lần bật icon lớn |
+| `repeat` | `12` | Giây tối thiểu trước khi cùng một icon bật lại |
+| `extra` | `[]` | Mục riêng, ưu tiên trước từ điển: `{"label": "BTC Daily", "match": ["btc daily"], "file": "logo.png"}` (file ảnh) hoặc `"icon": "si:<tên simple-icons>"` / `"lu:<tên lucide>"` |
+| `off` | `[]` | Tắt mục theo tên icon, nhãn hoặc cụm khớp: `["ngân hàng", "si:tesla"]` |
+
+Logo thương hiệu (simple-icons, CC0) là nhãn hiệu của chủ sở hữu: dùng để minh hoạ khi nói về thương hiệu đó, không đặt kiểu ngụ ý được tài trợ.
 
 ### face
 
@@ -103,9 +126,11 @@ Khoá nào để `null` thì lấy theo nhịp (`style.pace`); ghi số hay giá
 | `gap` | theo nhịp (`0.55` với `vua`) | Khoảng lặng dài hơn mức này thì cắt (giây) |
 | `pad` | theo nhịp (`0.12` với `vua`) | Chừa trước và sau mỗi từ |
 | `silence` | `true` | `false` = không cắt lặng (giữ nhịp tự nhiên) |
+| `audioGaps` | `true` | Đo im lặng thật trong âm thanh (dưới -38 dB, từ 0,35s) để gỡ quãng nghỉ Whisper tính lẫn vào từ, tránh màn hình đứng yên. Lưu đệm ở `work/im-lang.json` |
 | `fillers` | theo nhịp | Từ đệm (ờ, ừm, ơ…): `auto` cắt, `suggest` chỉ liệt kê, `off` bỏ qua |
 | `filler_words` | danh sách mặc định | Đổi danh sách từ đệm |
 | `stumbles` | theo nhịp | Nói vấp (cụm 1–3 từ lặp liền nhau, trừ từ láy như "từ từ"): `auto` / `suggest` / `off` |
+| `retakes` | theo nhịp (`auto` với `nhanh`, `vua`; `suggest` với `cham`) | Câu nói lại: người nói bắt đầu một câu rồi nói lại từ đầu ("Cái video này được mình quay và edit… Cái video này được mình quay và sử dụng công cụ AI…"). `auto` bỏ lần nói đầu, giữ lần sau; `suggest` chỉ liệt kê; `off` bỏ qua. Chỉ bắt khi hai lần mở đầu giống nhau ≥ 4 từ (hoặc 3 từ có quãng nghỉ), cách nhau ≤ 15 giây, có từ mang nghĩa; câu nói y hệt hai lần có dấu chấm ở giữa (cố ý nhấn mạnh) thì giữ. Build in từng chỗ đã bỏ, báo cáo có mục riêng |
 | `drop` | `[]` | Bỏ các khoảng `[[giây đầu, giây cuối], ...]`, theo giây gốc |
 | `keep` | `[]` | Chỉ giữ các khoảng này, để dựng một đoạn ngắn từ video dài |
 

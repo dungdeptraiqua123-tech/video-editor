@@ -98,6 +98,10 @@ def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, pr
     return [Path(o) for _, o in shots]
 
 
+# chuẩn hoá lại cả bản trộn (giọng + nhạc + âm hiệu ứng) về -14 LUFS rồi chặn đỉnh -1,5 dB: chuẩn Reels/TikTok/YouTube
+LIMITER = "loudnorm=I=-13.5:TP=-2:LRA=11,alimiter=limit=0.79:attack=5:release=60:level=false"
+
+
 def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None) -> None:
     b = bundle()
     cfg = prj.cfg.get("render") or {}
@@ -146,8 +150,9 @@ def render(prj: Project, force: bool = False) -> Path:
     t0 = time.time()
     info(f"🎬 render {read_json(data)['duration']:.0f}s video …")
     _render(prj, raw)
-    # chỉ chuyển vùng chứa và bật faststart, không nén lại lần hai
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-c", "copy", "-movflags", "+faststart", final])
+    # hình: chỉ chuyển vùng chứa, không nén lại lần hai. Tiếng: chặn đỉnh -1,5 dB (âm hiệu ứng cộng lên giọng hay đẩy đỉnh sát 0 dB,
+    # nền tảng nén lại sẽ rè), nên phần tiếng được mã hoá lại một lần
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-map", "0:v", "-map", "0:a?", "-c:v", "copy", "-af", LIMITER, "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", final])
     raw.unlink(missing_ok=True)
     took = time.time() - t0
     prj.mark("render", fp, seconds=round(took))
@@ -163,6 +168,7 @@ def export(prj: Project) -> list[Path]:
     from .storyboard import qa
 
     srt, vtt, n = subs.write(d, prj.out / f"{prj.slug}")
+    srt2 = subs.write_second(d, prj.out / f"{prj.slug}", (prj.cfg.get("captions") or {}).get("second") or "en")
     cover = still(prj, min(1.2, d["hookSec"] - 0.3), prj.out / "anh-bia.jpg")
     check = qa(prj, final)
     table = prj.out / "bang-quy-chieu.md"
@@ -178,6 +184,8 @@ def export(prj: Project) -> list[Path]:
     fps = d["format"]["fps"]
     sync_ok = abs(fi["duration"] - d["duration"]) <= 2 / fps + 0.05
     last_sub = max((w["end"] for w in d["words"]), default=0)
+    if lo["lufs"] is not None and (abs(lo["lufs"] + 14) > 1.2 or (lo["peak"] or -99) > -1.0):
+        warn(f"Âm thanh {lo['lufs']} LUFS, đỉnh {lo['peak']} dBFS: lệch chuẩn (-14 LUFS, đỉnh dưới -1 dB). Render lại để bước chuẩn hoá chạy, hoặc giảm sfx.volume / music.volume.")
     if not sync_ok:
         warn(f"Thời lượng video {fi['duration']:.2f}s lệch dữ liệu {d['duration']:.2f}s")
     placeholder = (prj.work / "voice.m4a").exists() and prj.cfg.get("voice", {}).get("provider") == "placeholder"
@@ -194,7 +202,9 @@ def export(prj: Project) -> list[Path]:
         f"| Đã cắt | " + (", ".join(f"{k} {v:.1f}s" for k, v in rs.items() if v > 0.05) or "không") + " |",
         f"| Âm lượng | {lo['lufs']} LUFS, đỉnh {lo['peak']} dBFS (chuẩn -14 LUFS) |",
         f"| Đồ hoạ | {len(d['beats'])} khung, {len(d['topics'])} thẻ chủ đề |",
-        f"| Phụ đề | {n} dòng, kiểu {d['captions']['style']} |",
+        f"| Phụ đề | {n} dòng, kiểu {d['captions']['style']}" + (f", song ngữ ({srt2.name})" if srt2 else "") + " |",
+        f"| Icon theo lời | {len(d.get('pops') or [])} lần bật lên, {sum(1 for w in d['words'] if w.get('ic'))} icon cạnh phụ đề |",
+        f"| Hiệu ứng | chuyển cảnh {(d.get('fx') or {}).get('transition', 'mem')}, {len(d.get('punches') or [])} chữ đập" + (f", nhạc {len((d.get('fx') or {}).get('musicBeats') or [])} phách" if (d.get('fx') or {}).get('musicBeats') else "") + " |",
         f"| Đồng bộ | {'✓ khớp' if sync_ok and last_sub <= fi['duration'] + 0.05 else '✗ LỆCH, cần kiểm tra'} |",
         f"| Thời gian render | {st.get('render', {}).get('seconds', '?')}s |",
         f"| Nhịp, mật độ đồ hoạ | {(prj.cfg.get('style') or {}).get('pace', 'vua')}, {(prj.cfg.get('style') or {}).get('graphics', 'vua')} |",
@@ -213,6 +223,10 @@ def export(prj: Project) -> list[Path]:
     if placeholder:
         lines += ["> ⚠ Video đang dùng **giọng tạm (im lặng)** để duyệt bố cục. Tạo giọng thật bằng `video-editor tts` trước khi đăng.", ""]
     sug = tl.get("suggestions", {})
+    if tl.get("removed", {}).get("retake"):
+        lines += ["## Câu nói lại đã bỏ lần đầu", "", "Người nói nói lại câu; video giữ lần sau. Xem lại nếu lần đầu có ý cần giữ (`cuts.retakes`).", ""] + [f"- \"{s['text']}\" lúc {s['start']}–{s['end']}s" for s in tl["removed"]["retake"]] + [""]
+    if sug.get("retake"):
+        lines += ["## Chỗ người nói nói lại câu (chưa cắt)", ""] + [f"- \"{s['text']}\" lúc {s['start']}–{s['end']}s" for s in sug["retake"]] + [""]
     if sug.get("stumble"):
         lines += ["## Chỗ có thể nói vấp (chưa cắt)", ""] + [f"- \"{s['text']}\" lúc {s['start']}s" for s in sug["stumble"]] + [""]
     if chk.get("warnings"):
@@ -224,4 +238,4 @@ def export(prj: Project) -> list[Path]:
     rp.write_text("\n".join(lines), encoding="utf-8")
     prj.mark("export", fingerprint(final))
     info(f"✓ xuất: {srt.name}, {vtt.name} ({n} dòng), {cover.name}, {table.name}, {rp.name}")
-    return [final, srt, vtt, cover, table, rp, prj.out / "kiem-tra.jpg"]
+    return [final, srt, vtt, *([srt2] if srt2 else []), cover, table, rp, prj.out / "kiem-tra.jpg"]

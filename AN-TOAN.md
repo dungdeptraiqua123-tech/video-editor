@@ -25,13 +25,15 @@ Tài liệu này nói rõ skill `video-editor` làm gì trên máy: ghi file ở
 | huggingface.co (*.hf.co) | Tải mô hình Whisper | `setup` |
 | remotion.media | Remotion tải trình duyệt render Chrome Headless Shell | `setup` |
 | api.elevenlabs.io | Đổi kịch bản thành giọng đọc | Chỉ `video-editor tts`, khi người dùng chọn giọng AI và tự đặt key |
+| api.coingecko.com | Lịch sử giá coin cho biểu đồ (chỉ gửi tên coin và khoảng ngày) | Chỉ `video-editor gia` |
+| api.pexels.com, *.pexels.com | Tìm và tải b-roll miễn phí (chỉ gửi từ khoá tìm) | Chỉ `video-editor broll`, khi người dùng tự đặt `PEXELS_API_KEY` |
 | 127.0.0.1 (cổng ngẫu nhiên) | Máy chủ cục bộ đưa file media của dự án cho bộ dựng | Trong lúc render, tắt ngay sau đó; chỉ nghe trên máy, máy khác không vào được |
 
 Video, âm thanh và lời thoại của người dùng không được gửi đi đâu: chép lời, dò mặt (`face_worker.py`, bộ dò Haar có sẵn trong gói OpenCV), chấm điểm đoạn short và phân tích video mẫu đều chạy trên máy. Lệnh `mau` chỉ đọc file trên máy, từ chối link và không tải video từ mạng. Skill không có thu thập số liệu sử dụng, không đăng video lên mạng xã hội.
 
 ### Khoá API
 
-- Chỉ dùng một khoá: `ELEVENLABS_API_KEY`, đọc từ biến môi trường, gửi duy nhất tới api.elevenlabs.io.
+- Khoá đọc từ biến môi trường, mỗi khoá chỉ gửi tới đúng dịch vụ của nó: `ELEVENLABS_API_KEY` → api.elevenlabs.io, `PEXELS_API_KEY` → api.pexels.com, `COINGECKO_API_KEY` (không bắt buộc) → api.coingecko.com.
 - Không ghi khoá ra file, không in khoá ra màn hình.
 - Không bao giờ xin người dùng dán khoá vào khung chat.
 

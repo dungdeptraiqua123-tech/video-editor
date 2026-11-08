@@ -128,6 +128,99 @@ def find_stumbles(words: list[Word], max_n: int = 3) -> list[tuple[int, int]]:
     return out
 
 
+# từ quá phổ biến: một cụm mở đầu chỉ gồm những từ này thì không coi là câu nói lại
+COMMON = {"thì", "là", "và", "mà", "cái", "các", "những", "một", "này", "đó", "rồi", "nha", "nhé", "ha", "à", "ạ", "có", "không", "được",
+          "của", "cho", "với", "để", "mình", "bạn", "anh", "chị", "em", "mọi", "người", "chúng", "ta", "nó", "thế", "như", "vậy", "đây"}
+
+
+def _starts_sentence(words: list[Word], i: int, pause: float = 0.25) -> bool:
+    return i == 0 or bool(re.search(r"[.!?,;:]$", words[i - 1].text)) or words[i].start - words[i - 1].end >= pause
+
+
+def find_retakes(words: list[Word], min_match: int = 3, max_take: int = 30, max_sec: float = 15.0) -> list[tuple[int, int]]:
+    """Câu nói lại: người nói bắt đầu một câu, dừng hoặc nói chưa ưng, rồi nói lại từ đầu
+    ("Cái video này được mình quay và edit 100%. Cái video này được mình quay và sử dụng công cụ AI…").
+    Trả (đầu, cuối) của lần nói đầu (bỏ đi), giữ lần nói sau vì thường trọn ý hơn.
+
+    Điều kiện để tránh cắt nhầm câu lặp có chủ ý:
+    - lần đầu bắt đầu ở đầu câu (đầu video, sau dấu câu hoặc sau quãng nghỉ), lần sau cũng vậy hoặc ngay sau lần đầu;
+    - hai lần mở đầu giống nhau ít nhất 3 từ, trong đó có từ mang nghĩa (không chỉ "thì là cái…"); 3 từ thì lần sau phải sau quãng nghỉ;
+    - lần đầu ngắn (≤ 30 từ, ≤ 15 giây); cả câu nói y hệt hai lần mà có dấu chấm ở giữa thì coi là cố ý nhấn mạnh, không bắt.
+    """
+    keys = [norm(w.text) for w in words]
+    out, i, n = [], 0, len(words)
+    while i < n:
+        hit = None
+        if keys[i] and _starts_sentence(words, i):
+            for j in range(i + min_match, min(n, i + max_take + 1)):
+                if words[j].start - words[i].start > max_sec:
+                    break
+                if keys[j] != keys[i]:
+                    continue
+                k = 0
+                while j + k < n and i + k < j and keys[i + k] == keys[j + k]:
+                    k += 1
+                if k < min_match or not any(len(x) > 1 and x not in COMMON for x in keys[i:i + k]):
+                    continue
+                # trùng đúng 3 từ thì lần sau phải bắt đầu câu mới (sau dấu câu hoặc quãng nghỉ), tránh bắt nhầm cụm quen miệng
+                if k == min_match and not _starts_sentence(words, j, 0.2):
+                    continue
+                if k == j - i and re.search(r"[.!?]$", words[j - 1].text):
+                    continue  # cả câu nói y hệt hai lần, có ngắt câu: thường là cố ý nhấn mạnh
+                hit = (i, j - 1)
+                break
+        if hit:
+            out.append(hit)
+            i = hit[1] + 1
+        else:
+            i += 1
+    return out
+
+
+# từ thường mở đầu câu: Whisper viết hoa chúng khi nghe ra câu mới nhưng hay quên dấu chấm câu trước
+SENTENCE_STARTERS = {"cái", "và", "thì", "các", "mình", "không", "rồi", "nhưng", "mà", "còn", "vậy", "nên", "bây", "hôm", "sau", "trước",
+                     "đầu", "tiếp", "cuối", "ok", "vâng", "dạ", "chúng", "bạn", "anh", "em", "tôi", "đây", "đó", "này", "hãy", "nếu", "khi",
+                     "ví", "giờ", "có", "là", "để", "theo", "tuy", "ngoài", "thứ", "một", "hai", "ba", "hello", "xin", "chào", "cảm", "như",
+                     "tại", "vì", "do", "ai", "gì", "sao", "thế", "các", "những", "đúng", "rất", "cũng", "đã", "sẽ", "đang", "lúc", "hiện", "trong"}
+
+
+def mark_sentences(words: list[dict]) -> int:
+    """Thêm dấu chấm trước từ mở câu bị viết hoa giữa dòng ("…edit 100% Cái video này…" → "…edit 100%. Cái video này…"),
+    để phụ đề ngắt đúng chỗ, không gộp hai câu vào một dòng. Trả số chỗ đã thêm. Sửa tại chỗ."""
+    n = 0
+    for i in range(1, len(words)):
+        t, prev = words[i]["text"], words[i - 1]["text"]
+        if t[:1].isupper() and not t.isupper() and norm(t) in SENTENCE_STARTERS and not re.search(r"[.!?,;:…]$", prev):
+            words[i - 1]["text"] = prev + "."
+            n += 1
+    return n
+
+
+def trim_words(words: list[Word], quiet: list, keep: float = 0.06, min_dur: float = 0.12) -> tuple[list[Word], float]:
+    """Co mốc từ ra khỏi khoảng im lặng thật (đo từ âm thanh): từ bị Whisper kéo dài qua quãng nghỉ được cắt về
+    sát chỗ có tiếng. Trả (danh sách từ mới, tổng giây im lặng đã gỡ khỏi các từ)."""
+    if not quiet:
+        return words, 0.0
+    out, freed = [], 0.0
+    for w in words:
+        s, e = w.start, w.end
+        for a, b in quiet:
+            if b <= s or a >= e:
+                continue
+            if a <= s + 0.02 and b < e:  # im lặng ở đầu từ
+                s = max(s, min(b - keep, e - min_dur))
+            elif b >= e - 0.02 and a > s:  # im lặng ở cuối từ
+                e = min(e, max(a + keep, s + min_dur))
+            elif a > s and b < e and (b - a) > 0.3:  # im lặng giữa từ (từ bị kéo dài hai phía): giữ phần dài hơn
+                if a - s >= e - b:
+                    e = max(a + keep, s + min_dur)
+                else:
+                    s = min(b - keep, e - min_dur)
+        freed += (w.end - w.start) - (e - s)
+        out.append(Word(w.text, round(s, 3), round(e, 3), w.p))
+    return out, round(freed, 2)
+
+
 @dataclass
 class CutConfig:
     gap: float = 0.55  # khoảng lặng dài hơn mức này thì cắt
@@ -136,6 +229,7 @@ class CutConfig:
     fillers: str = "auto"  # auto | suggest | off
     filler_words: list = field(default_factory=lambda: list(DEFAULT_FILLERS))
     stumbles: str = "suggest"  # auto | suggest | off
+    retakes: str = "suggest"  # câu nói lại: auto | suggest | off
     drop: list = field(default_factory=list)  # [[giây đầu, giây cuối], ...] theo video gốc
     keep: list = field(default_factory=list)  # nếu có: chỉ giữ các khoảng này
     silence: bool = True
@@ -187,8 +281,8 @@ class Timeline:
 
 
 def build_timeline(words: list[Word], src_duration: float, cfg: CutConfig) -> Timeline:
-    removed: dict = {"filler": [], "stumble": [], "drop": [], "outside_keep": []}
-    suggestions: dict = {"filler": [], "stumble": []}
+    removed: dict = {"filler": [], "stumble": [], "retake": [], "drop": [], "outside_keep": []}
+    suggestions: dict = {"filler": [], "stumble": [], "retake": []}
     gone = set()
 
     fill = find_fillers(words, cfg.filler_words) if cfg.fillers != "off" else []
@@ -203,6 +297,16 @@ def build_timeline(words: list[Word], src_duration: float, cfg: CutConfig) -> Ti
                 removed["stumble"].append((a, b))
             else:
                 suggestions["stumble"].append((a, b))
+    if cfg.retakes != "off":
+        st = {x for a, b in find_stumbles(words) for x in range(a, b + 1)}
+        for a, b in find_retakes(words):
+            if st & set(range(a, b + 1)):
+                continue  # đã tính là nói vấp
+            if cfg.retakes == "auto":
+                gone.update(range(a, b + 1))
+                removed["retake"].append((a, b))
+            else:
+                suggestions["retake"].append((a, b))
     for i, w in enumerate(words):
         if cfg.drop and _inside(w.start, w.end, cfg.drop):
             gone.add(i)
@@ -245,10 +349,11 @@ def build_timeline(words: list[Word], src_duration: float, cfg: CutConfig) -> Ti
     tl.words = [{"text": w.text, "start": round(tl.map(w.start), 3), "end": round(tl.map(w.end), 3)} for w in kept if _covered(w, tl.segments)]
     js = lambda idx: [{"text": words[i].text, "start": round(words[i].start, 2), "end": round(words[i].end, 2)} for i in idx]
     jr = lambda pairs: [{"text": " ".join(x.text for x in words[a:b + 1]), "start": round(words[a].start, 2), "end": round(words[b].end, 2)} for a, b in pairs]
-    tl.removed = {"filler": js(removed["filler"]), "stumble": jr(removed["stumble"]), "drop": js(removed["drop"]), "outside_keep": len(removed["outside_keep"])}
+    tl.removed = {"filler": js(removed["filler"]), "stumble": jr(removed["stumble"]), "retake": jr(removed["retake"]), "drop": js(removed["drop"]), "outside_keep": len(removed["outside_keep"])}
     # chỉ gợi ý chỗ nằm trong phần video được giữ (bỏ chỗ ngoài cuts.keep / cuts.drop)
     live = lambda idx: [i for i in idx if _covered(words[i], tl.segments)]
-    tl.suggestions = {"filler": js(live(suggestions["filler"])), "stumble": jr([(a, b) for a, b in suggestions["stumble"] if _covered(words[a], tl.segments)])}
+    tl.suggestions = {"filler": js(live(suggestions["filler"])), "stumble": jr([(a, b) for a, b in suggestions["stumble"] if _covered(words[a], tl.segments)]),
+                      "retake": jr([(a, b) for a, b in suggestions["retake"] if _covered(words[a], tl.segments)])}
     return tl
 
 

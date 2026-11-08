@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AbsoluteFill,
   Audio,
@@ -15,6 +15,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { Captions } from "./Captions";
+import { IconPops, Particles, Punches, shakeAt, TransitionFx, zoomBump } from "./Effects";
 import { GraphicPanel } from "./Graphics";
 import { asset, setMediaBase } from "./assets";
 import { Icon } from "./Icons";
@@ -93,6 +94,33 @@ const BRoll: React.FC<{ src: string; duration: number }> = ({ src, duration }) =
       <AbsoluteFill style={{ background: `linear-gradient(180deg, ${alpha(C.night, 0.55)} 0%, ${alpha(C.night, 0.75)} 100%)` }} />
     </AbsoluteFill>
   );
+};
+
+/** B-roll toàn màn hình (khung media có full: true): phủ kín khung, phóng chậm, lớp tối phía dưới cho phụ đề, ghi nguồn ở góc. */
+const FullMedia: React.FC<{ src: string; dur: number; credit?: string; fit?: "cover" | "contain" }> = ({ src, dur, credit, fit }) => {
+  const f = useCurrentFrame();
+  const isVideo = /\.(mp4|mov|webm|m4v)$/i.test(src);
+  const kb = interpolate(f, [0, dur], [1.04, 1.14]);
+  const o = interpolate(f, [0, 8, dur - 8, dur], [0, 1, 1, 0], clamp);
+  const style: React.CSSProperties = { width: "100%", height: "100%", objectFit: fit ?? "cover", transform: `scale(${kb})` };
+  return (
+    <AbsoluteFill style={{ opacity: o }}>
+      {isVideo ? <OffthreadVideo src={asset(src)} muted style={style} /> : <Img src={asset(src)} style={style} />}
+      <AbsoluteFill style={{ background: `linear-gradient(to bottom, ${alpha(C.night, 0.35)} 0%, transparent 25%, transparent 55%, ${alpha(C.night, 0.75)} 100%)` }} />
+      {credit ? <div style={{ position: "absolute", left: 30, bottom: 26, fontFamily: C.font, fontSize: 22, color: "rgba(255,255,255,0.75)" }}>{credit}</div> : null}
+    </AbsoluteFill>
+  );
+};
+
+/** Khoảng có người nói (giây), gộp các từ gần nhau: dùng để hạ nhạc nền khi có tiếng nói. */
+const speechSpans = (words: Props["words"]) => {
+  const out: [number, number][] = [];
+  for (const w of words) {
+    const last = out[out.length - 1];
+    if (last && w.start - last[1] < 0.45) last[1] = Math.max(last[1], w.end);
+    else out.push([w.start, w.end]);
+  }
+  return out;
 };
 
 const BrandTag: React.FC<{ L: Layout; badge: string; title: string; o: number }> = ({ L, badge, title, o }) => (
@@ -243,10 +271,17 @@ export const Video: React.FC<Props> = (props) => {
   const faceless = props.mode === "faceless" || !media.hasVideo;
   const sfx = (role: "whoosh" | "impact" | "riser" | "click" | "pop" | "tick") => (props.sfx ? props.sfx.files[role] : undefined);
   const sfxVol = props.sfx ? props.sfx.volume : 0;
+  const efx = props.fx ?? { transition: "mem" as const, shake: false, particles: false };
+  const trAt = useMemo(() => beats.flatMap((b) => [b.start, b.end]), [beats]);
+  const spans = useMemo(() => speechSpans(words), [words]);
+  const pops = props.pops ?? [];
+  const punches = props.punches ?? [];
 
   // zoom cắt nhảy khi người nói toàn màn hình: luân phiên khung rộng / khung chặt
   const zi = zooms.filter((z) => z <= t).length;
   const zoom = zi % 2 ? 1.1 : 1;
+  const [shx, shy] = shakeAt(punches, t, efx.shake);
+  const bump = zoomBump(efx.transition, trAt, t);
 
   // bám mặt: tâm khung đi theo người nói (đường đi đã làm mượt, nhảy thẳng ở chỗ cắt)
   const [faceNX, faceNY] = faceAt(media.faceTrack, t, media.face?.x ?? 0.5, media.face?.y ?? 0.4);
@@ -270,10 +305,29 @@ export const Video: React.FC<Props> = (props) => {
   const capY = captions.position != null ? captions.position * L.h : lerp(capBase, Math.max(capBase, L.capGfx), endP);
 
   return (
-    <AbsoluteFill style={{ background: C.night }}>
+    <AbsoluteFill style={{ background: C.night, transform: bump !== 1 ? `scale(${bump})` : undefined }}>
       {faceless && media.background ? <BRoll src={media.background.src} duration={media.background.duration} /> : <Backdrop o={bg} kind={brand.backdrop} />}
+      {efx.particles ? <Particles o={bg} beats={efx.musicBeats} /> : null}
       {faceless && media.main ? <Audio src={asset(media.main)} /> : null}
-      {media.music ? <Audio src={asset(media.music.src)} volume={media.music.volume} loop /> : null}
+      {media.music ? (
+        <Audio
+          src={asset(media.music.src)}
+          loop
+          startFrom={Math.round((media.music.start ?? 0) * fps)}
+          volume={(f) => {
+            const m = media.music!;
+            const tt = f / fps;
+            // hạ nhạc khi có người nói (mượt 0,25 giây), tăng/giảm dần ở đầu và cuối video
+            const near = spans.reduce((d, [a, b]) => Math.min(d, tt < a ? a - tt : tt > b ? tt - b : 0), 9);
+            const duck = m.duck ?? 0.35;
+            const k = near <= 0 ? duck : near >= 0.25 ? 1 : duck + (1 - duck) * (near / 0.25);
+            const fade = m.fade ?? 1.5;
+            const end = durationInFrames / fps;
+            const edge = Math.min(1, tt / Math.max(0.01, fade), (end - tt) / Math.max(0.01, fade));
+            return m.volume * k * Math.max(0, edge);
+          }}
+        />
+      ) : null}
 
       {fit ? (
         <div
@@ -289,7 +343,7 @@ export const Video: React.FC<Props> = (props) => {
             boxShadow: p > 0.01 ? glow(C.orange, 22 * p) : undefined,
           }}
         >
-          <div style={{ position: "absolute", left: 0, top: 0, width: L.w, height: L.h, transform: `translate(${tx}px, ${ty}px) scale(${s})`, transformOrigin: "0 0" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, width: L.w, height: L.h, transform: `translate(${tx + shx}px, ${ty + shy}px) scale(${s})`, transformOrigin: "0 0" }}>
             <OffthreadVideo src={asset(media.main)} style={{ position: "absolute", left: fit.ox, top: fit.oy, width: fit.vw, height: fit.vh }} />
           </div>
         </div>
@@ -298,14 +352,19 @@ export const Video: React.FC<Props> = (props) => {
       {/* nền tối mờ phía dưới để phụ đề trắng luôn dễ đọc */}
       <AbsoluteFill style={{ background: `linear-gradient(to bottom, transparent 58%, ${alpha(C.night, 0.55)} 80%, ${alpha(C.night, 0.7)} 100%)`, opacity: 1 - bg }} />
 
-      {beat && beat.head ? <BrandTag L={L} badge={brand.badge} title={beat.head} o={p} /> : null}
+      {/* chữ cũ tắt hẳn trong nửa đầu chuyển cảnh, chữ mới chỉ hiện ở nửa sau: không bao giờ hai lớp chữ chồng nhau */}
+      {beat && beat.head ? <BrandTag L={L} badge={brand.badge} title={beat.head} o={Math.max(0, Math.min(1, p * 2 - 1))} /> : null}
 
       {beats.map((b, i) => {
         const from = Math.round(b.start * fps);
         const dur = Math.max(1, Math.round((b.end - b.start) * fps));
         return (
           <Sequence key={i} from={from} durationInFrames={dur} layout="none">
-            <GraphicPanel g={b.g} durationFrames={dur} area={L.panel} />
+            {b.g.type === "media" && b.g.full ? (
+              <FullMedia src={b.g.src} dur={dur} credit={b.g.credit} fit={b.g.fit} />
+            ) : (
+              <GraphicPanel g={b.g} durationFrames={dur} area={L.panel} tr={efx.transition} />
+            )}
           </Sequence>
         );
       })}
@@ -343,7 +402,7 @@ export const Video: React.FC<Props> = (props) => {
           )
         : null}
 
-      {topic && t >= props.hookSec && frame < outroFrom ? <TopicCard L={L} topic={topic} o={1 - p} /> : null}
+      {topic && t >= props.hookSec && frame < outroFrom ? <TopicCard L={L} topic={topic} o={Math.max(0, 1 - p * 2)} /> : null}
 
       <Sequence durationInFrames={Math.round(props.hookSec * fps)}>
         <Hook L={L} hook={hook} brand={brand} sec={props.hookSec} />
@@ -354,7 +413,24 @@ export const Video: React.FC<Props> = (props) => {
         ) : null}
       </Sequence>
 
-      {captions.enabled ? <Captions words={words} y={capY} cfg={captions} side={L.capSide} u={L.u} /> : null}
+      {punches.length ? <Punches punches={punches} L={L} y={L.h * (faceless ? 0.42 : 0.27)} hide={p} /> : null}
+      {pops.length && props.icons ? <IconPops pops={pops} icons={props.icons} L={L} y={capY} hide={p} edge={!faceless} /> : null}
+      {sfx("pop")
+        ? pops.map((pp, i) => (
+            <Sequence key={`ip${i}`} from={Math.round(pp.t * fps)} durationInFrames={15}>
+              <Audio src={asset(sfx("pop")!)} volume={0.2 * sfxVol} />
+            </Sequence>
+          ))
+        : null}
+      {sfx("impact")
+        ? punches.map((pu, i) => (
+            <Sequence key={`pu${i}`} from={Math.round(pu.t * fps)} durationInFrames={30}>
+              <Audio src={asset(sfx("impact")!)} volume={0.22 * sfxVol} />
+            </Sequence>
+          ))
+        : null}
+
+      {captions.enabled ? <Captions words={words} y={capY} cfg={captions} side={L.capSide} u={L.u} icons={props.icons} second={props.second} /> : null}
 
       <Sequence from={outroFrom}>
         <Outro L={L} cta={props.cta} buttons={props.ctaButtons ?? ["Theo dõi", "Thích", "Chia sẻ"]} />
@@ -369,6 +445,8 @@ export const Video: React.FC<Props> = (props) => {
           <Audio src={asset(sfx("click")!)} volume={0.41 * sfxVol} />
         </Sequence>
       ) : null}
+
+      <TransitionFx kind={efx.transition} at={trAt} />
 
       {/* thanh tiến độ */}
       <div style={{ position: "absolute", top: 0, left: 0, height: 8, width: (L.w * frame) / durationInFrames, background: C.sky, boxShadow: glow(C.orange, 10) }} />

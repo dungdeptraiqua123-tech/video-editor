@@ -9,9 +9,14 @@ from . import media as M
 from .content import resolve_content
 from .env import ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
 from . import bang
+from . import dich as DICH
+from . import gia as GIA
+from . import icons as ICONS
+from . import nhip as NHIP
+from . import soat as SOAT
 from . import face as FACE
 from .project import GRAPHICS_EVERY, Project, _merge, cut_settings, fingerprint, pace_of
-from .timeline import CutConfig, apply_fixes, build_timeline, words_from_transcript
+from .timeline import CutConfig, apply_fixes, build_timeline, mark_sentences, trim_words, words_from_transcript
 
 
 def source_file(prj: Project) -> Path:
@@ -105,6 +110,17 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     src = source_file(prj)
     pinfo = M.probe(src)
     words = apply_fixes(words_from_transcript(read_json(tpath), cfg.get("dropSegments")), cfg.get("fix", []))
+    sugs = SOAT.suggest(words, cfg)
+    if (cfg.get("soat") or {}).get("auto") and any(s["kind"] == "tu-dien" for s in sugs):
+        auto_fix = SOAT.as_fix([s for s in sugs if s["kind"] == "tu-dien"])
+        words = apply_fixes(words, auto_fix)
+        info("🔤 tự sửa chữ nghe nhầm (soat.auto): " + ", ".join(f"{a} → {b}" for a, b in auto_fix))
+        sugs = SOAT.suggest(words, cfg)
+    if words and (cfg.get("cuts") or {}).get("silence", True) is not False and (cfg.get("cuts") or {}).get("audioGaps", True):
+        quiet = _quiet(prj, src)
+        words, freed = trim_words(words, quiet)
+        if freed > 0.3:
+            info(f"🔇 dò im lặng theo âm thanh: gỡ {freed:.1f}s quãng nghỉ bị tính lẫn vào từ (chống đứng hình)")
     if not words:
         raise VEError("Lời thoại rỗng: không có từ nào để dựng.", "Kiểm tra file nguồn có tiếng nói, hoặc ngôn ngữ trong whisper.language.")
     try:
@@ -118,11 +134,13 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     main = "cut.mp4" if has_video else "cut.m4a"
 
     # cắt file nguồn (bước nặng nhất của build, chỉ làm lại khi đầu vào hoặc đoạn giữ đổi)
-    cut_fp = fingerprint(src, tl.segments, has_video)
+    clean = (cfg.get("audio") or {}).get("clean", "nhe")
+    M.clean_filter(clean)  # báo lỗi sớm nếu ghi sai
+    cut_fp = fingerprint(src, tl.segments, has_video, clean or "")
     if not check_only:
         if force or not prj.fresh("cut", cut_fp) or not (prj.media / main).exists():
-            info(f"✂ cắt {len(tl.segments)} đoạn, giữ {tl.duration:.1f}s / {pinfo['duration']:.1f}s …")
-            M.cut(src, tl.segments, prj.media / main, has_video)
+            info(f"✂ cắt {len(tl.segments)} đoạn, giữ {tl.duration:.1f}s / {pinfo['duration']:.1f}s" + (f", làm sạch giọng mức \"{clean}\"" if clean else "") + " …")
+            M.cut(src, tl.segments, prj.media / main, has_video, clean=clean)
             prj.mark("cut", cut_fp)
         else:
             info("✂ bản cắt còn mới, dùng lại")
@@ -140,6 +158,9 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
                 g["src"] = _place(prj, g["src"], "assets")
             except VEError:
                 missing.append(g["src"])
+        if g.get("data"):
+            for note in GIA.apply(g, prj.root):
+                info(f"📈 giá thật cho \"{b.get('start', '')}\": {note}")
         b["g"] = g
         beats.append(b)
     content["beats"] = beats
@@ -152,8 +173,23 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     cap["keywords"] = list(dict.fromkeys((cap_tpl.get("keywords") or []) + ((cfg.get("captions") or {}).get("keywords") or [])))
     if not cap.get("maxChars"):
         cap["maxChars"] = 44 if W / H > 1.3 else 30
-    if cap["style"] not in ("glow", "box", "pop", "plain"):
-        rep.err("captions.style", f"\"{cap['style']}\" không có. Chọn glow, box, pop hoặc plain")
+    if cap["style"] not in ("glow", "box", "pop", "plain", "karaoke"):
+        rep.err("captions.style", f"\"{cap['style']}\" không có. Chọn glow, box, pop, plain hoặc karaoke")
+    lang2 = cap.pop("second", None)
+    second = DICH.load(prj, tl) if lang2 else []
+
+    # icon tự hiện theo lời: logo bật lên giữa màn hình + icon nhỏ cạnh chữ trong phụ đề
+    place_icon = (lambda f: _place(prj, f, "brand")) if not check_only else (lambda f: f)
+    pops, inline, icon_table = ICONS.resolve(tl.words, cfg, data["beats"] + [{"start": p_["t"], "end": p_["t"] + 1.3} for p_ in data.get("punches", [])], duration, data["hookSec"], data["outroSec"], place_file=place_icon)
+    words_out = [dict(w) for w in tl.words]
+    n_dot = mark_sentences(words_out)
+    if n_dot:
+        info(f"✏ thêm {n_dot} dấu chấm trước câu mới bị viết hoa giữa dòng (phụ đề ngắt đúng câu)")
+    if cap.get("icons", True):
+        for i, iid in inline.items():
+            words_out[i]["ic"] = iid
+    if pops or inline:
+        info(f"✨ icon theo lời: {len(pops)} lần bật lên, {len(inline) if cap.get('icons', True) else 0} icon cạnh phụ đề" + (" (" + ", ".join(dict.fromkeys(p["word"] for p in pops[:8])) + ")" if pops else ""))
 
     m = {"main": main, "hasVideo": has_video}
     if has_video:
@@ -171,9 +207,21 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         bp = prj.path(cfg["background"])
         bi = M.probe(bp) if bp and bp.suffix.lower() in M.VIDEO_EXT else {"duration": 9999}
         m["background"] = {"src": _place(prj, cfg["background"], "assets"), "duration": bi["duration"]}
+    music_beats = []
     if cfg.get("music"):
         mu = cfg["music"] if isinstance(cfg["music"], dict) else {"file": cfg["music"]}
-        m["music"] = {"src": _place(prj, mu["file"], "assets"), "volume": float(mu.get("volume", 0.08))}
+        start = float(mu.get("start", 0) or 0)
+        m["music"] = {"src": _place(prj, mu["file"], "assets"), "volume": float(mu.get("volume", 0.12)),
+                      "duck": float(mu.get("duck", 0.35)), "fade": float(mu.get("fade", 1.0)), "start": start}
+        if mu.get("sync", True):
+            music_beats = _music_beats(prj, prj.path(mu["file"]), start, duration)
+            if music_beats:
+                if mu.get("sync") == "cat" or (cfg.get("style") or {}).get("pace") == "nhanh":
+                    data["zooms"] = sorted(set(NHIP.snap(data["zooms"], music_beats)))
+                info(f"🎵 nhạc nền: {len(music_beats)} phách trong video, hạt nền và đổi khung nảy theo nhịp")
+    fx = _fx(cfg, rep)
+    if music_beats:
+        fx["musicBeats"] = music_beats
 
     sfx = sfx_for(prj, place=not check_only)
 
@@ -185,26 +233,42 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         "captions": cap,
         "media": m,
         "sfx": sfx,
-        "words": tl.words,
+        "words": words_out,
         **data,
+        "icons": icon_table,
+        "pops": pops,
+        "second": second,
+        "fx": fx,
         "ctaButtons": content.get("ctaButtons") or ["Theo dõi", "Thích", "Chia sẻ"],
     }
     removed_sec = {
-        "khoảng lặng": round(pinfo["duration"] - tl.duration - sum(w["end"] - w["start"] for k in ("filler", "stumble", "drop") for w in tl.removed[k]), 2),
+        "khoảng lặng": round(pinfo["duration"] - tl.duration - sum(w["end"] - w["start"] for k in ("filler", "stumble", "retake", "drop") for w in tl.removed[k]), 2),
         "từ đệm": round(sum(w["end"] - w["start"] for w in tl.removed["filler"]), 2),
         "nói vấp": round(sum(w["end"] - w["start"] for w in tl.removed["stumble"]), 2),
+        "câu nói lại": round(sum(w["end"] - w["start"] for w in tl.removed["retake"]), 2),
         "đoạn bỏ": round(sum(w["end"] - w["start"] for w in tl.removed["drop"]), 2),
     }
+    for msg in SOAT.check_content(cfg.get("content") or {}, sugs):
+        rep.warn("soát chữ", msg)
     write_json(prj.work / "timeline.json", {"source": str(src), "sourceDuration": pinfo["duration"], "duration": duration, "segments": tl.segments, "removed": tl.removed, "removedSeconds": removed_sec, "suggestions": tl.suggestions})
     write_json(prj.work / "check.json", {"errors": rep.errors, "warnings": rep.warnings})
 
     for w_ in rep.warnings:
         warn(w_)
+    for line in SOAT.report_lines(sugs):
+        info(line)
     dens = (cfg.get("style") or {}).get("graphics") or "vua"
     if dens in GRAPHICS_EVERY and duration > 20:
         want = max(1, round((duration - data["hookSec"] - data["outroSec"]) / GRAPHICS_EVERY[dens]))
         info(f"🎨 {len(data['beats'])} khung đồ hoạ / {duration:.0f}s; mật độ \"{dens}\" gợi ý khoảng {want} khung")
     bang.write(prj.work / "bang-quy-chieu.md", cfg["name"], words, tl, rep.events, cut_settings(cfg).get("keep"))
+    for r in tl.removed["retake"]:
+        info(f"🔁 đã bỏ lần nói đầu của câu nói lại @{r['start']}–{r['end']}s: \"{r['text']}\"")
+    if tl.removed["retake"]:
+        info("   Muốn giữ: đặt cuts.retakes = \"suggest\" (chỉ gợi ý) hoặc \"off\".")
+    if tl.suggestions["retake"]:
+        info(f"💡 {len(tl.suggestions['retake'])} chỗ người nói nói lại câu (chưa cắt): " + "; ".join(f"\"{s['text']}\" @{s['start']}s" for s in tl.suggestions["retake"][:6]))
+        info("   Bỏ lần nói đầu: đặt cuts.retakes = \"auto\", hoặc thêm [giây đầu, giây cuối] vào cuts.drop.")
     if tl.suggestions["stumble"]:
         info(f"💡 {len(tl.suggestions['stumble'])} chỗ có thể là nói vấp (chưa cắt): " + "; ".join(f"\"{s['text']}\" @{s['start']}s" for s in tl.suggestions["stumble"][:6]))
         info("   Cắt hết: đặt cuts.stumbles = \"auto\". Cắt từng chỗ: thêm [giây đầu, giây cuối] vào cuts.drop.")
@@ -215,6 +279,68 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         prj.mark("build", fingerprint(read_json(prj.file), prj.media / main, tpath), duration=duration)
     info(f"✓ dữ liệu hợp lệ: {duration:.1f}s, {len(data['beats'])} khung đồ hoạ, {len(tl.words)} từ phụ đề" + (" (chỉ kiểm tra, chưa ghi)" if check_only else ""))
     return props
+
+
+def _quiet(prj: Project, src: Path) -> list:
+    """Khoảng im lặng thật của file nguồn, lưu đệm ở work/im-lang.json."""
+    cache = prj.work / "im-lang.json"
+    key = fingerprint(src)
+    d = read_json(cache) if cache.exists() else {}
+    if d.get("key") != key:
+        d = {"key": key, "quiet": M.silences(src)}
+        write_json(cache, d)
+    return d["quiet"]
+
+
+TRANSITIONS = ("mem", "vuot", "zoom", "flash", "glitch")
+AUTO_TRANSITION = {"nhanh": "zoom", "vua": "vuot", "cham": "mem"}
+
+
+def _fx(cfg: dict, rep) -> dict:
+    st = cfg.get("style") or {}
+    tr = st.get("transition") or "auto"
+    if tr == "auto":
+        tr = AUTO_TRANSITION.get(st.get("pace") or "vua", "vuot")
+    if tr not in TRANSITIONS:
+        rep.err("style.transition", f"\"{tr}\" không có. Chọn auto, {', '.join(TRANSITIONS)}")
+        tr = "mem"
+    return {"transition": tr, "shake": bool(st.get("shake", True)), "particles": bool(st.get("particles", True))}
+
+
+def _music_beats(prj: Project, path: Path | None, start: float, duration: float) -> list[float]:
+    """Phách nhạc nền theo thời gian video (đã trừ điểm bắt đầu nhạc), lưu đệm ở work/nhip.json."""
+    if not path or not path.exists():
+        return []
+    cache = prj.work / "nhip.json"
+    key = fingerprint(path)
+    d = read_json(cache) if cache.exists() else {}
+    if d.get("key") != key:
+        d = {"key": key, **NHIP.beats(path)}
+        write_json(cache, d)
+    return [round(t - start, 3) for t in d.get("beats", []) if 0 <= t - start <= duration]
+
+
+def preview_icons(prj: Project) -> None:
+    """In các chỗ icon sẽ hiện (theo lời thoại đã sửa), để duyệt trước khi build."""
+    tpath = prj.work / "transcript.json"
+    if not tpath.exists():
+        raise VEError("Chưa có lời thoại (work/transcript.json).", f"Chạy `video-editor transcribe {prj.root}` trước.")
+    words = apply_fixes(words_from_transcript(read_json(tpath), prj.cfg.get("dropSegments")), prj.cfg.get("fix", []))
+    ws = [{"text": w.text, "start": w.start, "end": w.end} if hasattr(w, "text") else w for w in words]
+    entries = ICONS.lexicon(prj.cfg)
+    hits = ICONS.find(ws, entries)
+    if not hits:
+        info("Không có từ nào khớp từ điển icon. Thêm mục riêng: \"icons\": {\"extra\": [{\"label\": \"Tên\", \"match\": [\"tên\"], \"file\": \"logo.png\"}]}")
+        return
+    pops, inline, _ = ICONS.plan(ws, prj.cfg, [], ws[-1]["end"], 0.0, 0.0)
+    pop_words = {p["t"] for p in pops}
+    info(f"{len(hits)} chỗ nhắc tới icon (giây theo file gốc, ★ = bật lên lớn, chưa trừ phần mở/kết và khung đồ hoạ):")
+    for h in hits:
+        e = h["entry"]
+        star = "★" if round(max(0.0, h["start"] - ICONS.LEAD), 2) in pop_words else " "
+        said = " ".join(w["text"] for w in ws[h["i"]:h["i"] + h["n"]])
+        info(f"  {star} {h['start']:7.2f}s  \"{said}\" → {e.get('label') or e.get('icon')} ({e.get('icon') or e.get('file')})")
+    info("Tắt một icon: \"icons\": {\"off\": [\"tên\"]}. Tắt hết: \"icons\": false.")
 
 
 def write_transcript_text(prj: Project) -> Path:
@@ -228,5 +354,7 @@ def write_transcript_text(prj: Project) -> Path:
     out = prj.work / "loi-thoai.txt"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     words = apply_fixes(words_from_transcript(segs, prj.cfg.get("dropSegments")), prj.cfg.get("fix", []))
+    for line in SOAT.report_lines(SOAT.suggest(words, prj.cfg)):
+        info(line)
     bang.write(prj.work / "bang-quy-chieu.md", prj.cfg["name"], words)
     return out

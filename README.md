@@ -22,7 +22,7 @@ nhận việc (phong cách, nhịp, quy tắc riêng) → doctor/setup → init 
 - Video sản phẩm: cảnh quay làm nền, giọng AI, ảnh hoặc clip sản phẩm trong khung.
 
 **Cắt**
-- Khoảng lặng, từ đệm (ờ, ừm…), nói vấp (gợi ý hoặc tự cắt), khoảng giữ hoặc bỏ tuỳ chọn.
+- Khoảng lặng, từ đệm (ờ, ừm…), nói vấp (gợi ý hoặc tự cắt), câu nói lại (bỏ lần nói đầu, giữ lần sau), khoảng giữ hoặc bỏ tuỳ chọn.
 - Một hệ thời gian chung, nên phụ đề, đồ hoạ và SRT không lệch sau khi cắt.
 - **Video dài thành nhiều short:** chấm điểm mọi đoạn 25–60 giây theo lời (câu mở có móc, trọn ý, nhiều con số), đề xuất các đoạn không trùng nhau, tạo mỗi đoạn thành một dự án dùng lại lời thoại đã chép.
 
@@ -33,6 +33,14 @@ nhận việc (phong cách, nhịp, quy tắc riêng) → doctor/setup → init 
 **Đồ hoạ**
 - Con số lớn, giá đếm lên, mốc kháng cự/hỗ trợ, danh sách, biểu đồ vẽ dần, tiêu đề chương, ảnh/clip sản phẩm, thẻ chủ đề có tick.
 - Neo bằng cụm từ trong lời: phần tử bật 0,08 giây trước khi được nói.
+
+**Hiệu ứng động (0.3)**
+- Icon/logo tự hiện khi nhắc tới: nói "Claude", "Bitcoin", "ngân hàng"… thì icon bật lên cạnh người nói và hiện nhỏ cạnh chữ trong phụ đề. Từ điển 127 mục (logo simple-icons, icon lucide), thêm logo riêng được.
+- Chữ đập to đúng lúc nói con số, khung rung nhẹ; 5 kiểu chuyển cảnh (mờ, vuốt, zoom, chớp, nhiễu); hạt sáng nền.
+- 6 loại đồ hoạ mới: so sánh hai bên, mốc thời gian, thanh/vòng phần trăm, trích dẫn gõ chữ, bảng, đếm ngược "top 3".
+- Phụ đề karaoke, phụ đề song ngữ (xuất thêm `.en.srt`).
+- Biểu đồ giá coin thật từ CoinGecko (hoặc CSV), b-roll miễn phí từ Pexels.
+- Làm sạch giọng (lọc ù, khử ồn) khi cắt; nhạc nền tự hạ khi nói, dò nhịp để hiệu ứng nảy theo phách.
 
 **Khổ hình:** 9:16, 16:9, 1:1, 4:5. Mỗi khổ có bố cục và vùng an toàn riêng.
 
@@ -114,6 +122,12 @@ video-editor note "Phụ đề to hơn" --project du-an/bitcoin --loai phu-de   
 # học nhịp từ video mẫu (file trên máy)
 video-editor mau ~/Downloads/mau.mp4 --project du-an/bitcoin [--ap-dung]
 
+# 0.3: icon theo lời, giá thật, b-roll, song ngữ
+video-editor icons du-an/bitcoin                        # xem trước chỗ icon sẽ hiện
+video-editor gia du-an/bitcoin --coin bitcoin --den 2025-10-02 --ngay 30
+video-editor broll du-an/bitcoin "bitcoin coin"         # cần PEXELS_API_KEY
+video-editor dich du-an/bitcoin --ngon-ngu en           # điền work/dich.json, đặt captions.second
+
 # video dài → nhiều short
 video-editor shorts du-an/podcast             # work/de-xuat-short.md: các đoạn hay nhất kèm lý do
 video-editor shorts du-an/podcast --tao 1,3   # mỗi đoạn một dự án trong du-an/podcast/shorts/
@@ -129,6 +143,7 @@ video-editor shorts du-an/podcast --tao 1,3   # mỗi đoạn một dự án tro
 | `bin/` | Lệnh `video-editor` (macOS/Linux) và `video-editor.cmd` (Windows) |
 | `ve/` | Công cụ điều phối (Python, chỉ thư viện chuẩn) |
 | `engine/` | Bộ dựng Remotion |
+| `data/` | Từ điển icon theo lời (`icon-tu-dien.json`) |
 | `templates/` | Mẫu nhận diện |
 | `examples/` | Dự án mẫu |
 | `huong-dan/` | Hướng dẫn: dự án, đồ hoạ, lỗi thường gặp, ElevenLabs |

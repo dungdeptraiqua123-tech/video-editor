@@ -27,6 +27,12 @@ SCHEMA = {
     "stat": {"req": {"icon": str, "big": str, "label": str}},
     "title": {"req": {"kicker": str, "text": str}},
     "media": {"req": {"src": str}},
+    "compare": {"req": {"title": str, "left": dict, "right": dict}},
+    "timeline": {"req": {"title": str, "items": list}},
+    "progress": {"req": {"title": str, "items": list}},
+    "quote": {"req": {"text": str}},
+    "table": {"req": {"title": str, "cols": list, "rows": list}},
+    "countdown": {"req": {"title": str, "items": list}},
 }
 MAXLEN = {"label": 28, "title": 34, "text": 40, "big": 10, "kicker": 28, "head": 30}
 
@@ -131,7 +137,7 @@ def check_graphic(g: dict, where: str, rep: Report, media_ok=lambda p: True) -> 
         elif not isinstance(g[k], typ):
             rep.err(where, f"trường \"{k}\" sai kiểu")
     for k, lim in MAXLEN.items():
-        lim = 44 if (t, k) == ("stat", "label") else lim
+        lim = 44 if (t, k) == ("stat", "label") else 140 if (t, k) == ("quote", "text") else lim
         if isinstance(g.get(k), str) and len(g[k]) > lim:
             rep.warn(where, f"\"{k}\" dài {len(g[k])} ký tự (nên ≤ {lim}), có thể tràn khung")
     if t == "chart" and isinstance(g.get("points"), list):
@@ -158,6 +164,70 @@ def check_graphic(g: dict, where: str, rep: Report, media_ok=lambda p: True) -> 
         rep.err(where, f"icon \"{g.get('icon')}\" không có. Chọn: {', '.join(sorted(ICONS))}")
     if t == "media" and isinstance(g.get("src"), str) and not media_ok(g["src"]):
         rep.err(where, f"không thấy file \"{g['src']}\" trong thư mục media của dự án")
+    if t == "compare":
+        for side in ("left", "right"):
+            sd = g.get(side)
+            if isinstance(sd, dict):
+                for k in ("label", "value"):
+                    if not isinstance(sd.get(k), str) or not sd.get(k):
+                        rep.err(where, f"{side}.{k} cần là chữ (ví dụ \"label\": \"Hôm qua\", \"value\": \"$85K\")")
+                if len(str(sd.get("value", ""))) > 9:
+                    rep.warn(where, f"{side}.value \"{sd.get('value')}\" dài hơn 9 ký tự, có thể tràn ô")
+                if sd.get("icon") and sd["icon"] not in ICONS:
+                    rep.err(where, f"icon \"{sd['icon']}\" không có. Chọn: {', '.join(sorted(ICONS))}")
+        if g.get("winner") not in (None, "left", "right"):
+            rep.err(where, "winner chỉ nhận \"left\" hoặc \"right\"")
+    if t in ("timeline", "countdown") and isinstance(g.get("items"), list):
+        if not 2 <= len(g["items"]) <= 5:
+            rep.warn(where, "nên có 2–5 mục")
+        for it in g["items"]:
+            if t == "timeline" and not it.get("when"):
+                rep.err(where, f"mục \"{it.get('text')}\" thiếu \"when\" (mốc thời gian, ví dụ \"2024\", \"Tháng 10\")")
+            if len(it.get("text", "")) > 36:
+                rep.warn(where, f"dòng \"{it.get('text')}\" dài hơn 36 ký tự")
+    if t == "progress" and isinstance(g.get("items"), list):
+        if not 1 <= len(g["items"]) <= 4:
+            rep.warn(where, "nên có 1–4 thanh")
+        for it in g["items"]:
+            if not isinstance(it.get("value"), (int, float)):
+                rep.err(where, f"\"{it.get('label')}\" cần value là số (ví dụ 65 cho 65%)")
+            if not it.get("label"):
+                rep.err(where, "mỗi thanh cần label")
+    if t == "table" and isinstance(g.get("cols"), list) and isinstance(g.get("rows"), list):
+        if not 2 <= len(g["cols"]) <= 4:
+            rep.warn(where, "bảng nên có 2–4 cột")
+        if not 1 <= len(g["rows"]) <= 5:
+            rep.warn(where, "bảng nên có 1–5 dòng")
+        for r in g["rows"]:
+            cells = r.get("cells") if isinstance(r, dict) else None
+            if not isinstance(cells, list) or len(cells) != len(g["cols"]):
+                rep.err(where, f"mỗi dòng cần \"cells\" có đúng {len(g['cols'])} ô (bằng số cột)")
+                break
+
+
+def _max_d(x) -> float:
+    if isinstance(x, dict):
+        return max([float(v) for k, v in x.items() if k.endswith("d") and k[:-1] in ("", "label", "change") and isinstance(v, (int, float))] + [_max_d(v) for v in x.values()] + [0.0])
+    if isinstance(x, list):
+        return max([_max_d(v) for v in x] + [0.0])
+    return 0.0
+
+
+def _check_density(g: dict, head: str, dur: float, prev: list, where: str, rep: Report) -> None:
+    """Khung ít nội dung mà hiện lâu (màn hình gần như đứng yên), tiêu đề trùng khung liền trước."""
+    import difflib
+
+    t = g.get("type")
+    n = len(g.get("items") or g.get("levels") or g.get("rows") or [])
+    if t in ("list", "levels", "progress", "countdown", "timeline", "table") and n <= 1 and dur > 4:
+        rep.warn(where, f"chỉ có 1 ý mà hiện {dur:.1f}s, màn hình gần như đứng yên. Thêm ý (mỗi ý neo một cụm lời), hoặc đổi sang stat / chữ đập (punches)")
+    idle = dur - _max_d(g)
+    if idle > 6 and t not in ("chart", "media", "quote", "price"):
+        rep.warn(where, f"ý cuối hiện xong còn đứng yên {idle:.1f}s. Rút ngắn khung (end sớm hơn) hoặc thêm ý neo vào lời phía sau")
+    if prev and head and prev[-1].get("head"):
+        a, b = head.lower(), prev[-1]["head"].lower()
+        if a == b or difflib.SequenceMatcher(None, a, b).ratio() >= 0.6 or a.split()[:2] == b.split()[:2]:
+            rep.warn(where, f"tiêu đề \"{head}\" gần giống khung liền trước (\"{prev[-1]['head']}\"). Gộp hai khung hoặc đặt tiêu đề khác để người xem thấy đã sang ý mới")
 
 
 def resolve_content(content: dict, words: list, duration: float, tl=None, mode: str = "talking", media_ok=lambda p: True, zoom_every: float = 3.0) -> tuple[dict, Report]:
@@ -201,8 +271,12 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         if e > duration - outro_sec + 0.2:
             rep.warn(where, f"chạm phần kết ({e:.1f}s > {duration - outro_sec:.1f}s), đã cắt bớt")
             e = duration - outro_sec
-        if s < hook_sec:
-            rep.warn(where, f"bắt đầu lúc {s:.1f}s, chồng lên thẻ mở đầu ({hook_sec}s)")
+        if s < hook_sec + 0.2:
+            rep.warn(where, f"bắt đầu lúc {s:.1f}s, chồng lên thẻ mở đầu ({hook_sec}s), đã dời tới {hook_sec + 0.2:.1f}s để hai lớp chữ không đè nhau")
+            s = hook_sec + 0.2
+            if e - s < 1.0:
+                rep.err(where, "sau khi dời khỏi phần mở đầu chỉ còn dưới 1 giây. Neo khung vào câu nói sau phần mở đầu")
+                continue
         if e - s < 1.5:
             rep.warn(where, f"chỉ hiện {e - s:.1f}s, người xem khó đọc kịp")
         if e - s > 25:
@@ -217,6 +291,7 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         rep.at(s, f"{where} mở: {g.get('title') or g.get('text') or g.get('label') or g.get('type')}", b.get("start"))
         rep.at(e, f"{where} đóng", b.get("end"))
         gg = _resolve_anchors(g, finder, s - 1.0, e + 0.5, s, rep, f"  {where}")
+        _check_density(gg, b.get("head", ""), e - s, beats, where, rep)
         beats.append({"start": round(s, 2), "end": round(e, 2), "head": b.get("head", ""), "g": gg})
 
     topics = []
@@ -241,6 +316,28 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         topics.append({"start": round(starts[i], 2), "end": round(end, 2), "kicker": t.get("kicker", ""), "title": t.get("title", ""), "items": items})
         rep.at(starts[i], f"topics[{i}] thẻ chủ đề: {t.get('title', '')}", t.get("start"))
 
+    punches = []
+    for i, pu in enumerate(content.get("punches", [])):
+        where = f"punches[{i}]"
+        if not pu.get("text"):
+            rep.err(where, "thiếu \"text\" (chữ lớn sẽ đập lên màn hình)")
+            continue
+        if len(pu["text"]) > 12:
+            rep.warn(where, f"\"{pu['text']}\" dài {len(pu['text'])} ký tự (nên ≤ 12 để chữ đủ to)")
+        hit = finder.find(pu.get("say", ""))
+        if not hit:
+            sug = finder.near(pu.get("say", ""))
+            rep.err(where, f"không tìm thấy \"{pu.get('say')}\" trong lời thoại" + (f". Gần giống: {', '.join(repr(x) for x in sug)}" if sug else ""))
+            continue
+        tt = round(max(0.0, hit[0] - LEAD), 2)
+        if any(b["start"] - 0.3 <= tt <= b["end"] for b in beats):
+            rep.warn(where, f"\"{pu['text']}\" rơi vào lúc đang hiện khung đồ hoạ ({tt:.1f}s) nên bị ẩn")
+        if punches and tt - punches[-1]["t"] < 1.6:
+            rep.warn(where, f"cách chữ đập trước chỉ {tt - punches[-1]['t']:.1f}s, đã bỏ")
+            continue
+        punches.append({"t": tt, "text": pu["text"], **({"sub": pu["sub"]} if pu.get("sub") else {}), **({"tone": pu["tone"]} if pu.get("tone") else {})})
+        rep.at(tt, f"{where} chữ đập: {pu['text']}", pu.get("say"))
+
     z = content.get("zooms", "auto")
     zooms = auto_zooms(words, beats, zoom_every) if z == "auto" and mode == "talking" else [round(tl.map(x) if tl else x, 2) for x in (z if isinstance(z, list) else [])]
 
@@ -252,6 +349,7 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         "beats": beats,
         "topics": topics,
         "zooms": zooms,
+        "punches": punches,
     }
     if duration < hook_sec + outro_sec + 2:
         rep.err("video", f"chỉ dài {duration:.1f}s, không đủ chỗ cho mở đầu và kết")
