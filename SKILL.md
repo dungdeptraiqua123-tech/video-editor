@@ -87,6 +87,7 @@ video-editor build <dự án>
 - Lỗi nào cũng chỉ rõ chỗ và cách sửa. Cụm neo sai thì kèm gợi ý cụm gần giống.
 - Lặp bước 5–6 tới khi không còn lỗi.
 - **Video quay ngang mà xuất dọc** (16:9 sang 9:16, 1:1 hay 4:5): `build` tự dò mặt người nói và cho khung bám theo, phủ kín khổ dọc thay vì để viền. Khung đi mượt trong từng đoạn và nhảy thẳng ở chỗ cắt. Thấy mặt dưới 50% thời lượng (quay màn hình, b-roll) thì giữ khung cố định theo `face.x`/`face.y`. Tắt: `face.track = false`. Video có hai người thì khung bám người có mặt lớn nhất, không tự đổi theo người đang nói: xem storyboard và báo người dùng.
+- **Câu nói lại** (người nói nói một câu rồi nói lại từ đầu) được tự bỏ lần đầu, giữ lần sau; build in dòng 🔁 cho từng chỗ. Đọc lại các dòng này: lần đầu có ý riêng cần giữ thì đặt `cuts.retakes: "suggest"` rồi tự chọn bằng `cuts.drop`.
 - Chỗ nghi nói vấp được liệt kê. Xem và quyết: `cuts.stumbles: "auto"`, hoặc thêm khoảng vào `cuts.drop`.
 
 **7. Storyboard, duyệt, rồi render.**

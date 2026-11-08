@@ -227,9 +227,10 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         "ctaButtons": content.get("ctaButtons") or ["Theo dõi", "Thích", "Chia sẻ"],
     }
     removed_sec = {
-        "khoảng lặng": round(pinfo["duration"] - tl.duration - sum(w["end"] - w["start"] for k in ("filler", "stumble", "drop") for w in tl.removed[k]), 2),
+        "khoảng lặng": round(pinfo["duration"] - tl.duration - sum(w["end"] - w["start"] for k in ("filler", "stumble", "retake", "drop") for w in tl.removed[k]), 2),
         "từ đệm": round(sum(w["end"] - w["start"] for w in tl.removed["filler"]), 2),
         "nói vấp": round(sum(w["end"] - w["start"] for w in tl.removed["stumble"]), 2),
+        "câu nói lại": round(sum(w["end"] - w["start"] for w in tl.removed["retake"]), 2),
         "đoạn bỏ": round(sum(w["end"] - w["start"] for w in tl.removed["drop"]), 2),
     }
     write_json(prj.work / "timeline.json", {"source": str(src), "sourceDuration": pinfo["duration"], "duration": duration, "segments": tl.segments, "removed": tl.removed, "removedSeconds": removed_sec, "suggestions": tl.suggestions})
@@ -242,6 +243,13 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         want = max(1, round((duration - data["hookSec"] - data["outroSec"]) / GRAPHICS_EVERY[dens]))
         info(f"🎨 {len(data['beats'])} khung đồ hoạ / {duration:.0f}s; mật độ \"{dens}\" gợi ý khoảng {want} khung")
     bang.write(prj.work / "bang-quy-chieu.md", cfg["name"], words, tl, rep.events, cut_settings(cfg).get("keep"))
+    for r in tl.removed["retake"]:
+        info(f"🔁 đã bỏ lần nói đầu của câu nói lại @{r['start']}–{r['end']}s: \"{r['text']}\"")
+    if tl.removed["retake"]:
+        info("   Muốn giữ: đặt cuts.retakes = \"suggest\" (chỉ gợi ý) hoặc \"off\".")
+    if tl.suggestions["retake"]:
+        info(f"💡 {len(tl.suggestions['retake'])} chỗ người nói nói lại câu (chưa cắt): " + "; ".join(f"\"{s['text']}\" @{s['start']}s" for s in tl.suggestions["retake"][:6]))
+        info("   Bỏ lần nói đầu: đặt cuts.retakes = \"auto\", hoặc thêm [giây đầu, giây cuối] vào cuts.drop.")
     if tl.suggestions["stumble"]:
         info(f"💡 {len(tl.suggestions['stumble'])} chỗ có thể là nói vấp (chưa cắt): " + "; ".join(f"\"{s['text']}\" @{s['start']}s" for s in tl.suggestions["stumble"][:6]))
         info("   Cắt hết: đặt cuts.stumbles = \"auto\". Cắt từng chỗ: thêm [giây đầu, giây cuối] vào cuts.drop.")

@@ -220,6 +220,10 @@ def export(prj: Project) -> list[Path]:
     if placeholder:
         lines += ["> ⚠ Video đang dùng **giọng tạm (im lặng)** để duyệt bố cục. Tạo giọng thật bằng `video-editor tts` trước khi đăng.", ""]
     sug = tl.get("suggestions", {})
+    if tl.get("removed", {}).get("retake"):
+        lines += ["## Câu nói lại đã bỏ lần đầu", "", "Người nói nói lại câu; video giữ lần sau. Xem lại nếu lần đầu có ý cần giữ (`cuts.retakes`).", ""] + [f"- \"{s['text']}\" lúc {s['start']}–{s['end']}s" for s in tl["removed"]["retake"]] + [""]
+    if sug.get("retake"):
+        lines += ["## Chỗ người nói nói lại câu (chưa cắt)", ""] + [f"- \"{s['text']}\" lúc {s['start']}–{s['end']}s" for s in sug["retake"]] + [""]
     if sug.get("stumble"):
         lines += ["## Chỗ có thể nói vấp (chưa cắt)", ""] + [f"- \"{s['text']}\" lúc {s['start']}s" for s in sug["stumble"]] + [""]
     if chk.get("warnings"):

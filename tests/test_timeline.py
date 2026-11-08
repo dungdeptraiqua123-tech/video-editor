@@ -1,6 +1,6 @@
 import unittest
 
-from ve.timeline import CutConfig, Word, apply_fixes, build_timeline, find_fillers, find_stumbles, words_from_transcript
+from ve.timeline import find_retakes, CutConfig, Word, apply_fixes, build_timeline, find_fillers, find_stumbles, words_from_transcript
 
 
 def W(spec):
@@ -109,3 +109,46 @@ class Cut(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Retakes(unittest.TestCase):
+    @staticmethod
+    def ws(text, pauses=None, step=0.3):
+        """Từ cách đều; pauses = {chỉ số từ: giây nghỉ trước từ đó}."""
+        out, t = [], 0.0
+        for i, tok in enumerate(text.split()):
+            t += (pauses or {}).get(i, 0.0)
+            out.append(Word(tok, round(t, 2), round(t + step - 0.05, 2)))
+            t += step
+        return out
+
+    def test_video_test5_case(self):
+        # câu mở đầu nói hai lần: bỏ lần đầu, giữ lần sau trọn ý hơn
+        w = self.ws("Cái video này được mình quay và edit 100% Cái video này được mình quay và sử dụng công cụ edit là AI", {9: 0.3})
+        self.assertEqual(find_retakes(w), [(0, 8)])
+        tl = build_timeline(w, w[-1].end + 0.5, CutConfig(retakes="auto"))
+        self.assertEqual(tl.words[0]["text"], "Cái")
+        self.assertEqual(len(tl.words), len(w) - 9)
+        self.assertEqual(tl.removed["retake"][0]["text"], "Cái video này được mình quay và edit 100%")
+
+    def test_no_pause_needs_four_words(self):
+        w = self.ws("giá Bitcoin hôm nay giảm giá Bitcoin hôm nay tăng mạnh")
+        self.assertEqual(find_retakes(w), [(0, 4)])
+        w = self.ws("giá Bitcoin hôm giảm giá Bitcoin hôm nay tăng mạnh")
+        self.assertEqual(find_retakes(w), [])  # chỉ trùng 3 từ, không có quãng nghỉ
+        w = self.ws("giá Bitcoin hôm giảm giá Bitcoin hôm nay tăng mạnh", {4: 0.4})
+        self.assertEqual(find_retakes(w), [(0, 3)])
+
+    def test_keep_emphasis_and_common_words(self):
+        self.assertEqual(find_retakes(self.ws("Bitcoin sẽ tăng mạnh. Bitcoin sẽ tăng mạnh. chắc chắn vậy")), [])
+        self.assertEqual(find_retakes(self.ws("thì là cái này rồi thì là cái kia nữa", {5: 0.5})), [])
+
+    def test_far_apart_not_retake(self):
+        w = self.ws("Bitcoin hôm nay tăng " + "ờ " * 3 + "Bitcoin hôm nay tăng tiếp", {4: 20})
+        self.assertEqual(find_retakes(w), [])
+
+    def test_suggest_mode_keeps_words(self):
+        w = self.ws("Cái video này được mình quay và edit Cái video này được mình quay bằng AI", {8: 0.3})
+        tl = build_timeline(w, w[-1].end + 0.5, CutConfig(retakes="suggest"))
+        self.assertEqual(len(tl.words), len(w))
+        self.assertEqual(len(tl.suggestions["retake"]), 1)

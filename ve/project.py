@@ -40,7 +40,7 @@ DEFAULT = {
     "style": {"pace": "vua", "graphics": "vua", "reference": "", "notes": "", "transition": "auto", "shake": True, "particles": True},
     # quy tắc riêng của video này, chỉ áp dụng cho dự án này (không mang sang video khác)
     "rules": [],
-    "cuts": {"gap": None, "pad": None, "fillers": None, "stumbles": None, "drop": [], "keep": []},
+    "cuts": {"gap": None, "pad": None, "fillers": None, "stumbles": None, "retakes": None, "drop": [], "keep": []},
     "fix": [],
     "dropSegments": [],
     "music": None,
@@ -53,9 +53,9 @@ DEFAULT = {
 
 # nhịp dựng: mức cắt lặng, xử lý từ đệm/nói vấp, khoảng cách đổi khung, mật độ đồ hoạ gợi ý
 PACES = {
-    "nhanh": {"label": "nhanh (Reels/TikTok dồn dập)", "cuts": {"gap": 0.35, "pad": 0.08, "fillers": "auto", "stumbles": "auto"}, "zoomEvery": 2.2},
-    "vua": {"label": "vừa", "cuts": {"gap": 0.55, "pad": 0.12, "fillers": "auto", "stumbles": "suggest"}, "zoomEvery": 3.0},
-    "cham": {"label": "chậm (giữ hơi thở, kể chuyện)", "cuts": {"gap": 0.9, "pad": 0.18, "fillers": "suggest", "stumbles": "suggest"}, "zoomEvery": 5.0},
+    "nhanh": {"label": "nhanh (Reels/TikTok dồn dập)", "cuts": {"gap": 0.35, "pad": 0.08, "fillers": "auto", "stumbles": "auto", "retakes": "auto"}, "zoomEvery": 2.2},
+    "vua": {"label": "vừa", "cuts": {"gap": 0.55, "pad": 0.12, "fillers": "auto", "stumbles": "suggest", "retakes": "auto"}, "zoomEvery": 3.0},
+    "cham": {"label": "chậm (giữ hơi thở, kể chuyện)", "cuts": {"gap": 0.9, "pad": 0.18, "fillers": "suggest", "stumbles": "suggest", "retakes": "suggest"}, "zoomEvery": 5.0},
 }
 # số giây trung bình cho mỗi khung đồ hoạ theo mật độ mong muốn
 GRAPHICS_EVERY = {"it": 30, "vua": 15, "nhieu": 8}

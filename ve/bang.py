@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-REASON = {"filler": "cắt: từ đệm", "stumble": "cắt: nói vấp", "drop": "cắt: đoạn bỏ", "outside_keep": "cắt: ngoài đoạn giữ"}
+REASON = {"filler": "cắt: từ đệm", "stumble": "cắt: nói vấp", "retake": "cắt: câu nói lại (giữ lần sau)", "drop": "cắt: đoạn bỏ", "outside_keep": "cắt: ngoài đoạn giữ"}
 
 
 def clock(t: float) -> str:

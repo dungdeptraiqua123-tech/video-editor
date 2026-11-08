@@ -22,7 +22,7 @@ nhận việc (phong cách, nhịp, quy tắc riêng) → doctor/setup → init 
 - Video sản phẩm: cảnh quay làm nền, giọng AI, ảnh hoặc clip sản phẩm trong khung.
 
 **Cắt**
-- Khoảng lặng, từ đệm (ờ, ừm…), nói vấp (gợi ý hoặc tự cắt), khoảng giữ hoặc bỏ tuỳ chọn.
+- Khoảng lặng, từ đệm (ờ, ừm…), nói vấp (gợi ý hoặc tự cắt), câu nói lại (bỏ lần nói đầu, giữ lần sau), khoảng giữ hoặc bỏ tuỳ chọn.
 - Một hệ thời gian chung, nên phụ đề, đồ hoạ và SRT không lệch sau khi cắt.
 - **Video dài thành nhiều short:** chấm điểm mọi đoạn 25–60 giây theo lời (câu mở có móc, trọn ý, nhiều con số), đề xuất các đoạn không trùng nhau, tạo mỗi đoạn thành một dự án dùng lại lời thoại đã chép.
 

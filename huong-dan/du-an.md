@@ -128,6 +128,7 @@ Khoá nào để `null` thì lấy theo nhịp (`style.pace`); ghi số hay giá
 | `fillers` | theo nhịp | Từ đệm (ờ, ừm, ơ…): `auto` cắt, `suggest` chỉ liệt kê, `off` bỏ qua |
 | `filler_words` | danh sách mặc định | Đổi danh sách từ đệm |
 | `stumbles` | theo nhịp | Nói vấp (cụm 1–3 từ lặp liền nhau, trừ từ láy như "từ từ"): `auto` / `suggest` / `off` |
+| `retakes` | theo nhịp (`auto` với `nhanh`, `vua`; `suggest` với `cham`) | Câu nói lại: người nói bắt đầu một câu rồi nói lại từ đầu ("Cái video này được mình quay và edit… Cái video này được mình quay và sử dụng công cụ AI…"). `auto` bỏ lần nói đầu, giữ lần sau; `suggest` chỉ liệt kê; `off` bỏ qua. Chỉ bắt khi hai lần mở đầu giống nhau ≥ 4 từ (hoặc 3 từ có quãng nghỉ), cách nhau ≤ 15 giây, có từ mang nghĩa; câu nói y hệt hai lần có dấu chấm ở giữa (cố ý nhấn mạnh) thì giữ. Build in từng chỗ đã bỏ, báo cáo có mục riêng |
 | `drop` | `[]` | Bỏ các khoảng `[[giây đầu, giây cuối], ...]`, theo giây gốc |
 | `keep` | `[]` | Chỉ giữ các khoảng này, để dựng một đoạn ngắn từ video dài |
 
