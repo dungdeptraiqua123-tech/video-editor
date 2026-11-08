@@ -98,6 +98,9 @@ def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, pr
     return [Path(o) for _, o in shots]
 
 
+LIMITER = "alimiter=limit=0.8:attack=5:release=60:level=false"
+
+
 def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None) -> None:
     b = bundle()
     cfg = prj.cfg.get("render") or {}
@@ -146,8 +149,9 @@ def render(prj: Project, force: bool = False) -> Path:
     t0 = time.time()
     info(f"🎬 render {read_json(data)['duration']:.0f}s video …")
     _render(prj, raw)
-    # chỉ chuyển vùng chứa và bật faststart, không nén lại lần hai
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-c", "copy", "-movflags", "+faststart", final])
+    # hình: chỉ chuyển vùng chứa, không nén lại lần hai. Tiếng: chặn đỉnh -1,5 dB (âm hiệu ứng cộng lên giọng hay đẩy đỉnh sát 0 dB,
+    # nền tảng nén lại sẽ rè), nên phần tiếng được mã hoá lại một lần
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-map", "0:v", "-map", "0:a?", "-c:v", "copy", "-af", LIMITER, "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", final])
     raw.unlink(missing_ok=True)
     took = time.time() - t0
     prj.mark("render", fp, seconds=round(took))
