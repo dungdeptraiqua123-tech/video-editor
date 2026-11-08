@@ -17,6 +17,10 @@
   video-editor shorts <dự án dài> [--so 8]  đề xuất các đoạn 25–60 giây hay nhất để cắt thành short
   video-editor shorts <dự án dài> --tao 1,3  tạo mỗi đoạn thành một dự án short (dùng lại lời thoại)
   video-editor mau <video mẫu> [--project <dự án>] [--ap-dung]  phân tích video mẫu: nhịp cắt, tốc độ nói, câu mở, ảnh kiểu phụ đề
+  video-editor gia <dự án> --coin bitcoin --den 2025-10-02 [--ngay 30] [--csv gia.csv]  giá thật cho biểu đồ (CoinGecko)
+  video-editor broll <dự án> "từ khoá" [--so 3] [--anh]  tải b-roll miễn phí từ Pexels (cần PEXELS_API_KEY)
+  video-editor dich <dự án> [--ngon-ngu en]  tạo work/dich.json để điền bản dịch cho phụ đề song ngữ
+  video-editor icons <dự án>               xem icon nào sẽ tự hiện theo lời
   video-editor status <dự án>
 """
 from __future__ import annotations
@@ -250,6 +254,24 @@ def main(argv=None) -> int:
     c.add_argument("--name", required=True)
     c.add_argument("--project", help="ghi voiceId vào project.json của dự án này")
 
+    g_ = sub.add_parser("gia", help="tải giá thật của coin (CoinGecko) hoặc nhập CSV để vẽ biểu đồ đúng số liệu")
+    g_.add_argument("dir")
+    g_.add_argument("--coin", default="bitcoin", help="id CoinGecko hoặc mã quen gọi: bitcoin/btc, ethereum/eth, solana/sol…")
+    g_.add_argument("--den", help="ngày cuối (YYYY-MM-DD), thường là ngày quay video; mặc định hôm nay")
+    g_.add_argument("--ngay", type=int, default=30, help="số ngày lịch sử (mặc định 30)")
+    g_.add_argument("--csv", help="nhập từ file CSV (cột date + close) thay vì tải")
+    b_ = sub.add_parser("broll", help="tìm và tải b-roll miễn phí từ Pexels (cần PEXELS_API_KEY)")
+    b_.add_argument("dir")
+    b_.add_argument("query", help="từ khoá, nên bằng tiếng Anh (ví dụ \"bitcoin coin\")")
+    b_.add_argument("--so", type=int, default=3, help="số kết quả tải về (mặc định 3)")
+    b_.add_argument("--anh", action="store_true", help="tải ảnh thay vì video")
+    b_.add_argument("--ngang", action="store_true", help="ưu tiên khung ngang (cho video 16:9)")
+    d_ = sub.add_parser("dich", help="tạo/kiểm tra work/dich.json: từng câu lời thoại để điền bản dịch (phụ đề song ngữ)")
+    d_.add_argument("dir")
+    d_.add_argument("--ngon-ngu", default="en", help="mã ngôn ngữ bản dịch (mặc định en)")
+    ic_ = sub.add_parser("icons", help="xem trước icon tự hiện theo lời (thương hiệu, khái niệm)")
+    ic_.add_argument("dir")
+
     a = ap.parse_args(argv)
     try:
         if a.cmd == "doctor":
@@ -315,6 +337,30 @@ def main(argv=None) -> int:
                 for x in vs:
                     lab = ", ".join(f"{k}: {v}" for k, v in (x["labels"] or {}).items())
                     info(f" {x['id']}  {x['name']}  [{x['category']}] {lab}")
+            return 0
+        if a.cmd == "gia":
+            from ve import gia
+
+            prj = Project(Path(a.dir))
+            gia.run_cmd(prj.root, a.coin, a.den, a.ngay, a.csv)
+            return 0
+        if a.cmd == "broll":
+            from ve import broll
+
+            prj = Project(Path(a.dir))
+            ori = "landscape" if a.ngang or prj.size[0] > prj.size[1] else "portrait"
+            info(f"🔎 Pexels: \"{a.query}\" ({'ảnh' if a.anh else 'video'}, khung {'ngang' if ori == 'landscape' else 'dọc'}) …")
+            broll.search(prj.root, a.query, a.so, a.anh, ori, max(prj.size))
+            return 0
+        if a.cmd == "dich":
+            from ve import dich
+
+            dich.make(Project(Path(a.dir)), a.ngon_ngu)
+            return 0
+        if a.cmd == "icons":
+            from ve.build import preview_icons
+
+            preview_icons(Project(Path(a.dir)))
             return 0
         if a.cmd == "clone-voice":
             from ve import tts

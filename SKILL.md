@@ -1,6 +1,6 @@
 ---
 name: video-editor
-description: Dựng video ngắn tiếng Việt (Reels, TikTok, Shorts, YouTube) từ video người nói hoặc từ kịch bản với giọng đọc AI. Tự cài môi trường, chép lời, cắt lặng và từ đệm, đồ hoạ bật đúng lúc nói, phụ đề, render MP4, xuất SRT/VTT và báo cáo. Cắt video dài thành nhiều short, học nhịp từ video mẫu, tự bám mặt khi đổi khổ 16:9 sang 9:16. Khổ 9:16, 16:9, 1:1, 4:5; mẫu nhận diện đổi được.
+description: Dựng video ngắn tiếng Việt (Reels, TikTok, Shorts, YouTube) từ video người nói hoặc từ kịch bản với giọng đọc AI. Tự cài môi trường, chép lời, cắt lặng và từ đệm, đồ hoạ bật đúng lúc nói, phụ đề, render MP4, xuất SRT/VTT và báo cáo. Icon/logo tự hiện khi nhắc tới, chữ đập, chuyển cảnh động, biểu đồ giá coin thật, b-roll Pexels, phụ đề karaoke và song ngữ, làm sạch giọng, nhạc nền tự hạ và nảy theo nhịp. Cắt video dài thành nhiều short, học nhịp từ video mẫu, tự bám mặt khi đổi khổ 16:9 sang 9:16. Khổ 9:16, 16:9, 1:1, 4:5; mẫu nhận diện đổi được.
 ---
 
 # video-editor
@@ -20,8 +20,8 @@ Công cụ tự quản lý đường dẫn, file trung gian và trạng thái; c
 
 Chi tiết ở `AN-TOAN.md`. Tóm tắt:
 - **Ghi file:** thư mục dự án người dùng chọn và `~/.video-editor` (môi trường, bộ dựng, cấu hình). Không ghi vào thư mục skill, trừ `GHI-NHO.md` khi người dùng góp ý.
-- **Mạng:** lúc cài thì PyPI, npm, huggingface.co và trình duyệt render do Remotion tải. Lúc dựng thì chỉ api.elevenlabs.io, và chỉ khi người dùng chọn giọng AI. Video và lời thoại không gửi đi đâu: chép lời chạy trên máy. Không có thu thập số liệu sử dụng.
-- **Khoá API:** chỉ đọc `ELEVENLABS_API_KEY` từ biến môi trường. Không xin người dùng dán key vào chat, không ghi key ra file.
+- **Mạng:** lúc cài thì PyPI, npm, huggingface.co và trình duyệt render do Remotion tải. Lúc dựng chỉ gọi mạng khi người dùng chạy lệnh tương ứng: api.elevenlabs.io (`tts`), api.coingecko.com (`gia`, giá coin công khai), api.pexels.com (`broll`, b-roll miễn phí). Video và lời thoại không gửi đi đâu: chép lời chạy trên máy. Không có thu thập số liệu sử dụng.
+- **Khoá API:** chỉ đọc từ biến môi trường: `ELEVENLABS_API_KEY`, `PEXELS_API_KEY`, `COINGECKO_API_KEY` (không bắt buộc). Không xin người dùng dán key vào chat, không ghi key ra file.
 
 ## Quy trình
 
@@ -67,6 +67,15 @@ video-editor init du-an/<tên> --script kichban.txt [--type explainer|product] [
 - **Sửa chữ nghe sai:** thêm vào `fix`. Chữ ghi "nghe chưa chắc" cần hỏi người dùng nếu không đoán chắc được.
 - **Viết `content`:** `hook`, `beats` (khung đồ hoạ), `topics` (thẻ chủ đề), `cta`. Cú pháp và các loại đồ hoạ ở `huong-dan/do-hoa.md`. Số khung theo mật độ đã chọn ở bước 1.
 - **Neo đồ hoạ bằng cụm từ trong lời** (`"start": "giá Bitcoin"`, `"say": "87 ngàn"`), không đoán giây. Nhờ vậy đồ hoạ bật đúng lúc nói và không lệch khi cắt lại.
+
+**5b. Hiệu ứng động và tư liệu thật** (chi tiết ở `huong-dan/do-hoa.md`, mục "Hiệu ứng động"):
+- **Icon theo lời** tự bật: nhắc "Claude", "Bitcoin", "ngân hàng"… thì logo/icon hiện giữa màn hình và cạnh chữ trong phụ đề (từ điển `data/icon-tu-dien.json`, 127 mục). Xem trước chỗ nào sẽ hiện: `video-editor icons <dự án>`. Thêm logo riêng hoặc tắt bớt qua khoá `icons`.
+- **Chữ đập** (`content.punches`): con số, ý mạnh đập to giữa màn hình, khung rung nhẹ. Tối đa một chữ mỗi 6–8 giây.
+- **Chuyển cảnh** `style.transition`: `auto` (theo nhịp), `mem`, `vuot`, `zoom`, `flash`, `glitch`.
+- **Giá thật cho biểu đồ:** `video-editor gia <dự án> --coin bitcoin --den <ngày quay> [--ngay 30]` rồi trong khung `chart`/`price` ghi `"data": {"coin": "bitcoin", "ngay": 7}`. Build in giá thật để đối chiếu với lời người nói; lệch thì báo người dùng, không sửa lời.
+- **B-roll:** `video-editor broll <dự án> "bitcoin coin"` tải video miễn phí Pexels vào `broll/` (cần `PEXELS_API_KEY`), chèn bằng khung `media` có `"full": true` và `credit`.
+- **Phụ đề:** `captions.style: "karaoke"`; song ngữ: `video-editor dich <dự án> --ngon-ngu en`, điền `work/dich.json`, đặt `captions.second: "en"`.
+- **Âm thanh:** `audio.clean` (`nhe` mặc định, `manh`, `false`) làm sạch giọng bằng bộ lọc ffmpeg; `music` có `duck` (tự hạ khi nói), `fade`, `start`, `sync` (dò nhịp nhạc để hạt nền và đổi khung nảy theo phách).
 
 **6. Dựng và kiểm tra.**
 
@@ -150,7 +159,7 @@ video-editor shorts du-an/<video dài> --tao 1,3            # hoặc mốc giây
 3. **Một hệ thời gian.** Giây ghi bằng số trong `project.json` là giây của lời thoại gốc (như `loi-thoai.txt`); công cụ tự đổi sang bản đã cắt. Không tự cộng trừ.
 4. **Chỉ nén một lần.** Render xuất thẳng H.264 CRF 20, không nén lại bằng ffmpeg.
 5. **Báo đúng nguyên nhân.** Lệnh lỗi in `✗` kèm `→ cách xử lý`. Chuyển nguyên văn cho người dùng khi cần họ làm gì (cấp mạng, thêm key). Không đoán vòng.
-6. **Không lan ra ngoài.** Không đăng video, không gửi file ra dịch vụ khác ngoài ElevenLabs khi người dùng đã chọn giọng AI.
+6. **Không lan ra ngoài.** Không đăng video, không gửi file ra dịch vụ khác ngoài ElevenLabs khi người dùng đã chọn giọng AI. CoinGecko và Pexels chỉ nhận từ khoá/tên coin, không nhận video hay lời thoại.
 7. **Âm thanh hiệu ứng phải là âm thanh thu thật.** Không tạo âm bằng code (ffmpeg sine/noise, Web Audio, tổng hợp…). Dùng bộ có sẵn trong `engine/public/sfx/` (Mixkit, nguồn ở `NGUON.md`), chọn âm khác trong `reference/video-shotcraft/video-shotcraft/assets/audio/sfx/` (bản đầy đủ), hoặc file người dùng đưa qua `sfx.files`. Thiếu âm phù hợp thì hỏi người dùng, không tự tạo.
 8. **Duyệt trước, render sau.** Không render khi người dùng chưa đồng ý storyboard. Không tự chạy `approve` thay người dùng.
 9. **Tự kiểm tra trước khi gửi.** Xem tận mắt từng ảnh storyboard trước khi gửi duyệt, và từng khung `kiem-tra.jpg` trước khi giao video. Không gửi thứ mình chưa xem.
@@ -167,6 +176,10 @@ video-editor shorts du-an/<video dài> --tao 1,3            # hoặc mốc giây
 | Âm thanh hiệu ứng | Có sẵn: âm thu thật từ Mixkit (dùng miễn phí trong video, kể cả thương mại) |
 | Chép lời tiếng Việt | Tải mô hình Whisper một lần từ huggingface.co (0,5–3 GB) |
 | Giọng đọc từ kịch bản | ElevenLabs: key + mạng tới api.elevenlabs.io. Gói Free không nhân bản giọng, không dùng thương mại |
+| Icon theo lời | Có sẵn: simple-icons (CC0) và lucide-static (ISC) cài cùng bộ dựng, nhúng vào video, không cần mạng khi render |
+| Chữ đập, chuyển cảnh, hạt nền, karaoke, làm sạch giọng, dò nhịp nhạc | Có sẵn |
+| Giá coin thật | Mạng tới api.coingecko.com (miễn phí, 365 ngày gần nhất), hoặc nhập CSV |
+| B-roll miễn phí | `PEXELS_API_KEY` (miễn phí, 200 lượt/giờ) + mạng tới api.pexels.com |
 | Render | Node 20.19+; trình duyệt Chrome Headless Shell do Remotion tải |
 
 ## Tài liệu

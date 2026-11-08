@@ -46,9 +46,36 @@ Khi khung hiện, người nói thu về ô góc trên phải (video người n�
 | `list` | `title`, `items: [{icon, text ≤ 32, say}]` (1–4 dòng) | Danh sách lý do, tính năng |
 | `chart` | `title`, `points: [số…]`, `up`, `tags: [{i, text, say}]` | Đường vẽ dần tới từng nhãn đúng lúc nhãn được nói. Đường minh hoạ phải nói rõ là minh hoạ |
 | `title` | `kicker`, `text` | Chuyển chương |
-| `media` | `src` (ảnh hoặc clip, đường dẫn tính từ dự án), `label`, `fit` (`cover`/`contain`), `kenBurns`, `say` | Ảnh/clip sản phẩm, ảnh chụp biểu đồ thật làm dẫn chứng |
+| `media` | `src` (ảnh hoặc clip, đường dẫn tính từ dự án), `label`, `fit` (`cover`/`contain`), `kenBurns`, `say`, `full` (phủ toàn màn hình như b-roll), `credit` (ghi nguồn góc dưới) | Ảnh/clip sản phẩm, ảnh chụp biểu đồ thật, b-roll Pexels |
+| `compare` | `title`, `left`/`right`: `{label, value, icon, tone, say}`, `winner` (`left`/`right`) | So sánh hai bên: Bitcoin vs vàng, trước vs sau |
+| `timeline` | `title`, `items: [{when ≤ 12, text, say}]` (2–5 mốc) | Mốc thời gian, lộ trình |
+| `progress` | `title`, `items: [{label, value 0–100, suffix, say}]` (1–4 thanh), `ring` (vòng tròn thay thanh) | Tỉ lệ, phần trăm, mức hoàn thành |
+| `quote` | `text` (≤ 140), `author`, `say` | Trích dẫn, chữ gõ dần |
+| `table` | `title`, `cols` (2–4 cột), `rows: [{cells, tone, say}]` (≤ 5 dòng, số ô = số cột) | Bảng so sánh số liệu |
+| `countdown` | `title`, `items: [{text, say}]` (2–5 ý) | "Top 3…", đếm ngược số to rồi hiện ý |
+
+**Giá thật thay số ước lượng:** khung `chart` hoặc `price` thêm `"data": {"coin": "bitcoin", "ngay": 7}` (sau khi chạy `video-editor gia`). Build điền đường giá, nhãn ngày, giá cao/thấp, dòng nguồn. Nhãn `tags` của `chart` có thể ghi `"i": "cuoi"` (giá cuối), `"cao"`, `"thap"`, `"dau"`, và `"text": "auto"` để tự in giá. Build in giá thật ra màn hình: **đối chiếu với số người nói**, lệch nhiều thì báo người dùng.
 
 Icon có sẵn: `btc`, `up`, `down`, `bank`, `warn`, `target`, `chart`, `wallet`, `clock`, `fire`, `shield`, `people`, `dollar`, `check`.
+
+## Hiệu ứng động
+
+**Chữ đập (`punches`)**: chữ rất to đập vào giữa màn hình đúng lúc nói, khung rung nhẹ, có âm `impact`.
+
+```json
+"punches": [{ "say": "87 ngàn", "text": "$87K", "sub": "giá hiện tại", "tone": "up" }]
+```
+
+`text` ≤ 12 ký tự. Cách nhau ít nhất 1,6 giây (nên 6–8 giây), không rơi vào lúc đang hiện khung đồ hoạ.
+
+**Icon theo lời**: tự động, không cần viết gì. Khi người nói nhắc tới thương hiệu ("Claude", "Bitcoin", "Binance", "Tesla"…) hay khái niệm ("ngân hàng", "lãi suất", "cảnh báo"…), icon bật lên giữa màn hình kèm âm `pop`, và icon nhỏ hiện cạnh chữ trong phụ đề. Khoảng cách giữa hai lần bật theo nhịp (`nhanh` 1,8s, `vua` 2,5s, `cham` 4s); cùng một icon không bật lại trong 12 giây; không bật lúc mở đầu, kết, hay đang có khung đồ hoạ.
+- Xem trước: `video-editor icons <dự án>` liệt kê mọi chỗ khớp.
+- Từ điển: `data/icon-tu-dien.json`. Cụm bắt đầu bằng `=` khớp đúng hoa thường (`"=AI"` không khớp chữ "ai").
+- Thêm logo riêng, tắt bớt, đổi mật độ: khoá `icons` trong `project.json` (xem `du-an.md`).
+
+**Chuyển cảnh** (`style.transition`): `mem` (mờ dần), `vuot` (vuốt ngang có vệt sáng), `zoom` (phóng vào), `flash` (chớp trắng), `glitch` (nhiễu RGB). `auto` chọn theo nhịp: `nhanh` → `zoom`, `vua` → `vuot`, `cham` → `mem`. Áp dụng khi khung đồ hoạ mở/đóng và khi chèn b-roll toàn màn hình.
+
+**Hạt nền và rung khung**: `style.particles` (hạt sáng trôi trên nền, nảy theo phách nhạc nếu có) và `style.shake` (rung nhẹ khi chữ đập). Đặt `false` để tắt.
 
 ## Thẻ chủ đề (`topics`)
 
@@ -74,5 +101,5 @@ Thẻ kéo dài tới khi thẻ sau bắt đầu.
 
 ## Giới hạn chữ
 
-`build` cảnh báo khi chữ vượt mức: `label` 28 (riêng `stat` 44), `title` 34, `text` 40, `big` 10, `head` 30, `hook.title` 40.
+`build` cảnh báo khi chữ vượt mức: `label` 28 (riêng `stat` 44), `title` 34, `text` 40 (riêng `quote` 140), `big` 10, `head` 30, `hook.title` 40, chữ đập 12.
 Chữ quá dài vẫn render được nhưng dễ tràn khung trên khổ 1:1. Xem `preview` trước khi render.

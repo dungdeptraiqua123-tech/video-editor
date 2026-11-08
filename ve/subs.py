@@ -46,6 +46,16 @@ def write(data: dict, stem: Path) -> tuple[Path, Path, int]:
     return a, b, len(ps)
 
 
+def write_second(data: dict, stem: Path, lang: str = "en") -> Path | None:
+    """Phụ đề dòng dịch (song ngữ) thành file .<lang>.srt riêng."""
+    ls = [x for x in data.get("second") or [] if x["start"] < data["duration"]]
+    if not ls:
+        return None
+    p = Path(f"{stem}.{lang}.srt")
+    p.write_text("\n".join(f"{i}\n{ts(x['start'], ',')} --> {ts(min(x['end'], data['duration']), ',')}\n{x['text']}\n" for i, x in enumerate(ls, 1)), encoding="utf-8")
+    return p
+
+
 def parse_srt(text: str) -> list:
     """SRT (vd. xuất từ CapCut) -> transcript dạng Whisper, chia đều thời gian cho từng chữ trong mỗi dòng."""
     segs = []

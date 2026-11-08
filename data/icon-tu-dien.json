@@ -1,0 +1,958 @@
+{
+ "_ghi_chu": "Từ điển icon tự hiện khi người nói nhắc tới. match: cụm từ (không phân biệt hoa thường); thêm dấu = ở đầu để bắt buộc đúng chữ hoa (\"=AI\" không bắt nhầm \"ai\" = ai đó). icon: si:<slug> (logo thương hiệu, Simple Icons, CC0) hoặc lu:<tên> (icon nét, Lucide, ISC). Logo là nhãn hiệu của chủ sở hữu: chỉ dùng để nhắc tới thương hiệu, không ngụ ý được tài trợ.",
+ "brands": [
+  {
+   "icon": "si:claude",
+   "label": "Claude",
+   "match": [
+    "claude",
+    "cờ lốt",
+    "cờ lau"
+   ]
+  },
+  {
+   "icon": "si:anthropic",
+   "label": "Anthropic",
+   "match": [
+    "anthropic"
+   ]
+  },
+  {
+   "icon": "si:googlegemini",
+   "label": "Gemini",
+   "match": [
+    "gemini"
+   ]
+  },
+  {
+   "icon": "si:perplexity",
+   "label": "Perplexity",
+   "match": [
+    "perplexity"
+   ]
+  },
+  {
+   "icon": "si:deepseek",
+   "label": "DeepSeek",
+   "match": [
+    "deepseek",
+    "deep seek"
+   ]
+  },
+  {
+   "icon": "si:mistralai",
+   "label": "Mistral",
+   "match": [
+    "mistral"
+   ]
+  },
+  {
+   "icon": "si:huggingface",
+   "label": "Hugging Face",
+   "match": [
+    "hugging face",
+    "huggingface"
+   ]
+  },
+  {
+   "icon": "si:ollama",
+   "label": "Ollama",
+   "match": [
+    "ollama"
+   ]
+  },
+  {
+   "icon": "si:n8n",
+   "label": "n8n",
+   "match": [
+    "n8n"
+   ]
+  },
+  {
+   "icon": "si:zapier",
+   "label": "Zapier",
+   "match": [
+    "zapier"
+   ]
+  },
+  {
+   "icon": "si:notion",
+   "label": "Notion",
+   "match": [
+    "notion"
+   ]
+  },
+  {
+   "icon": "si:github",
+   "label": "GitHub",
+   "match": [
+    "github",
+    "git hub"
+   ]
+  },
+  {
+   "icon": "si:figma",
+   "label": "Figma",
+   "match": [
+    "figma"
+   ]
+  },
+  {
+   "icon": "si:python",
+   "label": "Python",
+   "match": [
+    "python"
+   ]
+  },
+  {
+   "icon": "si:javascript",
+   "label": "JavaScript",
+   "match": [
+    "javascript"
+   ]
+  },
+  {
+   "icon": "si:docker",
+   "label": "Docker",
+   "match": [
+    "docker"
+   ]
+  },
+  {
+   "icon": "si:cloudflare",
+   "label": "Cloudflare",
+   "match": [
+    "cloudflare"
+   ]
+  },
+  {
+   "icon": "si:nvidia",
+   "label": "NVIDIA",
+   "match": [
+    "nvidia"
+   ]
+  },
+  {
+   "icon": "si:tesla",
+   "label": "Tesla",
+   "match": [
+    "tesla"
+   ]
+  },
+  {
+   "icon": "si:apple",
+   "label": "Apple",
+   "match": [
+    "apple",
+    "iphone",
+    "ai phôn",
+    "macbook"
+   ]
+  },
+  {
+   "icon": "si:samsung",
+   "label": "Samsung",
+   "match": [
+    "samsung"
+   ]
+  },
+  {
+   "icon": "si:android",
+   "label": "Android",
+   "match": [
+    "android"
+   ]
+  },
+  {
+   "icon": "si:googlechrome",
+   "label": "Chrome",
+   "match": [
+    "chrome"
+   ]
+  },
+  {
+   "icon": "si:google",
+   "label": "Google",
+   "match": [
+    "google",
+    "gu gồ"
+   ]
+  },
+  {
+   "icon": "si:gmail",
+   "label": "Gmail",
+   "match": [
+    "gmail"
+   ]
+  },
+  {
+   "icon": "si:googledrive",
+   "label": "Google Drive",
+   "match": [
+    "google drive"
+   ]
+  },
+  {
+   "icon": "si:googlesheets",
+   "label": "Google Sheets",
+   "match": [
+    "google sheets",
+    "google sheet"
+   ]
+  },
+  {
+   "icon": "si:meta",
+   "label": "Meta",
+   "match": [
+    "meta"
+   ]
+  },
+  {
+   "icon": "si:facebook",
+   "label": "Facebook",
+   "match": [
+    "facebook",
+    "phây búc",
+    "phây"
+   ]
+  },
+  {
+   "icon": "si:messenger",
+   "label": "Messenger",
+   "match": [
+    "messenger",
+    "mét xen giơ"
+   ]
+  },
+  {
+   "icon": "si:instagram",
+   "label": "Instagram",
+   "match": [
+    "instagram"
+   ]
+  },
+  {
+   "icon": "si:threads",
+   "label": "Threads",
+   "match": [
+    "threads"
+   ]
+  },
+  {
+   "icon": "si:whatsapp",
+   "label": "WhatsApp",
+   "match": [
+    "whatsapp"
+   ]
+  },
+  {
+   "icon": "si:tiktok",
+   "label": "TikTok",
+   "match": [
+    "tiktok",
+    "tik tok",
+    "tóp tóp"
+   ]
+  },
+  {
+   "icon": "si:youtube",
+   "label": "YouTube",
+   "match": [
+    "youtube",
+    "du túp",
+    "diu túp"
+   ]
+  },
+  {
+   "icon": "si:zalo",
+   "label": "Zalo",
+   "match": [
+    "zalo",
+    "da lô"
+   ]
+  },
+  {
+   "icon": "si:telegram",
+   "label": "Telegram",
+   "match": [
+    "telegram"
+   ]
+  },
+  {
+   "icon": "si:discord",
+   "label": "Discord",
+   "match": [
+    "discord"
+   ]
+  },
+  {
+   "icon": "si:reddit",
+   "label": "Reddit",
+   "match": [
+    "reddit"
+   ]
+  },
+  {
+   "icon": "si:x",
+   "label": "X (Twitter)",
+   "match": [
+    "twitter"
+   ]
+  },
+  {
+   "icon": "si:twitch",
+   "label": "Twitch",
+   "match": [
+    "twitch"
+   ]
+  },
+  {
+   "icon": "si:netflix",
+   "label": "Netflix",
+   "match": [
+    "netflix"
+   ]
+  },
+  {
+   "icon": "si:spotify",
+   "label": "Spotify",
+   "match": [
+    "spotify"
+   ]
+  },
+  {
+   "icon": "si:wikipedia",
+   "label": "Wikipedia",
+   "match": [
+    "wikipedia"
+   ]
+  },
+  {
+   "icon": "si:zoom",
+   "label": "Zoom",
+   "match": [
+    "zoom meeting"
+   ]
+  },
+  {
+   "icon": "si:shopee",
+   "label": "Shopee",
+   "match": [
+    "shopee",
+    "sốp pi"
+   ]
+  },
+  {
+   "icon": "si:grab",
+   "label": "Grab",
+   "match": [
+    "grab"
+   ]
+  },
+  {
+   "icon": "si:paypal",
+   "label": "PayPal",
+   "match": [
+    "paypal"
+   ]
+  },
+  {
+   "icon": "si:visa",
+   "label": "Visa",
+   "match": [
+    "=Visa",
+    "thẻ visa"
+   ]
+  },
+  {
+   "icon": "si:mastercard",
+   "label": "Mastercard",
+   "match": [
+    "mastercard"
+   ]
+  },
+  {
+   "icon": "si:davinciresolve",
+   "label": "DaVinci Resolve",
+   "match": [
+    "davinci"
+   ]
+  },
+  {
+   "icon": "si:obsstudio",
+   "label": "OBS",
+   "match": [
+    "=OBS"
+   ]
+  },
+  {
+   "icon": "si:tradingview",
+   "label": "TradingView",
+   "match": [
+    "tradingview",
+    "trading view"
+   ]
+  },
+  {
+   "icon": "si:bitcoin",
+   "label": "Bitcoin",
+   "match": [
+    "bitcoin",
+    "=BTC",
+    "bit coin",
+    "bít coin"
+   ]
+  },
+  {
+   "icon": "si:ethereum",
+   "label": "Ethereum",
+   "match": [
+    "ethereum",
+    "=ETH",
+    "ê thơ"
+   ]
+  },
+  {
+   "icon": "si:solana",
+   "label": "Solana",
+   "match": [
+    "solana"
+   ]
+  },
+  {
+   "icon": "si:binance",
+   "label": "Binance",
+   "match": [
+    "binance",
+    "bi nan"
+   ]
+  },
+  {
+   "icon": "si:bnbchain",
+   "label": "BNB",
+   "match": [
+    "=BNB"
+   ]
+  },
+  {
+   "icon": "si:tether",
+   "label": "Tether",
+   "match": [
+    "tether",
+    "=USDT"
+   ]
+  },
+  {
+   "icon": "si:xrp",
+   "label": "XRP",
+   "match": [
+    "=XRP",
+    "ripple"
+   ]
+  },
+  {
+   "icon": "si:cardano",
+   "label": "Cardano",
+   "match": [
+    "cardano"
+   ]
+  },
+  {
+   "icon": "si:dogecoin",
+   "label": "Dogecoin",
+   "match": [
+    "dogecoin",
+    "=DOGE"
+   ]
+  },
+  {
+   "icon": "si:litecoin",
+   "label": "Litecoin",
+   "match": [
+    "litecoin"
+   ]
+  },
+  {
+   "icon": "si:polkadot",
+   "label": "Polkadot",
+   "match": [
+    "polkadot"
+   ]
+  },
+  {
+   "icon": "si:chainlink",
+   "label": "Chainlink",
+   "match": [
+    "chainlink"
+   ]
+  },
+  {
+   "icon": "si:polygon",
+   "label": "Polygon",
+   "match": [
+    "polygon"
+   ]
+  },
+  {
+   "icon": "si:sui",
+   "label": "Sui",
+   "match": [
+    "=SUI"
+   ]
+  },
+  {
+   "icon": "si:stellar",
+   "label": "Stellar",
+   "match": [
+    "stellar"
+   ]
+  },
+  {
+   "icon": "si:monero",
+   "label": "Monero",
+   "match": [
+    "monero"
+   ]
+  },
+  {
+   "icon": "si:bitcoincash",
+   "label": "Bitcoin Cash",
+   "match": [
+    "bitcoin cash"
+   ]
+  },
+  {
+   "icon": "si:coinbase",
+   "label": "Coinbase",
+   "match": [
+    "coinbase"
+   ]
+  },
+  {
+   "icon": "si:kucoin",
+   "label": "KuCoin",
+   "match": [
+    "kucoin"
+   ]
+  },
+  {
+   "icon": "si:okx",
+   "label": "OKX",
+   "match": [
+    "=OKX"
+   ]
+  }
+ ],
+ "concepts": [
+  {
+   "icon": "lu:bot",
+   "match": [
+    "=AI",
+    "trí tuệ nhân tạo",
+    "chatbot",
+    "chatgpt"
+   ]
+  },
+  {
+   "icon": "lu:landmark",
+   "match": [
+    "ngân hàng",
+    "=Fed",
+    "=FED",
+    "cục dự trữ liên bang"
+   ]
+  },
+  {
+   "icon": "lu:chart-candlestick",
+   "match": [
+    "chứng khoán",
+    "cổ phiếu",
+    "nến"
+   ]
+  },
+  {
+   "icon": "lu:percent",
+   "match": [
+    "lãi suất"
+   ]
+  },
+  {
+   "icon": "lu:trending-up",
+   "match": [
+    "tăng giá",
+    "bứt phá",
+    "phá đỉnh",
+    "lạm phát"
+   ]
+  },
+  {
+   "icon": "lu:trending-down",
+   "match": [
+    "giảm giá",
+    "lao dốc",
+    "sập",
+    "bán tháo"
+   ]
+  },
+  {
+   "icon": "lu:triangle-alert",
+   "match": [
+    "cảnh báo",
+    "rủi ro",
+    "nguy hiểm",
+    "cẩn thận",
+    "lưu ý"
+   ]
+  },
+  {
+   "icon": "lu:rocket",
+   "match": [
+    "tên lửa",
+    "to the moon",
+    "cất cánh"
+   ]
+  },
+  {
+   "icon": "lu:flame",
+   "match": [
+    "cháy tài khoản",
+    "thanh lý",
+    "nóng"
+   ]
+  },
+  {
+   "icon": "lu:shield-check",
+   "match": [
+    "bảo mật",
+    "an toàn",
+    "hỗ trợ"
+   ]
+  },
+  {
+   "icon": "lu:wallet",
+   "match": [
+    "ví điện tử",
+    "ví lạnh",
+    "ví nóng",
+    "ví tiền"
+   ]
+  },
+  {
+   "icon": "lu:building-2",
+   "match": [
+    "sàn giao dịch",
+    "doanh nghiệp",
+    "công ty"
+   ]
+  },
+  {
+   "icon": "lu:coins",
+   "match": [
+    "giá vàng",
+    "lợi nhuận",
+    "dòng tiền"
+   ]
+  },
+  {
+   "icon": "lu:banknote",
+   "match": [
+    "đô la",
+    "tiền mặt",
+    "=USD"
+   ]
+  },
+  {
+   "icon": "lu:piggy-bank",
+   "match": [
+    "tiết kiệm",
+    "tích lũy"
+   ]
+  },
+  {
+   "icon": "lu:scale",
+   "match": [
+    "pháp lý",
+    "luật",
+    "quy định"
+   ]
+  },
+  {
+   "icon": "lu:gavel",
+   "match": [
+    "tòa án",
+    "phán quyết"
+   ]
+  },
+  {
+   "icon": "lu:smartphone",
+   "match": [
+    "điện thoại",
+    "smartphone"
+   ]
+  },
+  {
+   "icon": "lu:laptop",
+   "match": [
+    "máy tính",
+    "laptop"
+   ]
+  },
+  {
+   "icon": "lu:mail",
+   "match": [
+    "email",
+    "thư điện tử"
+   ]
+  },
+  {
+   "icon": "lu:message-circle",
+   "match": [
+    "nhắn tin",
+    "tin nhắn",
+    "bình luận",
+    "comment"
+   ]
+  },
+  {
+   "icon": "lu:clock",
+   "match": [
+    "đồng hồ"
+   ]
+  },
+  {
+   "icon": "lu:calendar",
+   "match": [
+    "cuối tuần",
+    "tuần sau",
+    "tháng sau"
+   ]
+  },
+  {
+   "icon": "lu:newspaper",
+   "match": [
+    "tin tức",
+    "báo chí",
+    "tin mới"
+   ]
+  },
+  {
+   "icon": "lu:megaphone",
+   "match": [
+    "thông báo",
+    "công bố"
+   ]
+  },
+  {
+   "icon": "lu:target",
+   "match": [
+    "mục tiêu"
+   ]
+  },
+  {
+   "icon": "lu:trophy",
+   "match": [
+    "chiến thắng",
+    "kỷ lục",
+    "vô địch"
+   ]
+  },
+  {
+   "icon": "lu:lightbulb",
+   "match": [
+    "ý tưởng",
+    "mẹo",
+    "bí quyết"
+   ]
+  },
+  {
+   "icon": "lu:users",
+   "match": [
+    "cộng đồng",
+    "khách hàng",
+    "nhà đầu tư"
+   ]
+  },
+  {
+   "icon": "lu:globe",
+   "match": [
+    "toàn cầu",
+    "thế giới",
+    "quốc tế"
+   ]
+  },
+  {
+   "icon": "lu:lock",
+   "match": [
+    "mật khẩu"
+   ]
+  },
+  {
+   "icon": "lu:zap",
+   "match": [
+    "tốc độ"
+   ]
+  },
+  {
+   "icon": "lu:gift",
+   "match": [
+    "quà tặng",
+    "miễn phí",
+    "airdrop"
+   ]
+  },
+  {
+   "icon": "lu:shopping-cart",
+   "match": [
+    "mua sắm",
+    "giỏ hàng",
+    "đặt hàng"
+   ]
+  },
+  {
+   "icon": "lu:graduation-cap",
+   "match": [
+    "học tập",
+    "khóa học",
+    "khoá học",
+    "sinh viên"
+   ]
+  },
+  {
+   "icon": "lu:book-open",
+   "match": [
+    "cuốn sách",
+    "đọc sách"
+   ]
+  },
+  {
+   "icon": "lu:video",
+   "match": [
+    "livestream",
+    "live stream",
+    "phát trực tiếp"
+   ]
+  },
+  {
+   "icon": "lu:mic",
+   "match": [
+    "podcast",
+    "ghi âm"
+   ]
+  },
+  {
+   "icon": "lu:music",
+   "match": [
+    "âm nhạc",
+    "bài hát"
+   ]
+  },
+  {
+   "icon": "lu:house",
+   "match": [
+    "bất động sản",
+    "mua nhà"
+   ]
+  },
+  {
+   "icon": "lu:car",
+   "match": [
+    "ô tô",
+    "xe hơi"
+   ]
+  },
+  {
+   "icon": "lu:plane",
+   "match": [
+    "máy bay",
+    "du lịch"
+   ]
+  },
+  {
+   "icon": "lu:hospital",
+   "match": [
+    "bệnh viện",
+    "sức khỏe",
+    "sức khoẻ"
+   ]
+  },
+  {
+   "icon": "lu:fuel",
+   "match": [
+    "xăng dầu",
+    "giá dầu"
+   ]
+  },
+  {
+   "icon": "lu:cpu",
+   "match": [
+    "chip",
+    "bán dẫn"
+   ]
+  },
+  {
+   "icon": "lu:server",
+   "match": [
+    "máy chủ",
+    "server",
+    "=VPS"
+   ]
+  },
+  {
+   "icon": "lu:cloud",
+   "match": [
+    "đám mây",
+    "cloud"
+   ]
+  },
+  {
+   "icon": "lu:code-xml",
+   "match": [
+    "lập trình",
+    "code"
+   ]
+  },
+  {
+   "icon": "lu:hourglass",
+   "match": [
+    "chờ đợi",
+    "kiên nhẫn"
+   ]
+  },
+  {
+   "icon": "lu:skull",
+   "match": [
+    "lừa đảo",
+    "hacker",
+    "bị hack"
+   ]
+  },
+  {
+   "icon": "lu:crown",
+   "match": [
+    "số một",
+    "dẫn đầu"
+   ]
+  },
+  {
+   "icon": "lu:handshake",
+   "match": [
+    "hợp tác",
+    "đối tác"
+   ]
+  },
+  {
+   "icon": "lu:heart",
+   "match": [
+    "yêu thích",
+    "thả tim"
+   ]
+  },
+  {
+   "icon": "lu:sparkles",
+   "match": [
+    "tự động",
+    "phép màu"
+   ]
+  }
+ ]
+}

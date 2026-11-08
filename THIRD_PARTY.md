@@ -19,6 +19,11 @@ Rà soát ngày 30/10/2026. Đây là ghi chú để tra cứu, không phải t�
 | Thành phần | Giấy phép | Ghi chú |
 |---|---|---|
 | Be Vietnam Pro, Inter, Montserrat (qua @fontsource) | SIL Open Font License 1.1 | Cài qua npm, không chép file font vào repo |
+| simple-icons 16.37.0 (logo thương hiệu) | CC0 1.0 | Hình logo là nhãn hiệu của chủ sở hữu: dùng để minh hoạ khi nói về thương hiệu đó, không ngụ ý được tài trợ hay hợp tác. Cài qua npm |
+| lucide-static 1.70.0 (icon nét) | ISC | Cài qua npm |
+| `data/icon-tu-dien.json` | Của skill | Từ điển cụm từ → icon |
+| Dữ liệu giá CoinGecko | Điều khoản API CoinGecko | Gói miễn phí; ghi nguồn "CoinGecko" trên biểu đồ (build tự ghi) |
+| Video/ảnh Pexels (lệnh `broll`) | Pexels License | Dùng miễn phí kể cả thương mại, nên ghi nguồn, không bán lại nguyên file. Tải về thư mục dự án, không kèm trong skill |
 | `engine/public/sfx/*.mp3` | Mixkit Sound Effects Free License | Âm thu thật, dùng miễn phí trong video kể cả thương mại. Nguồn từng file ở `engine/public/sfx/NGUON.md` |
 | `templates/btc-daily/logo.png`, `icon.png` | Của chủ kênh BTC Daily | Chỉ dùng cho kênh đó |
 | `reference/ghost-editor` | MIT © kurbaitaev | Kèm font OFL có file LICENSE riêng |

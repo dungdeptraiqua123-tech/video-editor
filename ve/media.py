@@ -75,14 +75,31 @@ def extract_wav(src: Path, dst: Path) -> None:
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", dst])
 
 
-def cut(src: Path, segments: list, dst: Path, has_video: bool, size: tuple | None = None) -> None:
-    """Giữ các đoạn segments (giây, file gốc), chuẩn hoá -14 LUFS. Video: H.264 CRF 17 (bản trung gian, chỉ nén một lần nữa khi render)."""
+# làm sạch giọng bằng bộ lọc có sẵn của ffmpeg (không cần mô hình AI): lọc ù tần thấp, khử ồn nền, giảm xì
+CLEAN = {
+    "nhe": "highpass=f=70,afftdn=nf=-28:tn=1,deesser=i=0.3",
+    "manh": "highpass=f=90,afftdn=nf=-22:tn=1,anlmdn=s=4,deesser=i=0.4,acompressor=threshold=-20dB:ratio=3:attack=10:release=150",
+}
+
+
+def clean_filter(level) -> str:
+    if level in (None, False, "", "tat", "off"):
+        return ""
+    if level is True:
+        level = "nhe"
+    if level not in CLEAN:
+        raise VEError(f"audio.clean \"{level}\" không có.", "Chọn \"nhe\", \"manh\" hoặc false (tắt).")
+    return CLEAN[level] + ","
+
+
+def cut(src: Path, segments: list, dst: Path, has_video: bool, size: tuple | None = None, clean=None) -> None:
+    """Giữ các đoạn segments (giây, file gốc), làm sạch giọng (tuỳ chọn), chuẩn hoá -14 LUFS. Video: H.264 CRF 17 (bản trung gian)."""
     # video dài mà chỉ giữ một khúc (short cắt từ livestream): nhảy thẳng tới khúc đó thay vì giải mã cả file
     off = max(0.0, min(a for a, _ in segments) - 2.0)
     off = off if off >= 5 else 0.0
     span = max(b for _, b in segments) - off + 2.0
     sel = "+".join(f"between(t,{a - off:.3f},{b - off:.3f})" for a, b in segments)
-    af = f"aselect='{sel}',asetpts=N/SR/TB,loudnorm=I=-14:TP=-1.5:LRA=11"
+    af = f"aselect='{sel}',asetpts=N/SR/TB,{clean_filter(clean)}loudnorm=I=-14:TP=-1.5:LRA=11"
     cmd = ["ffmpeg", "-y", "-loglevel", "error", *(["-ss", f"{off:.3f}"] if off else []), "-i", src, "-t", f"{span:.3f}"]
     if has_video:
         vf = f"select='{sel}',setpts=N/FRAME_RATE/TB"

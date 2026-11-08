@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { C, glow } from "./theme";
-import { CaptionCfg, CaptionStyle, Word } from "./types";
+import { IconBadge } from "./Effects";
+import { alpha, C, glow } from "./theme";
+import { CaptionCfg, CaptionStyle, IconData, Word } from "./types";
 
 type Page = { start: number; end: number; words: Word[] };
 
@@ -47,7 +48,15 @@ const balance = (ws: Word[], oneLine = 18): number[][] => {
 };
 
 
-export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; side: number; u: number }> = ({ words, y, cfg, side, u }) => {
+export const Captions: React.FC<{
+  words: Word[];
+  y: number;
+  cfg: CaptionCfg;
+  side: number;
+  u: number;
+  icons?: Record<string, IconData>;
+  second?: { start: number; end: number; text: string }[];
+}> = ({ words, y, cfg, side, u, icons, second }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
@@ -56,7 +65,23 @@ export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; sid
   const pages = useMemo(() => buildPages(words, cfg.maxChars, cfg.maxWords), [words, cfg.maxChars, cfg.maxWords]);
   const z = u * (cfg.size || 1);
   const page = pages.find((p) => t >= p.start && t < p.end);
+  const cue2 = second?.find((c) => t >= c.start && t < c.end);
   if (!page) return null;
+  const showIcons = cfg.icons !== false && !!icons;
+  /** Icon nhỏ cạnh chữ được nhắc tới (logo, khái niệm), bật cùng lúc chữ được nói. */
+  const withIcon = (w: Word, node: React.ReactNode, size: number) => {
+    const ic = showIcons && w.ic ? icons![w.ic] : undefined;
+    if (!ic) return node;
+    const k = spring({ frame: frame - Math.round(w.start * fps), fps, config: { damping: 10, stiffness: 220 } });
+    return (
+      <span key={`ic${w.start}`} style={{ display: "inline-flex", alignItems: "center", gap: 16 * z }}>
+        <span style={{ display: "inline-block", transform: `scale(${t >= w.start ? k : 0.001})`, opacity: t >= w.start ? 1 : 0 }}>
+          <IconBadge icon={ic} size={size} ring={false} />
+        </span>
+        {node}
+      </span>
+    );
+  };
   const enter = spring({ frame: frame - Math.round(page.start * fps), fps, config: variant === "pop" ? { damping: 11, stiffness: 220 } : { damping: 20, stiffness: 200 } });
   const isBox = variant === "box";
   return (
@@ -93,9 +118,36 @@ export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; sid
           const active = said && t < (page.words[i + 1]?.start ?? page.end);
           const hit = spring({ frame: frame - Math.round(w.start * fps), fps, config: { damping: 13, stiffness: 240 } });
           const base: React.CSSProperties = { display: "inline-block", position: "relative" };
+          if (variant === "karaoke") {
+            // chữ tô dần từ trái sang phải theo đúng độ dài lúc được đọc
+            const prog = Math.min(1, Math.max(0, (t - w.start) / Math.max(0.08, w.end - w.start)));
+            const fillCol = col ?? C.sky;
+            return withIcon(
+              w,
+              <span
+                key={i}
+                style={{
+                  ...base,
+                  fontSize: 68 * z,
+                  fontWeight: 900,
+                  lineHeight: 1.22,
+                  color: "transparent",
+                  backgroundImage: `linear-gradient(90deg, ${fillCol} ${prog * 100}%, #ffffff ${prog * 100}%)`,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  filter: "drop-shadow(0 4px 0 rgba(0,0,0,0.9)) drop-shadow(0 0 8px rgba(0,0,0,0.75))",
+                  transform: `scale(${active ? 1 + 0.07 * hit : 1})`,
+                }}
+              >
+                {w.text}
+              </span>,
+              56 * z,
+            );
+          }
           if (variant === "box") {
             const bg = col === C.gold ? C.gold : C.orange;
-            return (
+            return withIcon(
+              w,
               <span
                 key={i}
                 style={{
@@ -112,12 +164,14 @@ export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; sid
                 }}
               >
                 {w.text}
-              </span>
+              </span>,
+              56 * z,
             );
           }
           if (variant === "glow") {
             const ac = col ?? C.sky;
-            return (
+            return withIcon(
+              w,
               <span
                 key={i}
                 style={{
@@ -131,12 +185,14 @@ export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; sid
                 }}
               >
                 {w.text}
-              </span>
+              </span>,
+              56 * z,
             );
           }
           if (variant === "pop") {
             const fill = active ? col ?? C.sky : said ? col ?? C.white : "#dbe6ff";
-            return (
+            return withIcon(
+              w,
               <span
                 key={i}
                 style={{
@@ -153,11 +209,13 @@ export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; sid
                 }}
               >
                 {w.text}
-              </span>
+              </span>,
+              56 * z,
             );
           }
           const hk = col ? hit : 0;
-          return (
+          return withIcon(
+            w,
             <span
               key={i}
               style={{
@@ -172,11 +230,31 @@ export const Captions: React.FC<{ words: Word[]; y: number; cfg: CaptionCfg; sid
               }}
             >
               {w.text}
-            </span>
+            </span>,
+            56 * z,
           );
         })}
         </div>
         ))}
+        {cue2 ? (
+          <div
+            style={{
+              marginTop: 10 * z,
+              fontSize: 40 * z,
+              fontWeight: 700,
+              fontStyle: "italic",
+              color: "#e8eefc",
+              textAlign: "center",
+              background: alpha(C.night, 0.6),
+              borderRadius: 14,
+              padding: `${4 * z}px ${16 * z}px`,
+              textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+              maxWidth: "100%",
+            }}
+          >
+            {cue2.text}
+          </div>
+        ) : null}
       </div>
     </div>
   );

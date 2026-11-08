@@ -27,13 +27,17 @@ DEFAULT = {
     "fps": 30,
     "template": "trung-tinh",
     "brand": {},
-    "captions": {"enabled": True, "style": "glow", "position": None, "keywords": [], "maxChars": None, "maxWords": 8},
+    "captions": {"enabled": True, "style": "glow", "position": None, "keywords": [], "maxChars": None, "maxWords": 8, "icons": True, "second": None},
+    # icon tự hiện theo lời (logo thương hiệu, icon khái niệm): false = tắt hết; extra thêm mục riêng, off bỏ bớt
+    "icons": {"auto": True, "pops": True, "inline": True, "concepts": True, "gap": None, "repeat": 12.0, "extra": [], "off": []},
+    # làm sạch giọng khi cắt: "nhe" (mặc định), "manh" (phòng ồn, quạt), false = giữ nguyên
+    "audio": {"clean": "nhe"},
     # vị trí mặt trong khung gốc (tỉ lệ 0–1); track "auto": tự dò và bám mặt khi khổ gốc khác khổ ra
     "face": {"x": 0.5, "y": 0.4, "track": "auto"},
     "voice": {"provider": "recorded", "voiceId": None, "model": "eleven_turbo_v2_5", "speed": 1.05, "stability": 0.45, "style": 0.2},
     "whisper": {"model": "auto", "language": "vi"},
     # phong cách và nhịp (hỏi ở bước nhận việc); null trong cuts = lấy theo nhịp
-    "style": {"pace": "vua", "graphics": "vua", "reference": "", "notes": ""},
+    "style": {"pace": "vua", "graphics": "vua", "reference": "", "notes": "", "transition": "auto", "shake": True, "particles": True},
     # quy tắc riêng của video này, chỉ áp dụng cho dự án này (không mang sang video khác)
     "rules": [],
     "cuts": {"gap": None, "pad": None, "fillers": None, "stumbles": None, "drop": [], "keep": []},

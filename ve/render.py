@@ -163,6 +163,7 @@ def export(prj: Project) -> list[Path]:
     from .storyboard import qa
 
     srt, vtt, n = subs.write(d, prj.out / f"{prj.slug}")
+    srt2 = subs.write_second(d, prj.out / f"{prj.slug}", (prj.cfg.get("captions") or {}).get("second") or "en")
     cover = still(prj, min(1.2, d["hookSec"] - 0.3), prj.out / "anh-bia.jpg")
     check = qa(prj, final)
     table = prj.out / "bang-quy-chieu.md"
@@ -194,7 +195,9 @@ def export(prj: Project) -> list[Path]:
         f"| Đã cắt | " + (", ".join(f"{k} {v:.1f}s" for k, v in rs.items() if v > 0.05) or "không") + " |",
         f"| Âm lượng | {lo['lufs']} LUFS, đỉnh {lo['peak']} dBFS (chuẩn -14 LUFS) |",
         f"| Đồ hoạ | {len(d['beats'])} khung, {len(d['topics'])} thẻ chủ đề |",
-        f"| Phụ đề | {n} dòng, kiểu {d['captions']['style']} |",
+        f"| Phụ đề | {n} dòng, kiểu {d['captions']['style']}" + (f", song ngữ ({srt2.name})" if srt2 else "") + " |",
+        f"| Icon theo lời | {len(d.get('pops') or [])} lần bật lên, {sum(1 for w in d['words'] if w.get('ic'))} icon cạnh phụ đề |",
+        f"| Hiệu ứng | chuyển cảnh {(d.get('fx') or {}).get('transition', 'mem')}, {len(d.get('punches') or [])} chữ đập" + (f", nhạc {len((d.get('fx') or {}).get('musicBeats') or [])} phách" if (d.get('fx') or {}).get('musicBeats') else "") + " |",
         f"| Đồng bộ | {'✓ khớp' if sync_ok and last_sub <= fi['duration'] + 0.05 else '✗ LỆCH, cần kiểm tra'} |",
         f"| Thời gian render | {st.get('render', {}).get('seconds', '?')}s |",
         f"| Nhịp, mật độ đồ hoạ | {(prj.cfg.get('style') or {}).get('pace', 'vua')}, {(prj.cfg.get('style') or {}).get('graphics', 'vua')} |",
@@ -224,4 +227,4 @@ def export(prj: Project) -> list[Path]:
     rp.write_text("\n".join(lines), encoding="utf-8")
     prj.mark("export", fingerprint(final))
     info(f"✓ xuất: {srt.name}, {vtt.name} ({n} dòng), {cover.name}, {table.name}, {rp.name}")
-    return [final, srt, vtt, cover, table, rp, prj.out / "kiem-tra.jpg"]
+    return [final, srt, vtt, *([srt2] if srt2 else []), cover, table, rp, prj.out / "kiem-tra.jpg"]
