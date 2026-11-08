@@ -60,6 +60,8 @@ Icon có sẵn: `btc`, `up`, `down`, `bank`, `warn`, `target`, `chart`, `wallet`
 
 **Khung ít ý tự phóng to:** danh sách 1–2 dòng, 1–2 mốc, 1 thanh phần trăm… được phóng chữ và icon 1,15–1,45 lần cho đầy khung. Build vẫn cảnh báo khung chỉ có 1 ý mà hiện quá 4 giây, khung đứng yên quá 6 giây sau ý cuối, và tiêu đề gần giống khung liền trước. Khung đặt chồng lên phần mở đầu được dời ra sau mở đầu.
 
+**Cảnh báo bố cục (video người nói):** thẻ `title` đứng yên quá 4,5 giây; khung nói về app/giao diện/sản phẩm mà không dùng `media`; tổng khung đồ hoạ phủ quá 60% phần thân video (người nói bị thu nhỏ gần hết); thẻ chủ đề hiện rõ dưới 2,5 giây vì bị khung đồ hoạ che; ảnh có trong dự án mà chưa khung nào dùng.
+
 ## Hiệu ứng động
 
 **Chữ đập (`punches`)**: chữ rất to đập vào giữa màn hình đúng lúc nói, khung rung nhẹ, có âm `impact`.

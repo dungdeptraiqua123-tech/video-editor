@@ -7,6 +7,7 @@ Quy ước thời gian trong project.json:
 from __future__ import annotations
 
 import difflib
+import re
 from dataclasses import dataclass, field
 
 from .timeline import norm
@@ -15,6 +16,9 @@ LEAD = 0.08  # đồ hoạ bật trước từ khoá 0,08 giây để mắt kị
 BEAT_PRE = 0.25  # khung đồ hoạ mở trước câu nói một chút
 BEAT_POST = 0.4
 DEFAULT_DUR = 4.0
+MAX_COVER = 0.6  # video người nói: khung đồ hoạ che quá tỉ lệ này của phần thân thì cảnh báo
+TOPIC_MIN_SHOWN = 2.5  # thẻ chủ đề cần hiện rõ ít nhất chừng này giây (không bị khung đồ hoạ che)
+VISUAL_WORDS = re.compile(r"\b(app|ứng dụng|giao diện|màn hình|dashboard|website|trang web|phần mềm|sản phẩm)\b", re.I)
 
 ICONS = {"btc", "up", "down", "bank", "warn", "target", "chart", "wallet", "clock", "fire", "shield", "people", "dollar", "check"}
 
@@ -221,6 +225,8 @@ def _check_density(g: dict, head: str, dur: float, prev: list, where: str, rep: 
     n = len(g.get("items") or g.get("levels") or g.get("rows") or [])
     if t in ("list", "levels", "progress", "countdown", "timeline", "table") and n <= 1 and dur > 4:
         rep.warn(where, f"chỉ có 1 ý mà hiện {dur:.1f}s, màn hình gần như đứng yên. Thêm ý (mỗi ý neo một cụm lời), hoặc đổi sang stat / chữ đập (punches)")
+    if t == "title" and dur > 4.5:
+        rep.warn(where, f"thẻ chữ đứng yên {dur:.1f}s. Rút còn ≤ 4s, hoặc đổi sang list/timeline có ý hiện dần theo lời, hoặc ảnh thật (media)")
     idle = dur - _max_d(g)
     if idle > 6 and t not in ("chart", "media", "quote", "price"):
         rep.warn(where, f"ý cuối hiện xong còn đứng yên {idle:.1f}s. Rút ngắn khung (end sớm hơn) hoặc thêm ý neo vào lời phía sau")
@@ -292,6 +298,8 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         rep.at(e, f"{where} đóng", b.get("end"))
         gg = _resolve_anchors(g, finder, s - 1.0, e + 0.5, s, rep, f"  {where}")
         _check_density(gg, b.get("head", ""), e - s, beats, where, rep)
+        if g.get("type") != "media" and VISUAL_WORDS.search(" ".join(str(x) for x in (b.get("head", ""), g.get("title", ""), g.get("text", ""), g.get("kicker", ""), b.get("start", "")) if isinstance(x, str))):
+            rep.warn(where, "đang nói về app/giao diện/sản phẩm mà chỉ có thẻ chữ. Người xem cần thấy thật: dùng khung media với ảnh chụp màn hình hoặc clip quay màn hình")
         beats.append({"start": round(s, 2), "end": round(e, 2), "head": b.get("head", ""), "g": gg})
 
     topics = []
@@ -315,6 +323,20 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
             rep.warn(f"topics[{i}]", f"thẻ chỉ hiện {max(0, end - starts[i]):.1f}s (bị chủ đề sau hoặc phần kết chặn)")
         topics.append({"start": round(starts[i], 2), "end": round(end, 2), "kicker": t.get("kicker", ""), "title": t.get("title", ""), "items": items})
         rep.at(starts[i], f"topics[{i}] thẻ chủ đề: {t.get('title', '')}", t.get("start"))
+
+    def _covered(a: float, b: float) -> float:
+        return sum(max(0.0, min(b, x["end"]) - max(a, x["start"])) for x in beats)
+
+    for i, tp in enumerate(topics):
+        a = max(tp["start"], hook_sec)
+        shown = max(0.0, tp["end"] - a) - _covered(a, tp["end"])
+        if tp["end"] - a >= 1.5 and shown < TOPIC_MIN_SHOWN:
+            rep.warn(f"topics[{i}] \"{tp['title']}\"", f"thẻ chủ đề chỉ hiện rõ {shown:.1f}s (còn lại bị khung đồ hoạ che). Neo khung đồ hoạ đầu tiên của chủ đề muộn hơn để thẻ hiện ≥ {TOPIC_MIN_SHOWN}s")
+    body = duration - hook_sec - outro_sec
+    if mode == "talking" and body > 6 and beats:
+        cover = _covered(hook_sec, duration - outro_sec) / body
+        if cover > MAX_COVER:
+            rep.warn("content.beats", f"khung đồ hoạ phủ {cover * 100:.0f}% thời lượng, người nói bị thu nhỏ gần hết video (nên ≤ {MAX_COVER * 100:.0f}%). Giữ khung cho số liệu/ý chính, phần còn lại để mặt người nói với chữ đập (punches) hoặc icon theo lời")
 
     punches = []
     for i, pu in enumerate(content.get("punches", [])):

@@ -75,7 +75,7 @@ export const Captions: React.FC<{
     const k = spring({ frame: frame - Math.round(w.start * fps), fps, config: { damping: 10, stiffness: 220 } });
     return (
       <span key={`ic${w.start}`} style={{ display: "inline-flex", alignItems: "center", gap: 16 * z }}>
-        <span style={{ display: "inline-block", transform: `scale(${t >= w.start ? k : 0.001})`, opacity: t >= w.start ? 1 : 0 }}>
+        <span style={{ display: "inline-block", transform: `scale(${t >= w.start ? 0.75 + 0.25 * k : 0.75})`, opacity: t >= w.start ? 1 : 0.45, filter: t >= w.start ? undefined : "grayscale(1)" }}>
           <IconBadge icon={ic} size={size} ring={false} />
         </span>
         {node}
