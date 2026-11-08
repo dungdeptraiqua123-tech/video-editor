@@ -266,7 +266,8 @@ const CompareCard: React.FC<{ g: Extract<Graphic, { type: "compare" }>; f: numbe
             <div
               key={i}
               style={{
-                flex: 1,
+                flex: "1 1 0",
+                minWidth: 0,
                 margin: i === 0 ? "0 30px 0 0" : "0 0 0 30px",
                 background: C.panel,
                 border: `3px solid ${isWin ? col : C.line}`,
@@ -282,8 +283,8 @@ const CompareCard: React.FC<{ g: Extract<Graphic, { type: "compare" }>; f: numbe
               }}
             >
               {s.icon ? <Icon name={s.icon} size={110} color={col} /> : null}
-              <div style={{ fontSize: 40, fontWeight: 800, color: C.mute, textTransform: "uppercase", textAlign: "center" }}>{s.label}</div>
-              <div style={{ fontSize: 84, fontWeight: 900, color: col, lineHeight: 1, textAlign: "center", letterSpacing: -2 }}>{s.value}</div>
+              <div style={{ fontSize: 40, fontWeight: 800, color: C.mute, textTransform: "uppercase", textAlign: "center", lineHeight: 1.15, overflowWrap: "anywhere" }}>{s.label}</div>
+              <div style={{ fontSize: 84 * Math.min(1, 6.5 / Math.max(1, s.value.length)), fontWeight: 900, color: col, lineHeight: 1, textAlign: "center", letterSpacing: -2, whiteSpace: "nowrap" }}>{s.value}</div>
             </div>
           );
         })}
@@ -553,8 +554,6 @@ export const fillZoom = (g: Graphic): number => {
       return n <= 1 ? 1.3 : n === 2 ? 1.15 : 1;
     case "table":
       return n <= 2 ? 1.15 : 1;
-    case "compare":
-      return 1.1;
     default:
       return 1;
   }
