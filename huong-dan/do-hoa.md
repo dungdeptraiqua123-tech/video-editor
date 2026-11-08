@@ -58,6 +58,8 @@ Khi khung hiện, người nói thu về ô góc trên phải (video người n�
 
 Icon có sẵn: `btc`, `up`, `down`, `bank`, `warn`, `target`, `chart`, `wallet`, `clock`, `fire`, `shield`, `people`, `dollar`, `check`.
 
+**Khung ít ý tự phóng to:** danh sách 1–2 dòng, 1–2 mốc, 1 thanh phần trăm… được phóng chữ và icon 1,15–1,45 lần cho đầy khung. Build vẫn cảnh báo khung chỉ có 1 ý mà hiện quá 4 giây, khung đứng yên quá 6 giây sau ý cuối, và tiêu đề gần giống khung liền trước. Khung đặt chồng lên phần mở đầu được dời ra sau mở đầu.
+
 ## Hiệu ứng động
 
 **Chữ đập (`punches`)**: chữ rất to đập vào giữa màn hình đúng lúc nói, khung rung nhẹ, có âm `impact`.

@@ -205,6 +205,31 @@ def check_graphic(g: dict, where: str, rep: Report, media_ok=lambda p: True) -> 
                 break
 
 
+def _max_d(x) -> float:
+    if isinstance(x, dict):
+        return max([float(v) for k, v in x.items() if k.endswith("d") and k[:-1] in ("", "label", "change") and isinstance(v, (int, float))] + [_max_d(v) for v in x.values()] + [0.0])
+    if isinstance(x, list):
+        return max([_max_d(v) for v in x] + [0.0])
+    return 0.0
+
+
+def _check_density(g: dict, head: str, dur: float, prev: list, where: str, rep: Report) -> None:
+    """Khung ít nội dung mà hiện lâu (màn hình gần như đứng yên), tiêu đề trùng khung liền trước."""
+    import difflib
+
+    t = g.get("type")
+    n = len(g.get("items") or g.get("levels") or g.get("rows") or [])
+    if t in ("list", "levels", "progress", "countdown", "timeline", "table") and n <= 1 and dur > 4:
+        rep.warn(where, f"chỉ có 1 ý mà hiện {dur:.1f}s, màn hình gần như đứng yên. Thêm ý (mỗi ý neo một cụm lời), hoặc đổi sang stat / chữ đập (punches)")
+    idle = dur - _max_d(g)
+    if idle > 6 and t not in ("chart", "media", "quote", "price"):
+        rep.warn(where, f"ý cuối hiện xong còn đứng yên {idle:.1f}s. Rút ngắn khung (end sớm hơn) hoặc thêm ý neo vào lời phía sau")
+    if prev and head and prev[-1].get("head"):
+        a, b = head.lower(), prev[-1]["head"].lower()
+        if a == b or difflib.SequenceMatcher(None, a, b).ratio() >= 0.6 or a.split()[:2] == b.split()[:2]:
+            rep.warn(where, f"tiêu đề \"{head}\" gần giống khung liền trước (\"{prev[-1]['head']}\"). Gộp hai khung hoặc đặt tiêu đề khác để người xem thấy đã sang ý mới")
+
+
 def resolve_content(content: dict, words: list, duration: float, tl=None, mode: str = "talking", media_ok=lambda p: True, zoom_every: float = 3.0) -> tuple[dict, Report]:
     """Trả về (dữ liệu đã có mốc thời gian theo bản cắt, báo cáo lỗi/cảnh báo)."""
     rep = Report()
@@ -246,8 +271,12 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         if e > duration - outro_sec + 0.2:
             rep.warn(where, f"chạm phần kết ({e:.1f}s > {duration - outro_sec:.1f}s), đã cắt bớt")
             e = duration - outro_sec
-        if s < hook_sec:
-            rep.warn(where, f"bắt đầu lúc {s:.1f}s, chồng lên thẻ mở đầu ({hook_sec}s)")
+        if s < hook_sec + 0.2:
+            rep.warn(where, f"bắt đầu lúc {s:.1f}s, chồng lên thẻ mở đầu ({hook_sec}s), đã dời tới {hook_sec + 0.2:.1f}s để hai lớp chữ không đè nhau")
+            s = hook_sec + 0.2
+            if e - s < 1.0:
+                rep.err(where, "sau khi dời khỏi phần mở đầu chỉ còn dưới 1 giây. Neo khung vào câu nói sau phần mở đầu")
+                continue
         if e - s < 1.5:
             rep.warn(where, f"chỉ hiện {e - s:.1f}s, người xem khó đọc kịp")
         if e - s > 25:
@@ -262,6 +291,7 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         rep.at(s, f"{where} mở: {g.get('title') or g.get('text') or g.get('label') or g.get('type')}", b.get("start"))
         rep.at(e, f"{where} đóng", b.get("end"))
         gg = _resolve_anchors(g, finder, s - 1.0, e + 0.5, s, rep, f"  {where}")
+        _check_density(gg, b.get("head", ""), e - s, beats, where, rep)
         beats.append({"start": round(s, 2), "end": round(e, 2), "head": b.get("head", ""), "g": gg})
 
     topics = []

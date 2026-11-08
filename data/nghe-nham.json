@@ -1,0 +1,29 @@
+{
+ "_ghi_chu": "Chữ Whisper hay nghe nhầm khi nói tiếng Việt xen tên riêng. sai: các cách nghe nhầm (không phân biệt hoa thường, dấu câu); dung: chữ đúng; ngu_canh: chỉ gợi ý khi trong khoảng 25 từ quanh đó có một trong các từ này (tránh sửa nhầm từ thường như cloud = đám mây). Dự án thêm mục riêng qua khoá soat.extra.",
+ "muc": [
+  {"sai": ["chatcvt", "chat cvt", "chat gpt", "chat gbt", "chat gpd", "chat ttp", "chat gờ pê tê", "chát gpt", "chat dpt", "chatgbt", "chatgpd", "chat jeep", "chat chip t"], "dung": "ChatGPT"},
+  {"sai": ["cloud", "clau", "cờ lốt", "cờ lau", "clot", "claud", "clode", "clow", "cờ lâu"], "dung": "Claude", "ngu_canh": ["ai", "chatgpt", "gpt", "gemini", "agent", "anthropic", "code", "model", "mô hình", "trợ lý", "chatbot", "prompt", "skill", "edit", "dựng", "công cụ", "hermes"]},
+  {"sai": ["asian hermes", "agent hermes", "ây gần hermes", "ê gần hermes", "hermes agen", "hermes ây gần", "hermes ê gần", "hơ mét", "hẹc mét", "hermit"], "dung": "Hermes Agent", "ngu_canh": ["ai", "agent", "claude", "chatgpt", "skill", "edit", "công cụ", "dựng", "app", "bot"]},
+  {"sai": ["gem mi nai", "gemi nai", "gemini ai", "chém mi nai", "giê mi nai", "gemina"], "dung": "Gemini", "ngu_canh": ["ai", "google", "chatgpt", "claude", "model"]},
+  {"sai": ["cáp cát", "cấp cut", "cap cut", "cát cát"], "dung": "CapCut"},
+  {"sai": ["bít coin", "bit coin", "bích coin", "bitcon", "bít con"], "dung": "Bitcoin"},
+  {"sai": ["ê thê ri um", "ethereum", "ê-thê-ri-um", "ethereal", "ê tê ri um"], "dung": "Ethereum"},
+  {"sai": ["sô la na", "sola na", "solona"], "dung": "Solana"},
+  {"sai": ["bi năng", "bai nen", "bai nân", "binan"], "dung": "Binance"},
+  {"sai": ["đo sọt", "lon sọt", "long sọt", "lông sọt", "long sót"], "dung": "long short"},
+  {"sai": ["anh coi", "an coin", "al coin", "ân coin"], "dung": "altcoin"},
+  {"sai": ["ninh farm payroll", "non farm", "nông farm", "non phần"], "dung": "Nonfarm Payroll"},
+  {"sai": ["e tê ép", "ê tê ép", "e t f", "ê ti ép"], "dung": "ETF"},
+  {"sai": ["fed", "phét", "phed", "phết"], "dung": "Fed", "ngu_canh": ["lãi suất", "ngân hàng", "mỹ", "powell", "cpi", "lạm phát", "kinh tế"]},
+  {"sai": ["live trim", "lai trim", "lai stream", "live stream", "lai sờ trim"], "dung": "livestream"},
+  {"sai": ["tíc tóc", "tik tok", "tích tóc", "tic toc"], "dung": "TikTok"},
+  {"sai": ["du tu", "diu túp", "you tube", "giu túp"], "dung": "YouTube"},
+  {"sai": ["phây búc", "phê búc", "face book", "phay búc"], "dung": "Facebook"},
+  {"sai": ["rêu", "riu", "reel", "rít"], "dung": "Reels", "ngu_canh": ["facebook", "video", "đăng", "tiktok", "shorts", "instagram"]},
+  {"sai": ["pai thần", "pai thon", "py thon"], "dung": "Python"},
+  {"sai": ["gít hắp", "git hap", "gít hớp", "github"], "dung": "GitHub"},
+  {"sai": ["en vi đi a", "nờ vi đi a", "nvidea", "envidia"], "dung": "Nvidia"},
+  {"sai": ["tét la", "tét-la", "tesla"], "dung": "Tesla"},
+  {"sai": ["ô pen ai", "open ây ai", "ô pen ây ai", "open ai"], "dung": "OpenAI"}
+ ]
+}

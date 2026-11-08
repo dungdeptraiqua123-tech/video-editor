@@ -352,7 +352,8 @@ export const Video: React.FC<Props> = (props) => {
       {/* nền tối mờ phía dưới để phụ đề trắng luôn dễ đọc */}
       <AbsoluteFill style={{ background: `linear-gradient(to bottom, transparent 58%, ${alpha(C.night, 0.55)} 80%, ${alpha(C.night, 0.7)} 100%)`, opacity: 1 - bg }} />
 
-      {beat && beat.head ? <BrandTag L={L} badge={brand.badge} title={beat.head} o={p} /> : null}
+      {/* chữ cũ tắt hẳn trong nửa đầu chuyển cảnh, chữ mới chỉ hiện ở nửa sau: không bao giờ hai lớp chữ chồng nhau */}
+      {beat && beat.head ? <BrandTag L={L} badge={brand.badge} title={beat.head} o={Math.max(0, Math.min(1, p * 2 - 1))} /> : null}
 
       {beats.map((b, i) => {
         const from = Math.round(b.start * fps);
@@ -401,7 +402,7 @@ export const Video: React.FC<Props> = (props) => {
           )
         : null}
 
-      {topic && t >= props.hookSec && frame < outroFrom ? <TopicCard L={L} topic={topic} o={1 - p} /> : null}
+      {topic && t >= props.hookSec && frame < outroFrom ? <TopicCard L={L} topic={topic} o={Math.max(0, 1 - p * 2)} /> : null}
 
       <Sequence durationInFrames={Math.round(props.hookSec * fps)}>
         <Hook L={L} hook={hook} brand={brand} sec={props.hookSec} />

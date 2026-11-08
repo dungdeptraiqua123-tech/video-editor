@@ -49,7 +49,7 @@ class Resolve(unittest.TestCase):
         self.assertIn("Bitcoin tăng", rep.errors[0])
 
     def test_anchor_outside_beat_is_error(self):
-        c = dict(self.content, beats=[{"start": "xin chào", "dur": 2, "g": {"type": "stat", "icon": "up", "big": "1", "label": "x", "say": "cảm ơn"}}])
+        c = dict(self.content, beats=[{"start": "hôm nay", "dur": 2, "g": {"type": "stat", "icon": "up", "big": "1", "label": "x", "say": "cảm ơn"}}])
         _, rep = resolve_content(c, self.w, self.dur)
         self.assertTrue(any("cảm ơn" in e for e in rep.errors))
 

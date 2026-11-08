@@ -64,6 +64,8 @@ video-editor init du-an/<tên> --script kichban.txt [--type explainer|product] [
 - Kết quả: `work/loi-thoai.txt` (từng câu) và **`work/bang-quy-chieu.md`: bảng từng chữ kèm thời gian**. Sau `build`, bảng có thêm cột **Video** (thời điểm trong video đã cắt) và **lịch xuất hiện mọi phần tử** kèm cụm lời neo. Đây là bảng quy chiếu để soát phần tử nào cũng hiện đúng lúc lời được nói.
 
 **5. Soát lời, viết nội dung.** Đọc `work/loi-thoai.txt` và bảng quy chiếu.
+- **Tên riêng trong video** (sản phẩm, thương hiệu, người): ghi vào `whisper.terms` **trước khi** `transcribe` (ví dụ `["Claude", "ChatGPT", "Hermes Agent"]`) để Whisper viết đúng ngay từ đầu.
+- **Soát chữ nghe nhầm:** `transcribe` và `build` in dòng 🔤 gợi ý sửa ("ChatCVT" → "ChatGPT", "Cloud" → "Claude" khi đang nói về AI), kèm sẵn mảng để dán vào `fix`. Đối chiếu từng gợi ý với ngữ cảnh rồi mới thêm; gợi ý ghi "gần giống tên đã biết" phải hỏi người dùng nếu không chắc. Build cũng cảnh báo khi chữ nghe nhầm đã bị chép vào đồ hoạ.
 - **Sửa chữ nghe sai:** thêm vào `fix`. Chữ ghi "nghe chưa chắc" cần hỏi người dùng nếu không đoán chắc được.
 - **Viết `content`:** `hook`, `beats` (khung đồ hoạ), `topics` (thẻ chủ đề), `cta`. Cú pháp và các loại đồ hoạ ở `huong-dan/do-hoa.md`. Số khung theo mật độ đã chọn ở bước 1.
 - **Neo đồ hoạ bằng cụm từ trong lời** (`"start": "giá Bitcoin"`, `"say": "87 ngàn"`), không đoán giây. Nhờ vậy đồ hoạ bật đúng lúc nói và không lệch khi cắt lại.
@@ -87,6 +89,9 @@ video-editor build <dự án>
 - Lỗi nào cũng chỉ rõ chỗ và cách sửa. Cụm neo sai thì kèm gợi ý cụm gần giống.
 - Lặp bước 5–6 tới khi không còn lỗi.
 - **Video quay ngang mà xuất dọc** (16:9 sang 9:16, 1:1 hay 4:5): `build` tự dò mặt người nói và cho khung bám theo, phủ kín khổ dọc thay vì để viền. Khung đi mượt trong từng đoạn và nhảy thẳng ở chỗ cắt. Thấy mặt dưới 50% thời lượng (quay màn hình, b-roll) thì giữ khung cố định theo `face.x`/`face.y`. Tắt: `face.track = false`. Video có hai người thì khung bám người có mặt lớn nhất, không tự đổi theo người đang nói: xem storyboard và báo người dùng.
+- **Quãng nghỉ Whisper bỏ sót:** build đo im lặng thật trong âm thanh (dòng 🔇) và cắt cả quãng nghỉ bị tính lẫn vào từ, nên màn hình không đứng yên. Tắt: `cuts.audioGaps: false`.
+- **Phụ đề ngắt đúng câu:** từ mở câu bị viết hoa giữa dòng ("…edit 100% Cái video này…") được thêm dấu chấm phía trước (dòng ✏), phụ đề không gộp hai câu.
+- **Đọc các cảnh báo đồ hoạ:** "chỉ có 1 ý mà hiện …s", "ý cuối hiện xong còn đứng yên …s", "tiêu đề gần giống khung liền trước". Sửa hết trước khi gửi storyboard: thêm ý neo vào lời, rút ngắn khung, gộp hoặc đổi tiêu đề.
 - **Câu nói lại** (người nói nói một câu rồi nói lại từ đầu) được tự bỏ lần đầu, giữ lần sau; build in dòng 🔁 cho từng chỗ. Đọc lại các dòng này: lần đầu có ý riêng cần giữ thì đặt `cuts.retakes: "suggest"` rồi tự chọn bằng `cuts.drop`.
 - Chỗ nghi nói vấp được liệt kê. Xem và quyết: `cuts.stumbles: "auto"`, hoặc thêm khoảng vào `cuts.drop`.
 

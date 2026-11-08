@@ -70,6 +70,22 @@ def check_audio(info: dict) -> None:
         warn(f"File dài {info['duration'] / 60:.0f} phút: chép lời có thể mất lâu. Nên cắt bớt đoạn cần dùng trước (cuts.keep).")
 
 
+def silences(path: Path, noise_db: float = -38.0, min_sec: float = 0.35) -> list[list[float]]:
+    """Khoảng im lặng thật trong file (giây gốc), đo bằng silencedetect của ffmpeg. Dùng để sửa mốc từ của Whisper:
+    Whisper hay kéo dài từ cuối câu qua cả quãng nghỉ ("công……… cụ"), làm bản cắt giữ lại quãng im và màn hình đứng yên."""
+    p = run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-vn", "-af", f"silencedetect=n={noise_db}dB:d={min_sec}", "-f", "null", "-"], quiet=True, check=False)
+    out, cur = [], None
+    for line in (p.stderr or "").splitlines():
+        m = re.search(r"silence_start: (-?[\d.]+)", line)
+        if m:
+            cur = max(0.0, float(m.group(1)))
+        m = re.search(r"silence_end: ([\d.]+)", line)
+        if m and cur is not None:
+            out.append([round(cur, 3), round(float(m.group(1)), 3)])
+            cur = None
+    return out
+
+
 def extract_wav(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", dst])

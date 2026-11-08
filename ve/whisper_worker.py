@@ -29,7 +29,9 @@ def main():
     wf = wave.open(wav)
     audio = np.frombuffer(wf.readframes(wf.getnframes()), np.int16).astype(np.float32) / 32768
     total = len(audio) / 16000
-    segs, _ = m.transcribe(audio, language=lang, word_timestamps=True, beam_size=5, vad_filter=True)
+    # mồi từ: tên riêng trong video (whisper.terms) giúp Whisper viết đúng "Claude", "ChatGPT"… thay vì "Cloud", "ChatCVT"
+    prompt = os.environ.get("VE_WHISPER_PROMPT") or None
+    segs, _ = m.transcribe(audio, language=lang, word_timestamps=True, beam_size=5, vad_filter=True, initial_prompt=prompt)
     res = []
     for s in segs:
         res.append({"start": s.start, "end": s.end, "text": s.text, "words": [{"w": w.word, "s": w.start, "e": w.end, "p": w.probability} for w in (s.words or [])]})

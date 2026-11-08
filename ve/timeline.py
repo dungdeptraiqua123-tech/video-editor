@@ -177,6 +177,50 @@ def find_retakes(words: list[Word], min_match: int = 3, max_take: int = 30, max_
     return out
 
 
+# từ thường mở đầu câu: Whisper viết hoa chúng khi nghe ra câu mới nhưng hay quên dấu chấm câu trước
+SENTENCE_STARTERS = {"cái", "và", "thì", "các", "mình", "không", "rồi", "nhưng", "mà", "còn", "vậy", "nên", "bây", "hôm", "sau", "trước",
+                     "đầu", "tiếp", "cuối", "ok", "vâng", "dạ", "chúng", "bạn", "anh", "em", "tôi", "đây", "đó", "này", "hãy", "nếu", "khi",
+                     "ví", "giờ", "có", "là", "để", "theo", "tuy", "ngoài", "thứ", "một", "hai", "ba", "hello", "xin", "chào", "cảm", "như",
+                     "tại", "vì", "do", "ai", "gì", "sao", "thế", "các", "những", "đúng", "rất", "cũng", "đã", "sẽ", "đang", "lúc", "hiện", "trong"}
+
+
+def mark_sentences(words: list[dict]) -> int:
+    """Thêm dấu chấm trước từ mở câu bị viết hoa giữa dòng ("…edit 100% Cái video này…" → "…edit 100%. Cái video này…"),
+    để phụ đề ngắt đúng chỗ, không gộp hai câu vào một dòng. Trả số chỗ đã thêm. Sửa tại chỗ."""
+    n = 0
+    for i in range(1, len(words)):
+        t, prev = words[i]["text"], words[i - 1]["text"]
+        if t[:1].isupper() and not t.isupper() and norm(t) in SENTENCE_STARTERS and not re.search(r"[.!?,;:…]$", prev):
+            words[i - 1]["text"] = prev + "."
+            n += 1
+    return n
+
+
+def trim_words(words: list[Word], quiet: list, keep: float = 0.06, min_dur: float = 0.12) -> tuple[list[Word], float]:
+    """Co mốc từ ra khỏi khoảng im lặng thật (đo từ âm thanh): từ bị Whisper kéo dài qua quãng nghỉ được cắt về
+    sát chỗ có tiếng. Trả (danh sách từ mới, tổng giây im lặng đã gỡ khỏi các từ)."""
+    if not quiet:
+        return words, 0.0
+    out, freed = [], 0.0
+    for w in words:
+        s, e = w.start, w.end
+        for a, b in quiet:
+            if b <= s or a >= e:
+                continue
+            if a <= s + 0.02 and b < e:  # im lặng ở đầu từ
+                s = max(s, min(b - keep, e - min_dur))
+            elif b >= e - 0.02 and a > s:  # im lặng ở cuối từ
+                e = min(e, max(a + keep, s + min_dur))
+            elif a > s and b < e and (b - a) > 0.3:  # im lặng giữa từ (từ bị kéo dài hai phía): giữ phần dài hơn
+                if a - s >= e - b:
+                    e = max(a + keep, s + min_dur)
+                else:
+                    s = min(b - keep, e - min_dur)
+        freed += (w.end - w.start) - (e - s)
+        out.append(Word(w.text, round(s, 3), round(e, 3), w.p))
+    return out, round(freed, 2)
+
+
 @dataclass
 class CutConfig:
     gap: float = 0.55  # khoảng lặng dài hơn mức này thì cắt

@@ -98,7 +98,8 @@ def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, pr
     return [Path(o) for _, o in shots]
 
 
-LIMITER = "alimiter=limit=0.8:attack=5:release=60:level=false"
+# chuẩn hoá lại cả bản trộn (giọng + nhạc + âm hiệu ứng) về -14 LUFS rồi chặn đỉnh -1,5 dB: chuẩn Reels/TikTok/YouTube
+LIMITER = "loudnorm=I=-13.5:TP=-2:LRA=11,alimiter=limit=0.79:attack=5:release=60:level=false"
 
 
 def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None) -> None:
@@ -183,6 +184,8 @@ def export(prj: Project) -> list[Path]:
     fps = d["format"]["fps"]
     sync_ok = abs(fi["duration"] - d["duration"]) <= 2 / fps + 0.05
     last_sub = max((w["end"] for w in d["words"]), default=0)
+    if lo["lufs"] is not None and (abs(lo["lufs"] + 14) > 1.2 or (lo["peak"] or -99) > -1.0):
+        warn(f"Âm thanh {lo['lufs']} LUFS, đỉnh {lo['peak']} dBFS: lệch chuẩn (-14 LUFS, đỉnh dưới -1 dB). Render lại để bước chuẩn hoá chạy, hoặc giảm sfx.volume / music.volume.")
     if not sync_ok:
         warn(f"Thời lượng video {fi['duration']:.2f}s lệch dữ liệu {d['duration']:.2f}s")
     placeholder = (prj.work / "voice.m4a").exists() and prj.cfg.get("voice", {}).get("provider") == "placeholder"

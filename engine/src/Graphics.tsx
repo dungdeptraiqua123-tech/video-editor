@@ -537,6 +537,29 @@ export const GraphicView: React.FC<{ g: Graphic; f: number; dur?: number }> = ({
 };
 
 /** Khung đồ hoạ: vẽ trên khung thiết kế 940 × 880 rồi thu phóng vừa vùng đồ hoạ của khổ hình, có hiệu ứng vào/ra. */
+/** Khung ít mục thì phóng to chữ và icon cho đầy khung (tránh 1–2 dòng chữ nhỏ giữa khoảng trống lớn). */
+export const fillZoom = (g: Graphic): number => {
+  const n = (g as { items?: unknown[] }).items?.length ?? (g as { levels?: unknown[] }).levels?.length ?? (g as { rows?: unknown[] }).rows?.length ?? 0;
+  switch (g.type) {
+    case "list":
+      return n <= 1 ? 1.45 : n === 2 ? 1.35 : n === 3 ? 1.15 : 1;
+    case "levels":
+      return n <= 2 ? 1.25 : n === 3 ? 1.1 : 1;
+    case "countdown":
+      return n <= 3 ? 1.15 : 1;
+    case "timeline":
+      return n <= 2 ? 1.2 : n === 3 ? 1.1 : 1;
+    case "progress":
+      return n <= 1 ? 1.3 : n === 2 ? 1.15 : 1;
+    case "table":
+      return n <= 2 ? 1.15 : 1;
+    case "compare":
+      return 1.1;
+    default:
+      return 1;
+  }
+};
+
 export const GraphicPanel: React.FC<{ g: Graphic; durationFrames: number; area: Rect; tr?: Transition }> = ({ g, durationFrames, area, tr = "mem" }) => {
   const f = useCurrentFrame();
   const inP = interpolate(f, [0, 12], [0, 1], { extrapolateRight: "clamp", easing: ease });
@@ -561,7 +584,9 @@ export const GraphicPanel: React.FC<{ g: Graphic; durationFrames: number; area: 
         filter: `blur(${(1 - out) * 8 + interpolate(f, [0, 10], [8, 0], { extrapolateRight: "clamp" })}px)`,
       }}
     >
-      <GraphicView g={g} f={f} dur={durationFrames} />
+      <div style={{ zoom: fillZoom(g), width: DESIGN.w / fillZoom(g) }}>
+        <GraphicView g={g} f={f} dur={durationFrames} />
+      </div>
     </div>
   );
 };

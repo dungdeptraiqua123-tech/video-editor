@@ -183,3 +183,65 @@ class Misc(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Test5Fixes(unittest.TestCase):
+    """Sáu lỗi tìm thấy ở video test5."""
+
+    @staticmethod
+    def ws(text, step=0.3):
+        from ve.timeline import Word
+        return [Word(x, round(i * step, 2), round(i * step + step - 0.05, 2)) for i, x in enumerate(text.split())]
+
+    def test_1_misheard_names(self):
+        from ve import soat
+        w = self.ws("Cái video này sử dụng công cụ edit là AI Không phải là Cloud, không phải là ChatCVT mà là Asian Hermes Thì như thế")
+        got = {(s["sai"], s["dung"]) for s in soat.suggest(w, {})}
+        self.assertEqual(got, {("Cloud", "Claude"), ("ChatCVT", "ChatGPT"), ("Asian Hermes", "Hermes Agent")})
+        # cloud nghĩa thường (không nói về AI) thì không gợi ý
+        self.assertEqual(soat.suggest(self.ws("hôm nay trời nhiều cloud quá đi chơi thôi"), {}), [])
+        # chữ sai đã lọt vào đồ hoạ thì cảnh báo
+        sugs = soat.suggest(w, {})
+        warns = soat.check_content({"beats": [{"g": {"type": "list", "items": [{"text": "Không phải ChatCVT"}]}}]}, sugs)
+        self.assertTrue(any("ChatGPT" in x for x in warns))
+        # tên gần giống tên đã biết
+        near = soat.suggest(self.ws("mình dùng Clauude để viết"), {"whisper": {"terms": ["Claude"]}})
+        self.assertEqual([(s["sai"], s["dung"], s["kind"]) for s in near], [("Clauude", "Claude", "gan-dung")])
+
+    def test_2_sentence_marks(self):
+        from ve.timeline import mark_sentences
+        w = [{"text": x} for x in "và edit 100% Cái video này mà là Hermes Thì như thế dùng Bitcoin Ethereum".split()]
+        self.assertEqual(mark_sentences(w), 2)
+        self.assertEqual(" ".join(x["text"] for x in w), "và edit 100%. Cái video này mà là Hermes. Thì như thế dùng Bitcoin Ethereum")
+
+    def test_3_sparse_and_idle_warnings(self):
+        w = words("hôm nay mình nói về công cụ dựng video bằng AI rất nhanh và tiện lợi cho mọi người cùng xem nhé cảm ơn các bạn đã theo dõi video này nhiều nha")
+        c = {"hook": {"title": "x"}, "hookSec": 1.0, "outroSec": 2.0, "cta": "Theo dõi",
+             "beats": [{"start": "công cụ", "end": "cùng xem", "head": "Công cụ dựng", "g": {"type": "list", "title": "Quy trình", "items": [{"icon": "check", "text": "Tự quay", "say": "công cụ"}]}},
+                       {"start": "cảm ơn", "end": "nhiều nha", "head": "Công cụ được dùng", "g": {"type": "stat", "icon": "check", "big": "AI", "label": "x"}}]}
+        _, rep = resolve_content(c, w, w[-1]["end"] + 4)
+        txt = " | ".join(rep.warnings)
+        self.assertIn("chỉ có 1 ý", txt)
+        self.assertIn("gần giống khung liền trước", txt)
+
+    def test_4_trim_words_by_real_silence(self):
+        from ve.timeline import CutConfig, Word, build_timeline, trim_words
+        w = [Word("được", 0.0, 0.3), Word("công", 0.3, 2.0), Word("cụ", 2.05, 2.3)]  # "công" bị kéo qua 1,4s im lặng
+        t, freed = trim_words(w, [[0.55, 1.95]])
+        self.assertLess(t[1].end, 0.7)
+        self.assertGreater(freed, 1.2)
+        tl = build_timeline(t, 2.6, CutConfig())
+        self.assertLess(tl.duration, 1.6)  # 2,6s còn ~1,4s: quãng im đã bị cắt
+        self.assertEqual(trim_words(w, []), (w, 0.0))
+
+    def test_5_beat_pushed_out_of_hook(self):
+        w = words("chào các bạn hôm nay mình nói về công cụ AI dựng video nhanh gọn cho mọi người cùng xem nhé cảm ơn đã theo dõi nha")
+        c = {"hook": {"title": "x"}, "hookSec": 2.0, "outroSec": 2.0, "cta": "x",
+             "beats": [{"start": "các bạn", "end": "dựng video", "head": "AI", "g": {"type": "stat", "icon": "check", "big": "AI", "label": "x"}}]}
+        d, rep = resolve_content(c, w, w[-1]["end"] + 4)
+        self.assertGreaterEqual(d["beats"][0]["start"], 2.2)
+
+    def test_6_final_audio_filter(self):
+        from ve.render import LIMITER
+        self.assertIn("loudnorm=I=-13.5", LIMITER)
+        self.assertIn("alimiter", LIMITER)

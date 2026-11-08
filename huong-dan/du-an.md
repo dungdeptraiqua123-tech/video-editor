@@ -30,7 +30,8 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `captions` | | Phụ đề, xem dưới |
 | `face` | `{"x":0.5,"y":0.4,"track":"auto"}` | Mặt người nói, xem dưới |
 | `voice` | | Giọng AI: `provider` (`elevenlabs` / `placeholder`), `voiceId`, `model`, `speed`, `stability`, `style` |
-| `whisper` | `{"model":"auto","language":"vi"}` | `model`: `auto`, `nhe` (small), `vua` (medium), `nang` (large-v3), `nhanh` (large-v3-turbo) |
+| `whisper` | `{"model":"auto","language":"vi"}` | `model`: `auto`, `nhe` (small), `vua` (medium), `nang` (large-v3), `nhanh` (large-v3-turbo). `terms`: tên riêng trong video (`["Claude", "ChatGPT"]`), mồi cho Whisper viết đúng; đổi thì chép lời lại |
+| `soat` | `{}` | Soát chữ nghe nhầm theo `data/nghe-nham.json`. `auto: true` tự áp dụng các mục từ điển (không áp dụng mục "gần giống"); `extra`: mục riêng `[{"sai": ["ây gần"], "dung": "agent", "ngu_canh": ["ai"]}]` |
 | `cuts` | | Cắt, xem dưới |
 | `fix` | `[]` | Sửa chữ nghe sai: `[["lon sọt", "long short"], ["bên hiểm", ""]]`. Cụm sửa rỗng = xoá. Không phân biệt hoa thường và dấu câu |
 | `dropSegments` | `[]` | Bỏ hẳn một đoạn Whisper bịa ra: ghi giây bắt đầu của đoạn (xem `transcript.json`) |
@@ -125,6 +126,7 @@ Khoá nào để `null` thì lấy theo nhịp (`style.pace`); ghi số hay giá
 | `gap` | theo nhịp (`0.55` với `vua`) | Khoảng lặng dài hơn mức này thì cắt (giây) |
 | `pad` | theo nhịp (`0.12` với `vua`) | Chừa trước và sau mỗi từ |
 | `silence` | `true` | `false` = không cắt lặng (giữ nhịp tự nhiên) |
+| `audioGaps` | `true` | Đo im lặng thật trong âm thanh (dưới -38 dB, từ 0,35s) để gỡ quãng nghỉ Whisper tính lẫn vào từ, tránh màn hình đứng yên. Lưu đệm ở `work/im-lang.json` |
 | `fillers` | theo nhịp | Từ đệm (ờ, ừm, ơ…): `auto` cắt, `suggest` chỉ liệt kê, `off` bỏ qua |
 | `filler_words` | danh sách mặc định | Đổi danh sách từ đệm |
 | `stumbles` | theo nhịp | Nói vấp (cụm 1–3 từ lặp liền nhau, trừ từ láy như "từ từ"): `auto` / `suggest` / `off` |

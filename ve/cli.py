@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 import time
@@ -62,7 +63,8 @@ def cmd_transcribe(prj: Project, force=False, from_srt=None, from_json=None) -> 
     M.check_audio(pi)
     model = resolve_model(prj.cfg["whisper"].get("model"))
     lang = prj.cfg["whisper"].get("language", "vi")
-    fp = fingerprint(src, model, lang)
+    terms = [str(t).strip() for t in (prj.cfg["whisper"].get("terms") or []) if str(t).strip()]
+    fp = fingerprint(src, model, lang, *terms)
     if not force and prj.fresh("transcribe", fp) and out.exists():
         info("✓ lời thoại còn mới, dùng lại")
         return
@@ -75,7 +77,13 @@ def cmd_transcribe(prj: Project, force=False, from_srt=None, from_json=None) -> 
     M.extract_wav(src, wav)
     info(f"🎙 chép lời {pi['duration']:.0f}s bằng Whisper {model} …")
     t0 = time.time()
-    p = run([vp, SKILL_DIR / "ve" / "whisper_worker.py", wav, out, model, lang], check=False)
+    if terms:
+        os.environ["VE_WHISPER_PROMPT"] = "Video nói về " + ", ".join(terms) + "."
+        info(f"   mồi từ cho Whisper: {', '.join(terms)}")
+    try:
+        p = run([vp, SKILL_DIR / "ve" / "whisper_worker.py", wav, out, model, lang], check=False)
+    finally:
+        os.environ.pop("VE_WHISPER_PROMPT", None)
     if p.returncode == 3:
         raise VEError("Không tải hoặc mở được mô hình Whisper.",
                       "Mạng có thể chặn Hugging Face: mở huggingface.co, *.hf.co, *.xethub.hf.co (Claude cloud: Project settings → Cloud environment → Network access). "
