@@ -80,6 +80,12 @@ video-editor init du-an/<tên> --script kichban.txt [--type explainer|product] [
 - **Phụ đề:** `captions.style: "karaoke"`; song ngữ: `video-editor dich <dự án> --ngon-ngu en`, điền `work/dich.json`, đặt `captions.second: "en"`.
 - **Âm thanh:** `audio.clean` (`nhe` mặc định, `manh`, `false`) làm sạch giọng bằng bộ lọc ffmpeg; `music` có `duck` (tự hạ khi nói), `fade`, `start`, `sync` (dò nhịp nhạc để hạt nền và đổi khung nảy theo phách).
 
+**5c. Đạo diễn motion graphic** (chi tiết ở `huong-dan/motion.md`). Video có lời thoại thì **tự làm bước này**, không chờ người dùng mô tả:
+- `video-editor motion plan <dự án>` → `work/kich-ban-hinh.md`: từng câu kèm gợi ý ý/cảnh. Đọc ý cả câu, quyết định câu nào làm cảnh motion (cửa sổ app tự gõ, checklist tự tick, số đếm, đồng hồ, sóng âm cắt, sơ đồ tự vẽ nét…), câu nào để mặt người nói.
+- Tìm cảnh: `video-editor motion find "<ý>"` (cảnh có sẵn + thư viện cảnh đã dùng, xếp theo điểm). Không có cảnh hợp thì **viết cảnh mới** `motion/<tên>.tsx` bằng motion kit.
+- Khung: `{"type": "motion", "scene": "<tên>", "layer": "full"|"overlay", "params": {…, "say": "cụm lời"}}` trong `content.beats`. Mật độ theo `style.graphics`, mặt người nói ≥ 50% thời lượng.
+- Sau `preview`, xem đủ 3 ảnh mỗi cảnh trong `out/motion-soat/` và sửa trước khi gửi duyệt. Cảnh viết riêng tự vào thư viện khi người dùng duyệt; bị góp ý thì `video-editor motion rate <tên> -1 --ly-do "…"`.
+
 **6. Dựng và kiểm tra.**
 
 ```bash
@@ -196,6 +202,7 @@ video-editor shorts du-an/<video dài> --tao 1,3            # hoặc mốc giây
 | `GHI-NHO.md` | Góp ý người dùng để lại qua các video. Đọc ở bước 1 mọi video |
 | `huong-dan/du-an.md` | Mọi khoá trong `project.json`: phong cách, nhịp, quy tắc riêng, thương hiệu, phụ đề, mặt người nói, cắt, âm thanh |
 | `huong-dan/do-hoa.md` | Viết `content`: các loại đồ hoạ, neo cụm từ, độ dài chữ, mẫu cho từng loại video |
+| `huong-dan/motion.md` | Đạo diễn motion graphic: ý → cảnh, luật nhịp, cảnh có sẵn, motion kit, viết cảnh mới, tự soát, thư viện cảnh |
 | `huong-dan/loi-thuong-gap.md` | Khi một lệnh báo lỗi mà dòng `→` chưa đủ |
 | `huong-dan/elevenlabs.md` | Thiết lập giọng đọc AI (chọn gói, key, nhân bản giọng) |
 | `mau-tai-lieu/` | Phiếu nhận việc, khung kịch bản 45–60 giây |

@@ -134,6 +134,78 @@ def cmd_tts(prj: Project, force=False, placeholder=False) -> None:
     info(f"✓ {sum(len(s['words']) for s in segs)} từ → {write_transcript_text(prj)}")
 
 
+def _motion(a) -> int:
+    """video-editor motion …: xem cảnh, thư viện, kịch bản hình; lưu và chấm điểm cảnh."""
+    import json as _json
+
+    from ve import motion as MOTION
+
+    args = a.args
+    need = {"find": 1, "plan": 1, "use": 2, "save": 2, "rate": 2, "off": 1, "on": 1, "check": 1}.get(a.action, 0)
+    if len(args) < need:
+        raise VEError(f"`motion {a.action}` thiếu tham số.", "Xem: video-editor motion -h")
+    if a.action == "list":
+        lib = MOTION.lib_items()
+        if a.json:
+            print(_json.dumps({"builtin": [{"name": k, "y": v[0], "params": v[1]} for k, v in MOTION.BUILTIN_INFO.items()], "library": lib}, ensure_ascii=False))
+            return 0
+        info("Cảnh có sẵn (khung {\"type\": \"motion\", \"scene\": tên, \"params\": {…}}):")
+        for k, (y, prm) in MOTION.BUILTIN_INFO.items():
+            info(f"  {k:<15} {y}")
+            info(f"  {'':<15} params: {prm}")
+        info(f"Thư viện ({len(lib)} cảnh, {MOTION.lib_dir()}):" if lib else "Thư viện: chưa có cảnh nào (cảnh viết riêng được tự lưu khi người dùng duyệt).")
+        for m in lib:
+            info(f"  {m['name']:<22} điểm {m.get('score', 0):>4} · dùng {m.get('uses', 0)} lần{' · TẮT' if m.get('off') else ''} · {m.get('y', '')}")
+        return 0
+    if a.action == "find":
+        rows = MOTION.find(" ".join(args))
+        if a.json:
+            print(_json.dumps(rows, ensure_ascii=False))
+            return 0
+        if not rows:
+            info("Không có cảnh nào hợp ý này: viết cảnh mới motion/<tên>.tsx bằng kit (huong-dan/motion.md).")
+        for r in rows:
+            info(f"  {r['name']:<22} [{'có sẵn' if r['kind'] == 'co-san' else 'thư viện, điểm ' + str(r.get('score', 0))}] {r.get('y', '')}")
+        return 0
+    if a.action == "plan":
+        out = MOTION.plan_sheet(Project(Path(args[0])))
+        info(f"✓ kịch bản hình → {out} (điền cột Quyết định rồi viết content.beats)")
+        return 0
+    if a.action == "use":
+        dst = MOTION.use(Project(Path(args[0])), args[1], a.as_name)
+        info(f"✓ đã chép cảnh vào {dst}; dùng: {{\"type\": \"motion\", \"scene\": \"{dst.stem}\", \"params\": {{…}}}}")
+        return 0
+    if a.action == "save":
+        d = MOTION.save(Project(Path(args[0])), args[1], a.y, [x.strip() for x in a.tags.split(",") if x.strip()] or None, mo_ta=a.mo_ta)
+        info(f"✓ đã lưu vào thư viện: {d}")
+        return 0
+    if a.action == "rate":
+        try:
+            delta = float(args[1])
+        except ValueError:
+            raise VEError("Điểm phải là số, ví dụ +1 hoặc -1.")
+        meta = MOTION.rate(args[0], delta, a.ly_do)
+        info(f"✓ {args[0]}: điểm {meta['score']}")
+        return 0
+    if a.action in ("off", "on"):
+        MOTION.set_off(args[0], a.action == "off")
+        info(f"✓ {args[0]}: {'tắt (không gợi ý nữa)' if a.action == 'off' else 'bật lại'}")
+        return 0
+    if a.action == "check":
+        prj = Project(Path(args[0]))
+        errs = MOTION.check_scenes(prj)
+        if not errs and MOTION.scene_files(prj):
+            from ve.render import engine_ready
+
+            engine_ready()
+            errs = MOTION.typecheck(prj)
+        if errs:
+            raise VEError("Cảnh motion chưa hợp lệ:\n  - " + "\n  - ".join(errs), "Sửa các file trong motion/ rồi chạy lại.")
+        info(f"✓ {len(MOTION.scene_files(prj))} cảnh motion viết riêng hợp lệ")
+        return 0
+    return 0
+
+
 def cmd_status(prj: Project) -> None:
     st = prj.state()
     first = "tts" if prj.cfg.get("script") else "transcribe"
@@ -279,6 +351,15 @@ def main(argv=None) -> int:
     d_.add_argument("--ngon-ngu", default="en", help="mã ngôn ngữ bản dịch (mặc định en)")
     ic_ = sub.add_parser("icons", help="xem trước icon tự hiện theo lời (thương hiệu, khái niệm)")
     ic_.add_argument("dir")
+    mo_ = sub.add_parser("motion", help="cảnh motion: cảnh có sẵn, thư viện, kịch bản hình (đạo diễn), lưu/chấm điểm cảnh")
+    mo_.add_argument("action", choices=["list", "find", "plan", "use", "save", "rate", "off", "on", "check"])
+    mo_.add_argument("args", nargs="*", help="list | find <ý> | plan <dự án> | use <dự án> <tên> | save <dự án> <cảnh> | rate <tên> <+1|-1> | off/on <tên> | check <dự án>")
+    mo_.add_argument("--y", default="", help="ý dùng của cảnh (save)")
+    mo_.add_argument("--tags", default="", help="nhãn, cách nhau dấu phẩy (save)")
+    mo_.add_argument("--mo-ta", default="", help="mô tả ngắn chuyển động (save)")
+    mo_.add_argument("--ly-do", default="", help="lý do cộng/trừ điểm (rate)")
+    mo_.add_argument("--as", dest="as_name", default=None, help="đặt tên khác khi chép vào dự án (use)")
+    mo_.add_argument("--json", action="store_true")
 
     a = ap.parse_args(argv)
     try:
@@ -365,6 +446,8 @@ def main(argv=None) -> int:
 
             dich.make(Project(Path(a.dir)), a.ngon_ngu)
             return 0
+        if a.cmd == "motion":
+            return _motion(a)
         if a.cmd == "icons":
             from ve.build import preview_icons
 

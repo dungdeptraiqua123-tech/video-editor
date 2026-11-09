@@ -11,6 +11,8 @@ Tài liệu này nói rõ skill `video-editor` làm gì trên máy: ghi file ở
 | Thư mục dự án người dùng chọn (`video-editor init <thư mục>`) | `project.json`, `media/`, `work/`, `out/`; dự án short trong `<dự án dài>/shorts/`; phân tích video mẫu trong `work/mau/` | Mọi lệnh dựng |
 | `./phan-tich-mau/` trong thư mục đang đứng (đổi bằng `--ra`) | Phân tích video mẫu khi không gắn với dự án nào | `video-editor mau` không có `--project` |
 | `~/.video-editor/` (đổi bằng `VE_HOME`) | Môi trường Python riêng, bộ dựng Remotion, `config.json` (đường dẫn trình duyệt, mô hình đã chọn) | `setup` |
+| `~/.video-editor/motion-lib/` | Thư viện cảnh motion: mã cảnh (`scene.tsx`), ảnh xem trước, `meta.json` (ý dùng, điểm) | `video-editor approve` (tự lưu cảnh của video đã duyệt), `motion save/rate/off` |
+| `~/.video-editor/engine-<phiên bản>/du-an/` | Bản chép cảnh motion viết riêng của từng dự án để đóng gói (ghi đè mỗi lần build) | `build`, `preview`, `render` khi dự án có `motion/*.tsx` |
 | Bộ nhớ đệm Hugging Face (`~/.cache/huggingface`) | Mô hình chép lời Whisper | `setup` |
 | `GHI-NHO.md` trong thư mục skill (thư mục chỉ đọc thì `~/.video-editor/GHI-NHO.md`) | Góp ý dựng video của người dùng | `video-editor note` |
 

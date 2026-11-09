@@ -49,6 +49,13 @@ def _walk(o):
             yield from _walk(x)
 
 
+def motion_times(b: dict) -> list[float]:
+    """3 thời điểm soát một cảnh motion: vừa mở, giữa cảnh, lúc mọi phần tử đã hiện."""
+    s, e = b["start"], b["end"]
+    full = _full_moment(b)
+    return [round(min(s + 0.45, e - 0.2), 2), round((s + e) / 2, 2), round(max(full, min(e - 0.35, (s + e) / 2 + 0.4)), 2)]
+
+
 def sample_times(d: dict, seed: int) -> list[float]:
     """Thời điểm ngẫu nhiên, mỗi ô thời gian bằng nhau một ảnh (không dồn cục), thêm ảnh cho khung đồ hoạ chưa được chụp."""
     dur = float(d["duration"])
@@ -74,7 +81,11 @@ def describe(d: dict, t: float) -> tuple[str, str]:
         tp = next((x for x in d.get("topics", []) if x["start"] <= t < x["end"]), None)
         if b:
             g = b["g"]
-            scene = f"Đồ hoạ: {b.get('head') or g.get('title') or g.get('text') or g.get('label') or g.get('type')}"
+            if g.get("type") == "motion":
+                prm = g.get("params") or {}
+                scene = f"Motion {g.get('scene')}{' (nổi)' if g.get('layer') == 'overlay' else ''}: {prm.get('title') or prm.get('big') or prm.get('kicker') or ''}".rstrip(": ")
+            else:
+                scene = f"Đồ hoạ: {b.get('head') or g.get('title') or g.get('text') or g.get('label') or g.get('type')}"
         elif tp and d.get("mode") != "faceless":
             scene = f"Người nói + thẻ: {tp.get('title', '')}"
         else:
@@ -142,7 +153,19 @@ def preview(prj: Project, draft: bool = False, seed: int | None = None) -> list[
     t0 = time.time()
     info(f"🎞 storyboard {len(times)} ảnh cho video {d['duration']:.0f}s …")
     shots = [(t, sb / f"{i:02d}-{clock(t).replace(':', 'm').replace('.', 's')}.jpg") for i, t in enumerate(times, 1)]
-    stills(prj, shots, scale=0.5)
+    # cảnh motion: 3 ảnh mỗi cảnh (mở, giữa, lúc đủ nội dung) vào out/motion-soat/ để tự soát chuyển động và bố cục
+    soat = prj.out / "motion-soat"
+    shutil.rmtree(soat, ignore_errors=True)
+    mshots = []
+    for k, b in enumerate(d.get("beats", []), 1):
+        if b["g"].get("type") != "motion":
+            continue
+        soat.mkdir(parents=True, exist_ok=True)
+        for j, mt in enumerate(motion_times(b), 1):
+            mshots.append((mt, soat / f"{k:02d}-{b['g'].get('scene')}-{j}.jpg"))
+    stills(prj, shots + mshots, scale=0.5)
+    if mshots:
+        info(f"🎬 {len(mshots)} ảnh soát cảnh motion → {soat} (xem đủ từng ảnh: chữ tràn, đè mặt, phần tử chưa kịp hiện, khung trống, cảnh lỗi màu đỏ)")
     tiles = []
     for i, (t, p) in enumerate(shots, 1):
         scene, said = describe(d, t)
@@ -176,6 +199,15 @@ def approve(prj: Project, note: str = "") -> None:
         raise VEError("Storyboard đã cũ: nội dung đã đổi sau lần xem trước.", f"Chạy lại `video-editor preview {prj.root}` và gửi người dùng duyệt bản mới.")
     prj.mark("approve", fp, note=note)
     info("✓ storyboard đã được duyệt, có thể render.")
+    # cảnh motion viết riêng của video đã duyệt: lưu vào thư viện, cộng điểm (video sau dùng lại được)
+    try:
+        from . import motion as MOTION
+
+        saved = MOTION.autosave(prj, approved=True)
+        if saved:
+            info(f"📚 lưu {len(saved)} cảnh motion vào thư viện: {', '.join(saved)}")
+    except Exception as e:  # noqa: BLE001 (thư viện lỗi không được chặn render)
+        info(f"(không lưu được cảnh vào thư viện: {e})")
 
 
 def require_approval(prj: Project, data: Path) -> None:

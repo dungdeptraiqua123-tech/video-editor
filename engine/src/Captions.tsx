@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { IconBadge } from "./Effects";
 import { alpha, C, glow } from "./theme";
+import { M } from "./motion/theme";
 import { CaptionCfg, CaptionStyle, IconData, Word } from "./types";
 
 type Page = { start: number; end: number; words: Word[] };
@@ -56,7 +57,9 @@ export const Captions: React.FC<{
   u: number;
   icons?: Record<string, IconData>;
   second?: { start: number; end: number; text: string }[];
-}> = ({ words, y, cfg, side, u, icons, second }) => {
+  /** Đang hiện cảnh motion nền sáng: phụ đề chữ mực đậm, từ đang đọc tô màu nhấn (không phát sáng). */
+  paper?: boolean;
+}> = ({ words, y, cfg, side, u, icons, second, paper }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
@@ -84,6 +87,26 @@ export const Captions: React.FC<{
   };
   const enter = spring({ frame: frame - Math.round(page.start * fps), fps, config: variant === "pop" ? { damping: 11, stiffness: 220 } : { damping: 20, stiffness: 200 } });
   const isBox = variant === "box";
+  if (paper) {
+    return (
+      <div style={{ position: "absolute", left: side, right: side, top: y, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: C.font, transform: `translateY(calc(-50% + ${(1 - enter) * 14}px))`, opacity: Math.min(1, enter * 1.4) }}>
+        {balance(page.words, cfg.maxChars >= 40 ? cfg.maxChars : 18).map((row, r) => (
+          <div key={r} style={{ display: "flex", justifyContent: "center", columnGap: 18 * z }}>
+            {row.map((i) => {
+              const w = page.words[i];
+              const said = t >= w.start;
+              const active = said && t < (page.words[i + 1]?.start ?? page.end);
+              return (
+                <span key={i} style={{ fontSize: 58 * z, fontWeight: 700, lineHeight: 1.25, color: active ? M.accent : said ? M.ink : alpha(M.ink, 0.38) }}>
+                  {w.text}
+                </span>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div
       style={{

@@ -21,6 +21,8 @@ import { asset, setMediaBase } from "./assets";
 import { Icon } from "./Icons";
 import { faceAt, fitVideo, Layout, layoutFor } from "./layout";
 import { alpha, applyBrand, C, glow } from "./theme";
+import { MotionBeat } from "./motion/Stage";
+import { applyMotionStyle, M } from "./motion/theme";
 import { Brand, Props, Topic } from "./types";
 
 const RAMP = 14; // số khung hình chuyển giữa chế độ người nói và chế độ đồ hoạ
@@ -33,6 +35,7 @@ const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const modeAt = (frame: number, fps: number, beats: Props["beats"]) => {
   let p = 0;
   for (const b of beats) {
+    if (b.g.type === "motion" && b.g.layer === "overlay") continue; // cảnh nổi: người nói vẫn toàn màn hình
     const s = b.start * fps;
     const e = b.end * fps;
     const v = Math.min(
@@ -261,6 +264,7 @@ const elementTimes = (o: unknown): number[] => {
 export const Video: React.FC<Props> = (props) => {
   const { brand, media, captions, beats, topics, zooms, words, hook } = props;
   applyBrand(brand);
+  applyMotionStyle(brand, props.motionStyle);
   setMediaBase(props.mediaBase);
   useBrandFont(brand);
   const frame = useCurrentFrame();
@@ -297,6 +301,11 @@ export const Video: React.FC<Props> = (props) => {
   const ty = lerp(fy - fy * zoom, L.pip.h / 2 - fy * pipScale, p);
 
   const beat = beats.find((b) => t >= b.start - 0.3 && t < b.end + 0.3);
+  // cảnh motion toàn màn hình có pip: false thì ẩn hẳn ô mặt người nói (vẫn giữ tiếng)
+  const hidePip = beats.some((b) => b.g.type === "motion" && (b.g.layer ?? "full") === "full" && b.g.pip === false && t >= b.start - 0.1 && t < b.end + 0.1);
+  const isMotion = (g: Props["beats"][number]["g"]) => g.type === "motion";
+  // phụ đề chữ mực khi cảnh motion nền sáng đang chiếm toàn màn hình
+  const paperCaps = M.look === "sang" && beats.some((b) => b.g.type === "motion" && (b.g.layer ?? "full") === "full" && t >= b.start + 0.15 && t < b.end - 0.15);
   const topic = topics.find((x) => t >= x.start && t < x.end);
   const outroFrom = durationInFrames - Math.round(props.outroSec * fps);
   // phần kết: phụ đề dời xuống dưới để không đè khung kêu gọi
@@ -329,10 +338,20 @@ export const Video: React.FC<Props> = (props) => {
         />
       ) : null}
 
+      {/* cảnh motion toàn màn hình nằm DƯỚI ô mặt người nói */}
+      {beats.map((b, i) =>
+        b.g.type === "motion" && (b.g.layer ?? "full") === "full" ? (
+          <Sequence key={`mf${i}`} from={Math.round(b.start * fps)} durationInFrames={Math.max(1, Math.round((b.end - b.start) * fps))} layout="none">
+            <MotionBeat g={b.g} durationFrames={Math.max(1, Math.round((b.end - b.start) * fps))} fps={fps} L={L} />
+          </Sequence>
+        ) : null,
+      )}
+
       {fit ? (
         <div
           style={{
             position: "absolute",
+            opacity: hidePip ? 0 : 1,
             left: box.x,
             top: box.y,
             width: box.w,
@@ -353,14 +372,16 @@ export const Video: React.FC<Props> = (props) => {
       <AbsoluteFill style={{ background: `linear-gradient(to bottom, transparent 58%, ${alpha(C.night, 0.55)} 80%, ${alpha(C.night, 0.7)} 100%)`, opacity: 1 - bg }} />
 
       {/* chữ cũ tắt hẳn trong nửa đầu chuyển cảnh, chữ mới chỉ hiện ở nửa sau: không bao giờ hai lớp chữ chồng nhau */}
-      {beat && beat.head ? <BrandTag L={L} badge={brand.badge} title={beat.head} o={Math.max(0, Math.min(1, p * 2 - 1))} /> : null}
+      {beat && beat.head && !isMotion(beat.g) ? <BrandTag L={L} badge={brand.badge} title={beat.head} o={Math.max(0, Math.min(1, p * 2 - 1))} /> : null}
 
       {beats.map((b, i) => {
         const from = Math.round(b.start * fps);
         const dur = Math.max(1, Math.round((b.end - b.start) * fps));
         return (
           <Sequence key={i} from={from} durationInFrames={dur} layout="none">
-            {b.g.type === "media" && b.g.full ? (
+            {b.g.type === "motion" ? (
+              b.g.layer === "overlay" ? <MotionBeat g={b.g} durationFrames={dur} fps={fps} L={L} /> : null
+            ) : b.g.type === "media" && b.g.full ? (
               <FullMedia src={b.g.src} dur={dur} credit={b.g.credit} fit={b.g.fit} />
             ) : (
               <GraphicPanel g={b.g} durationFrames={dur} area={L.panel} tr={efx.transition} />
@@ -430,7 +451,7 @@ export const Video: React.FC<Props> = (props) => {
           ))
         : null}
 
-      {captions.enabled ? <Captions words={words} y={capY} cfg={captions} side={L.capSide} u={L.u} icons={props.icons} second={props.second} /> : null}
+      {captions.enabled ? <Captions words={words} y={capY} cfg={captions} side={L.capSide} u={L.u} icons={props.icons} second={props.second} paper={paperCaps} /> : null}
 
       <Sequence from={outroFrom}>
         <Outro L={L} cta={props.cta} buttons={props.ctaButtons ?? ["Theo dõi", "Thích", "Chia sẻ"]} />

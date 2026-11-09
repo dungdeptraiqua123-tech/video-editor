@@ -37,6 +37,7 @@ SCHEMA = {
     "quote": {"req": {"text": str}},
     "table": {"req": {"title": str, "cols": list, "rows": list}},
     "countdown": {"req": {"title": str, "items": list}},
+    "motion": {"req": {"scene": str}},
 }
 MAXLEN = {"label": 28, "title": 34, "text": 40, "big": 10, "kicker": 28, "head": 30}
 
@@ -130,10 +131,21 @@ def _resolve_anchors(obj, finder: Finder, lo: float, hi: float, base: float, rep
     return out
 
 
-def check_graphic(g: dict, where: str, rep: Report, media_ok=lambda p: True) -> None:
+def check_graphic(g: dict, where: str, rep: Report, media_ok=lambda p: True, scene_ok=None) -> None:
     t = g.get("type")
     if t not in SCHEMA:
         rep.err(where, f"loại đồ hoạ \"{t}\" không có. Chọn một trong: {', '.join(SCHEMA)}")
+        return
+    if t == "motion":
+        from .motion import BUILTIN, LAYERS
+        if not isinstance(g.get("scene"), str):
+            rep.err(where, "khung motion thiếu \"scene\" (tên cảnh)")
+        elif not (scene_ok or (lambda n: n in BUILTIN))(g["scene"]):
+            rep.err(where, f"không có cảnh motion \"{g['scene']}\". Cảnh có sẵn: {', '.join(sorted(BUILTIN))}; hoặc viết file motion/{g['scene']}.tsx (xem huong-dan/motion.md)")
+        if g.get("layer", "full") not in LAYERS:
+            rep.err(where, "layer chỉ là \"full\" hoặc \"overlay\"")
+        if "params" in g and not isinstance(g["params"], dict):
+            rep.err(where, "params phải là object")
         return
     for k, typ in SCHEMA[t]["req"].items():
         if k not in g:
@@ -228,7 +240,7 @@ def _check_density(g: dict, head: str, dur: float, prev: list, where: str, rep: 
     if t == "title" and dur > 4.5:
         rep.warn(where, f"thẻ chữ đứng yên {dur:.1f}s. Rút còn ≤ 4s, hoặc đổi sang list/timeline có ý hiện dần theo lời, hoặc ảnh thật (media)")
     idle = dur - _max_d(g)
-    if idle > 6 and t not in ("chart", "media", "quote", "price"):
+    if idle > 6 and t not in ("chart", "media", "quote", "price", "motion"):
         rep.warn(where, f"ý cuối hiện xong còn đứng yên {idle:.1f}s. Rút ngắn khung (end sớm hơn) hoặc thêm ý neo vào lời phía sau")
     if prev and head and prev[-1].get("head"):
         a, b = head.lower(), prev[-1]["head"].lower()
@@ -236,7 +248,7 @@ def _check_density(g: dict, head: str, dur: float, prev: list, where: str, rep: 
             rep.warn(where, f"tiêu đề \"{head}\" gần giống khung liền trước (\"{prev[-1]['head']}\"). Gộp hai khung hoặc đặt tiêu đề khác để người xem thấy đã sang ý mới")
 
 
-def resolve_content(content: dict, words: list, duration: float, tl=None, mode: str = "talking", media_ok=lambda p: True, zoom_every: float = 3.0) -> tuple[dict, Report]:
+def resolve_content(content: dict, words: list, duration: float, tl=None, mode: str = "talking", media_ok=lambda p: True, zoom_every: float = 3.0, scene_ok=None) -> tuple[dict, Report]:
     """Trả về (dữ liệu đã có mốc thời gian theo bản cắt, báo cáo lỗi/cảnh báo)."""
     rep = Report()
     finder = Finder(words)
@@ -254,7 +266,7 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         if not isinstance(g, dict):
             rep.err(where, "thiếu khối đồ hoạ g")
             continue
-        check_graphic(g, where, rep, media_ok)
+        check_graphic(g, where, rep, media_ok, scene_ok)
         if len(b.get("head", "")) > MAXLEN["head"]:
             rep.warn(where, f"head dài {len(b['head'])} ký tự (nên ≤ {MAXLEN['head']})")
         s = _time(b.get("start"), tl, finder, rep, where + ".start", cursor)
@@ -298,7 +310,7 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         rep.at(e, f"{where} đóng", b.get("end"))
         gg = _resolve_anchors(g, finder, s - 1.0, e + 0.5, s, rep, f"  {where}")
         _check_density(gg, b.get("head", ""), e - s, beats, where, rep)
-        if g.get("type") != "media" and VISUAL_WORDS.search(" ".join(str(x) for x in (b.get("head", ""), g.get("title", ""), g.get("text", ""), g.get("kicker", ""), b.get("start", "")) if isinstance(x, str))):
+        if g.get("type") not in ("media", "motion") and VISUAL_WORDS.search(" ".join(str(x) for x in (b.get("head", ""), g.get("title", ""), g.get("text", ""), g.get("kicker", ""), b.get("start", "")) if isinstance(x, str))):
             rep.warn(where, "đang nói về app/giao diện/sản phẩm mà chỉ có thẻ chữ. Người xem cần thấy thật: dùng khung media với ảnh chụp màn hình hoặc clip quay màn hình")
         beats.append({"start": round(s, 2), "end": round(e, 2), "head": b.get("head", ""), "g": gg})
 
@@ -325,7 +337,8 @@ def resolve_content(content: dict, words: list, duration: float, tl=None, mode: 
         rep.at(starts[i], f"topics[{i}] thẻ chủ đề: {t.get('title', '')}", t.get("start"))
 
     def _covered(a: float, b: float) -> float:
-        return sum(max(0.0, min(b, x["end"]) - max(a, x["start"])) for x in beats)
+        # cảnh motion nổi (overlay) không che người nói
+        return sum(max(0.0, min(b, x["end"]) - max(a, x["start"])) for x in beats if not (x["g"].get("type") == "motion" and x["g"].get("layer") == "overlay"))
 
     for i, tp in enumerate(topics):
         a = max(tp["start"], hook_sec)

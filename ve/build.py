@@ -8,6 +8,7 @@ from pathlib import Path
 
 from . import media as M
 from .content import resolve_content
+from . import motion as MOTION
 from .env import ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
 from . import bang
 from . import dich as DICH
@@ -193,7 +194,16 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         beats.append(b)
     content["beats"] = beats
     data, rep = resolve_content(content, tl.words, duration, tl, "faceless" if faceless else "talking", media_ok=lambda p: p not in missing,
-                                zoom_every=pace_of(cfg)["zoomEvery"])
+                                zoom_every=pace_of(cfg)["zoomEvery"], scene_ok=MOTION.known(prj))
+    # cảnh motion viết riêng: kiểm tra an toàn + kiểu (tsc) ngay ở build để báo đúng file:dòng
+    if MOTION.scene_files(prj):
+        for e_ in MOTION.check_scenes(prj):
+            rep.err("motion", e_)
+        if not rep.errors and not check_only:
+            from .render import engine_ready
+            engine_ready()
+            for e_ in MOTION.typecheck(prj):
+                rep.err("motion", e_)
 
     brand, cap_tpl = brand_for(prj)
     cap = _merge({"enabled": True, "style": "glow", "position": None, "keywords": [], "maxChars": None, "maxWords": 8, "size": 1}, cap_tpl)
@@ -267,6 +277,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
         "pops": pops,
         "second": second,
         "fx": fx,
+        "motionStyle": ((cfg.get("motion") or {}).get("style") or None) if isinstance(cfg.get("motion"), dict) else None,
         "ctaButtons": content.get("ctaButtons") or ["Theo dõi", "Thích", "Chia sẻ"],
     }
     removed_sec = {

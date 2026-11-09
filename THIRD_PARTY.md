@@ -18,7 +18,7 @@ Rà soát ngày 30/10/2026. Đây là ghi chú để tra cứu, không phải t�
 
 | Thành phần | Giấy phép | Ghi chú |
 |---|---|---|
-| Be Vietnam Pro, Inter, Montserrat (qua @fontsource) | SIL Open Font License 1.1 | Cài qua npm, không chép file font vào repo |
+| Be Vietnam Pro, Inter, Montserrat, Fraunces, JetBrains Mono (qua @fontsource) | SIL Open Font License 1.1 | Cài qua npm, không chép file font vào repo |
 | simple-icons 16.37.0 (logo thương hiệu) | CC0 1.0 | Hình logo là nhãn hiệu của chủ sở hữu: dùng để minh hoạ khi nói về thương hiệu đó, không ngụ ý được tài trợ hay hợp tác. Cài qua npm |
 | lucide-static 1.70.0 (icon nét) | ISC | Cài qua npm |
 | `data/icon-tu-dien.json` | Của skill | Từ điển cụm từ → icon |

@@ -1,3 +1,5 @@
+import type { MotionStyle } from "./motion/theme";
+
 export type Word = { text: string; start: number; end: number; /** icon nhỏ gắn cạnh chữ trong phụ đề (khoá trong Props.icons) */ ic?: string };
 
 /** Hình icon nhúng sẵn trong dữ liệu render: logo thương hiệu (brand), icon nét (line) hoặc ảnh riêng (img). */
@@ -28,7 +30,9 @@ export type Graphic =
   | { type: "progress"; title: string; items: { label: string; value: number; suffix?: string; d?: number }[]; ring?: boolean }
   | { type: "quote"; text: string; author?: string; d?: number }
   | { type: "table"; title: string; cols: string[]; rows: { cells: string[]; tone?: "up" | "down" | "neutral"; d?: number }[] }
-  | { type: "countdown"; title: string; items: { text: string; d?: number }[] };
+  | { type: "countdown"; title: string; items: { text: string; d?: number }[] }
+  /** Cảnh motion (xem huong-dan/motion.md): cảnh có sẵn hoặc cảnh viết riêng motion/<scene>.tsx. */
+  | { type: "motion"; scene: string; layer?: "full" | "overlay"; pip?: boolean; params?: Record<string, unknown>; d?: number };
 
 export type Side = { label: string; value: string; icon?: IconName; tone?: "up" | "down" | "neutral"; d?: number };
 
@@ -108,4 +112,6 @@ export type Props = {
   second?: { start: number; end: number; text: string }[];
   /** Hiệu ứng động: kiểu chuyển cảnh, rung khung khi chữ đập, hạt bay nền, nhịp nhạc (giây). */
   fx?: { transition: Transition; shake: boolean; particles: boolean; musicBeats?: number[] };
+  /** Màu, font cho cảnh motion (mặc định: nền giấy sáng, màu nhấn theo thương hiệu). */
+  motionStyle?: MotionStyle | null;
 };

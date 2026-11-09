@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from . import media as M
+from . import motion as MOTION
 from . import subs
 from .env import ENGINE, ENGINE_SRC, VEError, find_browser, info, mem_available_gb, npx, read_json, remotion_browser_ready, render_plan, run, warn
 from .project import Project, fingerprint
@@ -37,11 +38,14 @@ def _browser_args() -> list:
     return [f"--browser-executable={b}"] if b else []
 
 
-def bundle() -> Path:
-    """Đóng gói bộ dựng một lần, dùng lại cho mọi ảnh xem trước và lần render (đỡ 10–20 giây mỗi lệnh)."""
+def bundle(prj: Project | None = None) -> Path:
+    """Đóng gói bộ dựng một lần, dùng lại cho mọi ảnh xem trước và lần render (đỡ 10–20 giây mỗi lệnh).
+    Dự án có cảnh motion viết riêng (motion/*.tsx) dùng gói riêng trong work/bundle."""
     engine_ready()
     out = ENGINE / "build"
     fp = fingerprint(ENGINE / "src", ENGINE / "remotion.config.ts")
+    if prj is not None and MOTION.scene_files(prj):
+        return MOTION.bundle(prj, fp)
     stamp = out / ".fp"
     if stamp.exists() and stamp.read_text() == fp:
         return out
@@ -70,7 +74,7 @@ def _props(prj: Project):
 
 
 def still(prj: Project, sec: float, out: Path, scale: float = 1.0, props: Path | None = None) -> Path:
-    b = bundle()
+    b = bundle(prj)
     d = read_json(_data(prj))
     frame = max(0, min(int(round(sec * d["format"]["fps"])), int(d["duration"] * d["format"]["fps"]) - 1))
     with (contextlib.nullcontext(props) if props else _props(prj)) as pp:
@@ -80,7 +84,7 @@ def still(prj: Project, sec: float, out: Path, scale: float = 1.0, props: Path |
 
 def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, props: Path | None = None) -> list[Path]:
     """Chụp nhiều khung trong một lần mở trình duyệt; lỗi thì chụp từng ảnh bằng `remotion still`."""
-    b = bundle()
+    b = bundle(prj)
     d = read_json(_data(prj))
     fps, last = d["format"]["fps"], int(d["duration"] * d["format"]["fps"]) - 1
     jobs = [{"frame": max(0, min(int(round(t * fps)), last)), "output": str(Path(o).resolve())} for t, o in shots]
@@ -103,7 +107,7 @@ LIMITER = "loudnorm=I=-13.5:TP=-2:LRA=11,alimiter=limit=0.79:attack=5:release=60
 
 
 def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None) -> None:
-    b = bundle()
+    b = bundle(prj)
     cfg = prj.cfg.get("render") or {}
     with _props(prj) as pp:
         args = [npx(), "remotion", "render", b, "Video", out, f"--props={pp}", f"--crf={crf or cfg.get('crf', 20)}", "--audio-bitrate=192k", f"--scale={scale}", *_browser_args()]

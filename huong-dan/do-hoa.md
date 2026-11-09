@@ -53,6 +53,7 @@ Khi khung hiện, người nói thu về ô góc trên phải (video người n�
 | `quote` | `text` (≤ 140), `author`, `say` | Trích dẫn, chữ gõ dần |
 | `table` | `title`, `cols` (2–4 cột), `rows: [{cells, tone, say}]` (≤ 5 dòng, số ô = số cột) | Bảng so sánh số liệu |
 | `countdown` | `title`, `items: [{text, say}]` (2–5 ý) | "Top 3…", đếm ngược số to rồi hiện ý |
+| `motion` | `scene` (cảnh có sẵn hoặc `motion/<tên>.tsx`), `layer` (`full`/`overlay`), `pip`, `params` (có `say`/`xxxSay`) | **Chuyển động thật**: cửa sổ app tự gõ, checklist tự tick, số đếm, đồng hồ, sóng âm cắt, sơ đồ tự vẽ nét, cảnh tự viết. Ưu tiên dùng thay thẻ chữ đứng yên. Xem `huong-dan/motion.md` |
 
 **Giá thật thay số ước lượng:** khung `chart` hoặc `price` thêm `"data": {"coin": "bitcoin", "ngay": 7}` (sau khi chạy `video-editor gia`). Build điền đường giá, nhãn ngày, giá cao/thấp, dòng nguồn. Nhãn `tags` của `chart` có thể ghi `"i": "cuoi"` (giá cuối), `"cao"`, `"thap"`, `"dau"`, và `"text": "auto"` để tự in giá. Build in giá thật ra màn hình: **đối chiếu với số người nói**, lệch nhiều thì báo người dùng.
 
