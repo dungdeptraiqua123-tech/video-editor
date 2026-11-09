@@ -82,8 +82,9 @@ def still(prj: Project, sec: float, out: Path, scale: float = 1.0, props: Path |
     return out
 
 
-def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, props: Path | None = None) -> list[Path]:
-    """Chụp nhiều khung trong một lần mở trình duyệt; lỗi thì chụp từng ảnh bằng `remotion still`."""
+def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, props: Path | None = None, probe: Path | None = None) -> list[Path]:
+    """Chụp nhiều khung trong một lần mở trình duyệt; lỗi thì chụp từng ảnh bằng `remotion still`.
+    probe: ghi số đo bố cục của từng ảnh vào file này (soát bố cục tự động, ve/layout.py)."""
     b = bundle(prj)
     d = read_json(_data(prj))
     fps, last = d["format"]["fps"], int(d["duration"] * d["format"]["fps"]) - 1
@@ -93,7 +94,15 @@ def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, pr
         write_json(jp, jobs)
         exe = "" if remotion_browser_ready() else (find_browser() or "")
         n = os.cpu_count() or 2
-        p = run(["node", ENGINE / "stills.mjs", b, pp, jp, scale, max(1, min(4, n - 1)), exe], cwd=ENGINE, quiet=True, check=False)
+        extra = []
+        if probe:
+            dp = read_json(pp)
+            dp["probe"] = True
+            pp = prj.work / "props-probe.json"
+            write_json(pp, dp, indent=None)
+            Path(probe).unlink(missing_ok=True)
+            extra = [probe]
+        p = run(["node", ENGINE / "stills.mjs", b, pp, jp, scale, max(1, min(4, n - 1)), exe, *extra], cwd=ENGINE, quiet=True, check=False)
         if p.returncode != 0 or not all(Path(j["output"]).exists() for j in jobs):
             warn("Chụp gộp không chạy được, chụp từng ảnh (chậm hơn).")
             for t, o in shots:

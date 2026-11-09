@@ -163,7 +163,9 @@ def preview(prj: Project, draft: bool = False, seed: int | None = None) -> list[
         soat.mkdir(parents=True, exist_ok=True)
         for j, mt in enumerate(motion_times(b), 1):
             mshots.append((mt, soat / f"{k:02d}-{b['g'].get('scene')}-{j}.jpg"))
-    stills(prj, shots + mshots, scale=0.5)
+    probe = prj.work / "probe.json"
+    stills(prj, shots + mshots, scale=0.5, probe=probe)
+    _layout_check(prj, d, shots, mshots, probe)
     if mshots:
         info(f"🎬 {len(mshots)} ảnh soát cảnh motion → {soat} (xem đủ từng ảnh: chữ tràn, đè mặt, phần tử chưa kịp hiện, khung trống, cảnh lỗi màu đỏ)")
     tiles = []
@@ -176,7 +178,7 @@ def preview(prj: Project, draft: bool = False, seed: int | None = None) -> list[
     sheet = _sheet(prj.out / "storyboard.html", prj.out / "storyboard.jpg", f"Storyboard duyệt: {prj.cfg.get('name') or prj.slug}", notes, tiles, W < H)
     prj.mark("preview", fp, times=times, seed=seed)
     info(f"✓ {len(times)} ảnh trong {time.time() - t0:.0f}s → {sheet}")
-    info("  Tự xem từng ảnh trước (chữ tràn, che mặt, sai màu, sai quy tắc riêng), rồi gửi người dùng duyệt.")
+    info("  Sửa hết lỗi trong out/soat-bo-cuc.md (nếu có) rồi preview lại; tự xem ảnh (sai màu, sai ý câu, quy tắc riêng) trước khi gửi người dùng duyệt.")
     info(f"  Người dùng đồng ý: `video-editor approve {prj.root}`. Muốn bộ ảnh khác: `preview --seed <số>`.")
     out = [sheet, *[sb / Path(s).name for s, _, _ in tiles]]
     if draft:
@@ -186,6 +188,29 @@ def preview(prj: Project, draft: bool = False, seed: int | None = None) -> list[
         out.append(p)
         info(f"✓ bản nháp → {p}")
     return out
+
+
+def _layout_check(prj: Project, d: dict, shots: list, mshots: list, probe: Path) -> list:
+    """Soát bố cục tự động từ số đo lúc chụp ảnh → out/soat-bo-cuc.md (Hermes đọc và sửa, không cần model ảnh)."""
+    from . import layout as LAYOUT
+
+    probes = LAYOUT.load_probes(probe)
+    if not probes:
+        warn("Không đo được bố cục lúc chụp ảnh (bộ dựng cũ hoặc chụp từng ảnh): tự xem ảnh trong out/storyboard/ và out/motion-soat/.")
+        return []
+    kinds = {str(Path(o).resolve()): (t, "storyboard") for t, o in shots}
+    kinds.update({str(Path(o).resolve()): (t, f"motion-{Path(o).stem.rsplit('-', 1)[-1]}") for t, o in mshots})
+    issues = LAYOUT.report(prj, d, probes, kinds)
+    errs = [x for x in issues if x["muc"] == "loi"]
+    if errs:
+        warn(f"🧭 soát bố cục: {len(errs)} lỗi phải sửa → {prj.out / 'soat-bo-cuc.md'}")
+        for x in errs[:12]:
+            warn(f"   {clock(x['t'])} · {x['where']}: {x['msg']}")
+        if len(errs) > 12:
+            warn(f"   … và {len(errs) - 12} lỗi nữa (xem file)")
+    else:
+        info(f"🧭 soát bố cục: không thấy lỗi ({len(probes)} ảnh đã đo)" + (f", {len(issues)} gợi ý trong {prj.out / 'soat-bo-cuc.md'}" if issues else ""))
+    return issues
 
 
 def approve(prj: Project, note: str = "") -> None:

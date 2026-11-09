@@ -8,7 +8,9 @@ import React from "react";
  * - layer: "full" (cảnh toàn màn hình) hoặc "overlay" (nổi trên hình người nói);
  * - safe: vùng nên đặt nội dung (tránh ô mặt người nói, phụ đề, nút của nền tảng).
  */
-export type Safe = { top: number; bottom: number; left: number; right: number; pip: { x: number; y: number; w: number; h: number } | null };
+export type Box = { x: number; y: number; w: number; h: number };
+/** Vùng an toàn của cảnh (toạ độ khung thiết kế). pip: ô mặt người nói (cảnh full). face: mặt người nói trên video (cảnh overlay), để khối chữ / cửa sổ tránh che. */
+export type Safe = { top: number; bottom: number; left: number; right: number; pip: Box | null; face?: Box | null };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SceneProps<P = any> = { p: P; dur: number; W: number; H: number; layer: "full" | "overlay"; safe: Safe };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -24,6 +24,10 @@
   {"sai": ["gít hắp", "git hap", "gít hớp", "github"], "dung": "GitHub"},
   {"sai": ["en vi đi a", "nờ vi đi a", "nvidea", "envidia"], "dung": "Nvidia"},
   {"sai": ["tét la", "tét-la", "tesla"], "dung": "Tesla"},
-  {"sai": ["ô pen ai", "open ây ai", "ô pen ây ai", "open ai"], "dung": "OpenAI"}
+  {"sai": ["ô pen ai", "open ây ai", "ô pen ây ai", "open ai"], "dung": "OpenAI"},
+  {"sai": ["coi", "côi", "coy"], "dung": "coin", "ngu_canh": ["staking", "stacking", "token", "metamask", "ví lạnh", "altcoin", "bitcoin", "crypto", "binance", "blockchain"]},
+  {"sai": ["stacking", "stack king", "stếch king", "sờ tếch king", "stake king"], "dung": "staking", "ngu_canh": ["staking", "stacking", "token", "metamask", "ví lạnh", "altcoin", "bitcoin", "crypto", "binance", "sàn", "blockchain"]},
+  {"sai": ["thủ động"], "dung": "thụ động", "ngu_canh": ["dòng tiền", "thu nhập", "tiền", "lãi", "sinh lời"]},
+  {"sai": ["metamark", "meta mask", "mê ta mát", "meta mát", "mê ta mask"], "dung": "Metamask"}
  ]
 }

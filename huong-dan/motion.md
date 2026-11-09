@@ -4,13 +4,14 @@ Mục tiêu: video có **chuyển động thật** minh hoạ đúng ý từng c
 
 ## Quy trình đạo diễn (sau bước chép lời)
 
-1. **Lập kịch bản hình:** `video-editor motion plan <dự án>` tạo `work/kich-ban-hinh.md` (mỗi câu một dòng, kèm gợi ý ý/cảnh từ từ khoá). Gợi ý chỉ là điểm xuất phát: đọc **ý cả câu** rồi điền cột Quyết định.
-2. **Chọn câu đáng làm motion** theo bảng "Ý → cách thể hiện" bên dưới. Câu chuyện phiếm, chào hỏi, cảm xúc thuần → để **mặt người nói** (có thể kèm cảnh nổi `overlay` nhỏ).
-3. **Tìm cảnh:** `video-editor motion find "<ý của câu>"` → cảnh có sẵn và cảnh trong thư viện (đã dùng ở video trước, điểm càng cao càng hợp gu người dùng). Hợp thì dùng; cảnh thư viện: `video-editor motion use <dự án> <tên>` (chép vào `motion/`).
+1. **Lập kịch bản hình:** `video-editor motion plan <dự án>` tạo `work/kich-ban-hinh.md` (mỗi câu một dòng, kèm gợi ý ý/cảnh từ từ khoá). Gợi ý chỉ là điểm xuất phát: đọc **ý cả câu** rồi điền cột Quyết định. Cuối file là **Tham chiếu nhanh**: ví dụ khung dán được + mặc định của mọi cảnh có sẵn, thư viện, chữ ký mọi viên gạch kit, khung mẫu cảnh mới (cũng in bằng `video-editor motion list --chi-tiet`). Đọc một lần là đủ; **không đọc mã nguồn engine**.
+2. **Viết "Mạch ý" trước** (mục 1 của kịch bản hình): câu hỏi / vấn đề → kết luận → lý do / các nhánh → ví dụ, và chọn **một hệ hình chính** cho cả video (ví dụ `so-sanh` sàn / ví → `re-nhanh` có staking thì sàn, không thì ví lạnh → `luu-y` mẹo). Các cảnh phải nối tiếp nhau kể đúng mạch đó, không mỗi câu một kiểu rời rạc.
+   **Chọn câu đáng làm motion** theo bảng "Ý → cách thể hiện" bên dưới, theo **ý** của câu chứ không theo từ khoá. Câu chuyện phiếm, chào hỏi, cảm xúc thuần → để **mặt người nói** (có thể kèm cảnh nổi `overlay` nhỏ).
+3. **Tìm cảnh:** gộp mọi ý vào một lần `video-editor motion find "<ý 1>" "<ý 2>" …` → cảnh có sẵn và cảnh trong thư viện (đã dùng ở video trước, điểm càng cao càng hợp gu người dùng). Hợp thì dùng; cảnh thư viện: `video-editor motion use <dự án> <tên>` (chép vào `motion/`).
 4. **Không có cảnh hợp → viết cảnh mới** `motion/<tên>.tsx` bằng motion kit (mục "Viết cảnh mới"). Đừng ép ý vào cảnh không đúng chỉ vì có sẵn.
 5. **Viết khung** vào `content.beats` (cú pháp bên dưới), neo mọi mốc bằng cụm lời (`say`, `xxxSay`).
-6. `video-editor build` → sửa hết lỗi (cảnh viết riêng được kiểm tra an toàn + kiểu, báo `motion/<file>:<dòng>`).
-7. `video-editor preview` → **tự soát** từng ảnh trong `out/motion-soat/` (3 ảnh mỗi cảnh) theo bảng soát; sửa rồi preview lại (tối đa 2 vòng; vẫn hỏng thì thay bằng cảnh có sẵn đơn giản hơn).
+6. `video-editor check` (vài giây, không cắt video) → sửa hết lỗi neo / cảnh; rồi `video-editor build` → sửa hết lỗi (cảnh viết riêng được kiểm tra an toàn + kiểu, báo `motion/<file>:<dòng>`).
+7. `video-editor preview` → đọc **`out/soat-bo-cuc.md`** (soát bố cục tự động, đo từ bộ dựng, không cần model ảnh) và sửa **hết lỗi**; rồi xem 3 ảnh mỗi cảnh trong `out/motion-soat/` theo bảng soát nếu xem được ảnh. Sửa rồi preview lại (tối đa 2 vòng; vẫn hỏng thì thay bằng cảnh có sẵn đơn giản hơn hoặc để mặt người nói).
 8. Người dùng duyệt → cảnh viết riêng **tự vào thư viện** (+1 điểm). Bị góp ý về một cảnh: sửa, rồi `video-editor motion rate <tên> -1 --ly-do "<góp ý>"` để lần sau tránh.
 
 ## Ý → cách thể hiện
@@ -30,8 +31,24 @@ Mục tiêu: video có **chuyển động thật** minh hoạ đúng ý từng c
 | Nhiều ví dụ / b-roll | `luoi-anh` | ảnh/clip trong media/ |
 | Mở chương, câu chốt | `tieu-de` | serif + dòng nghiêng màu nhấn |
 | Từ khoá cảm xúc (newbie, storytelling) | `chu-nghieng` (overlay) | nổi trên người nói, người nói vẫn toàn màn hình |
-| Nhắc sản phẩm/logo, "là em đây" | `nhan-dan` (overlay) | sticker/logo bật vào kèm chú thích |
+| Nhắc sản phẩm/logo, "là em đây" | `nhan-dan` (overlay) | sticker/logo bật vào kèm chú thích; `text: "si:bitcoin"` = icon thương hiệu |
+| Hai lựa chọn: A hay B, cách cũ / cách mới | `so-sanh` | hai cột có icon, `pick` sáng bên được chọn đúng lúc nói kết luận |
+| Quy tắc "nếu… thì… / còn không thì…" | `re-nhanh` | điều kiện → nhánh có / không, mỗi nhánh sáng lúc nói |
+| Mẹo, lưu ý, cảnh báo | `luu-y` | `kind`: meo, luu-y, canh-bao |
+| Người xem / người hỏi đặt câu hỏi (không có app) | `hoi-dap` | thay cho `chat` khi không có app thật |
 | Kéo thả, thao tác giao diện, so sánh trước/sau, hiệu ứng đặc biệt | **viết cảnh mới** | dùng `Window`, `Cursor`, `Card`, `Phase`… |
+
+## Không nên (lỗi đã gặp ở video thật)
+
+- `chat` khi câu KHÔNG nói về thao tác với app / AI / chatbot (người xem không hiểu cửa sổ chat ở đó) → `hoi-dap` hoặc `luu-y`.
+- `so-do` cho hai lựa chọn → `so-sanh`; câu "nếu… thì…" → `re-nhanh`.
+- `chu-nghieng` quá 1 lần trong video ngắn; chữ nổi đè lên đầu / trán người nói.
+- Cảnh nổi có cửa sổ / thẻ lớn (che mặt, đè phụ đề) → dùng `layer: "full"` (ô mặt người nói ở góc).
+- Chữ trên hình chép lỗi nghe nhầm của Whisper (coi → coin, stacking → staking, thủ động → thụ động). Chỉ `say` mới chép đúng chữ Whisper; chữ hiển thị phải đúng chính tả.
+- Mã icon `lu:` / `si:` ở chỗ không phải ô icon (label, text) → hiện ra thành chữ. Emoji làm icon → máy chủ có thể thiếu font emoji.
+- Cảnh mở ra trống (cửa sổ rỗng, chờ hơn 0,5 s mới có nội dung).
+
+Thẻ chủ đề tự ẩn khi có cảnh motion; tiêu đề cảnh (`Headline`) tự co cỡ chữ và chừa ô mặt người nói khi không truyền `w`.
 
 ## Luật nhịp
 
@@ -106,6 +123,8 @@ export default KeoThaFile;
 
 Hoạt hình tự viết thêm: dùng `useCurrentFrame`, `interpolate`, `spring` của `remotion`, CSS transform/opacity/filter, SVG (`pathLength` + `strokeDashoffset` để vẽ nét). Mọi chuyển động phải **tính từ thời gian** (không `setTimeout`, không `Math.random()` — dùng `rand(seed)`).
 
+**Để soát bố cục tự động đo được:** dùng viên gạch của kit (đã gắn sẵn nhãn đo). Khối chữ tự viết bằng thẻ `div` thì thêm `data-ve="text"`, khung / thẻ thêm `data-ve="box"`. Icon: `<Glyph name="lu:wallet" />` (không emoji). Khối lớn ở layer overlay đặt bằng `overlaySlot(safe, cao)` để tránh mặt người nói (`safe.face`).
+
 **Hiệu năng (VPS 4 vCPU):** tránh `filter: blur` lớn trên vùng rộng, bóng đổ chồng nhiều lớp, hàng trăm phần tử; 3D chỉ bằng CSS transform đơn giản. Mỗi cảnh ≤ 60 KB mã.
 
 ## Bảng tự soát (mỗi ảnh trong `out/motion-soat/`)
@@ -119,7 +138,7 @@ Hoạt hình tự viết thêm: dùng `useCurrentFrame`, `interpolate`, `spring`
 
 ## Thư viện cảnh
 
-- `video-editor motion list` — cảnh có sẵn + thư viện (điểm, số lần dùng).
+- `video-editor motion list` — cảnh có sẵn + thư viện (điểm, số lần dùng); `--chi-tiet` in Tham chiếu nhanh đầy đủ.
 - `video-editor motion find "<ý>"` — tìm cảnh hợp ý.
 - `video-editor motion use <dự án> <tên> [--as <tên mới>]` — chép cảnh thư viện vào dự án.
 - `video-editor motion save <dự án> <cảnh> --y "<ý dùng>" --tags a,b --mo-ta "<chuyển động>"` — lưu tay (duyệt thì tự lưu).

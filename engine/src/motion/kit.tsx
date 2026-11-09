@@ -8,6 +8,8 @@ import { Img, interpolate, OffthreadVideo, useCurrentFrame, useVideoConfig } fro
 import { asset } from "../assets";
 import { clamp, easeInOut, easeOut, prog, rand, useSec, useSpring } from "./anim";
 import { M, rgba, shadow } from "./theme";
+import { ICON_CODE, motionIcon, useSafe } from "./ctx";
+import { Safe } from "./registry";
 
 type Pos = { x?: number; y?: number; w?: number; h?: number; style?: React.CSSProperties };
 
@@ -58,6 +60,51 @@ export const Appear: React.FC<Pos & { at?: number; kind?: "pop" | "rise" | "fade
 
 /* ------------------------------------------------------------------ chữ */
 
+/** Xuống dòng cân bằng (không để một chữ lẻ cuối dòng). */
+const BALANCE = { textWrap: "balance" } as React.CSSProperties;
+
+/** Cỡ chữ vừa bề rộng w trong tối đa `lines` dòng (ước lượng theo số ký tự; chữ serif ≈ 0,5 cỡ chữ mỗi ký tự). */
+export const fitSize = (text: string, w: number, size: number, lines = 2, k = 0.5) => {
+  const n = [...(text || "")].length;
+  let s = size;
+  while (s > size * 0.6 && Math.ceil((n * s * k) / Math.max(1, w)) > lines) s *= 0.93;
+  return Math.round(s);
+};
+
+/** Chỗ đặt khối (cửa sổ, thẻ) ở lớp overlay: tránh mặt người nói (safe.face), ưu tiên dưới mặt rồi trên mặt. */
+export const overlaySlot = (safe: Safe, want: number, min = 300): { y: number; h: number } => {
+  const f = safe.face;
+  if (!f) return { y: safe.top + 40, h: want };
+  const below = safe.bottom - (f.y + f.h + 24);
+  const above = f.y - 24 - (safe.top + 20);
+  if (below >= Math.min(want, min) && below >= above) return { y: f.y + f.h + 24, h: Math.min(want, below) };
+  if (above >= Math.min(want, min)) {
+    const h = Math.min(want, above);
+    return { y: f.y - 24 - h, h };
+  }
+  return below >= above ? { y: f.y + f.h + 24, h: Math.max(min, below) } : { y: safe.top + 20, h: Math.max(min, above) };
+};
+
+/** Biểu tượng: "lu:<tên Lucide>", "si:<tên Simple Icons>", emoji / chữ rất ngắn (≤ 3 ký tự) hoặc ảnh trong media/. Không bao giờ in chữ mã icon. */
+export const Glyph: React.FC<{ name?: string; size?: number; color?: string }> = ({ name, size = 64, color }) => {
+  const n = (name || "").trim();
+  if (!n) return null;
+  if (/\.(png|jpe?g|svg|webp)$/i.test(n)) return <Img src={src(n)} style={{ width: size, height: size, objectFit: "contain" }} />;
+  if (ICON_CODE.test(n)) {
+    const ic = motionIcon(n);
+    if (!ic) return null;
+    if (ic.kind === "img" && ic.src) return <Img src={src(ic.src)} style={{ width: size, height: size, objectFit: "contain" }} />;
+    const col = color ?? (ic.kind === "brand" ? ic.color || M.accent : M.accent);
+    return ic.kind === "line" ? (
+      <svg viewBox={ic.viewBox || "0 0 24 24"} width={size} height={size} fill="none" stroke={col} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }} dangerouslySetInnerHTML={{ __html: ic.body || "" }} />
+    ) : (
+      <svg viewBox={ic.viewBox || "0 0 24 24"} width={size} height={size} fill={col} style={{ display: "block" }} dangerouslySetInnerHTML={{ __html: ic.body || "" }} />
+    );
+  }
+  if ([...n].length > 3) return null;
+  return <span style={{ fontSize: size * 0.9, lineHeight: 1, color: color ?? M.accent, fontWeight: 900 }}>{n}</span>;
+};
+
 /** Tiêu đề kiểu biên tập: nhãn nhỏ + dòng serif + dòng nghiêng màu nhấn (có gạch chân tự vẽ). */
 export const Headline: React.FC<Pos & { kicker?: string; title: string; accent?: string; at?: number; size?: number; align?: "left" | "center" }> = ({
   kicker,
@@ -69,21 +116,27 @@ export const Headline: React.FC<Pos & { kicker?: string; title: string; accent?:
   ...pos
 }) => {
   const t = useSec();
+  const safe = useSafe();
+  // không truyền w: rộng tới mép an toàn, chừa ô mặt người nói nếu ô nằm ngang hàng tiêu đề
+  const x0 = pos.x ?? safe?.left ?? 0;
+  const w =
+    pos.w ?? (safe ? Math.max(320, (safe.pip && (pos.y ?? safe.top) < safe.pip.y + safe.pip.h ? safe.pip.x - 30 : safe.right) - x0) : undefined);
+  const fs = w ? Math.min(fitSize(title, w, size, 2), accent ? fitSize(accent, w, size, 1, 0.47) : size) : size;
   const line = (i: number) => {
     const p = prog(t, at + i * 0.14, at + i * 0.14 + 0.55, easeOut);
     return { opacity: p, transform: `translateY(${(1 - p) * 34}px)`, filter: `blur(${(1 - p) * 10}px)` };
   };
   const ul = prog(t, at + 0.45, at + 1.0, easeOut);
   return (
-    <div style={{ ...place(pos), textAlign: align, fontFamily: M.serif, color: M.ink }}>
+    <div style={{ ...place({ ...pos, w }), textAlign: align, fontFamily: M.serif, color: M.ink }}>
       {kicker ? (
-        <div style={{ ...line(0), fontFamily: M.sans, fontWeight: 800, fontSize: size * 0.28, letterSpacing: 3, color: M.accent, textTransform: "uppercase", marginBottom: size * 0.16 }}>{kicker}</div>
+        <div style={{ ...line(0), fontFamily: M.sans, fontWeight: 800, fontSize: fs * 0.28, letterSpacing: 3, color: M.accent, textTransform: "uppercase", marginBottom: fs * 0.16 }}>{kicker}</div>
       ) : null}
-      <div style={{ ...line(kicker ? 1 : 0), fontSize: size, fontWeight: 600, lineHeight: 1.08, letterSpacing: -1 }}>{title}</div>
+      <div data-ve="text" data-ve-name="tieu-de" style={{ ...line(kicker ? 1 : 0), ...BALANCE, fontSize: fs, fontWeight: 600, lineHeight: 1.08, letterSpacing: -1 }}>{title}</div>
       {accent ? (
-        <div style={{ ...line(kicker ? 2 : 1), display: "inline-block", position: "relative", fontSize: size, fontStyle: "italic", fontWeight: 500, color: M.accent, lineHeight: 1.12 }}>
+        <div data-ve="text" data-ve-name="dong-nghieng" style={{ ...line(kicker ? 2 : 1), ...BALANCE, display: "inline-block", maxWidth: "100%", position: "relative", fontSize: fs, fontStyle: "italic", fontWeight: 500, color: M.accent, lineHeight: 1.12 }}>
           {accent}
-          <svg style={{ position: "absolute", left: 0, bottom: -size * 0.1, width: "100%", height: size * 0.18, overflow: "visible" }} viewBox="0 0 100 10" preserveAspectRatio="none">
+          <svg style={{ position: "absolute", left: 0, bottom: -fs * 0.1, width: "100%", height: fs * 0.18, overflow: "visible" }} viewBox="0 0 100 10" preserveAspectRatio="none">
             <path d="M1 6 C 30 2, 60 9, 99 4" fill="none" stroke={M.accent} strokeWidth={2.2} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - ul} vectorEffect="non-scaling-stroke" />
           </svg>
         </div>
@@ -119,8 +172,12 @@ export const WordReveal: React.FC<Pos & { text: string; at?: number; every?: num
 }) => {
   const t = useSec();
   return (
-    <div style={{ ...place(pos), fontFamily: serif ? M.serif : M.sans, fontSize: size, fontStyle: italic ? "italic" : "normal", color: color ?? M.ink, lineHeight: 1.15 }}>
-      {text.split(/\s+/).map((w, i) => {
+    <div data-ve="text" data-ve-name="chu" style={{ ...place(pos), ...BALANCE, fontFamily: serif ? M.serif : M.sans, fontSize: size, fontStyle: italic ? "italic" : "normal", color: color ?? M.ink, lineHeight: 1.15 }}>
+      {(() => {
+        // hai chữ cuối đi liền (không để một chữ lẻ ở dòng cuối)
+        const ws = text.split(/\s+/).filter(Boolean);
+        return ws.length >= 3 ? [...ws.slice(0, -2), ws.slice(-2).join(" ")] : ws;
+      })().map((w, i) => {
         const p = prog(t, at + i * every, at + i * every + 0.4, easeOut);
         return (
           <span key={i} style={{ display: "inline-block", marginRight: "0.26em", opacity: p, transform: `translateY(${(1 - p) * 18}px)`, filter: `blur(${(1 - p) * 8}px)` }}>
@@ -151,6 +208,8 @@ export const Card: React.FC<Pos & { at?: number; tilt?: number; pad?: number; da
   const s = useSpring(at, { damping: 14, stiffness: 160 });
   return (
     <div
+      data-ve="box"
+      data-ve-name="the"
       style={{
         ...place(pos),
         background: dark ? "#1b1d22" : M.paper,
@@ -182,6 +241,8 @@ export const Window: React.FC<Pos & { title?: string; at?: number; dark?: boolea
   const bar = dark ? "#23262d" : "#f1ede4";
   return (
     <div
+      data-ve="box"
+      data-ve-name="cua-so"
       style={{
         ...place(pos),
         borderRadius: 26,
@@ -196,7 +257,7 @@ export const Window: React.FC<Pos & { title?: string; at?: number; dark?: boolea
         boxSizing: "border-box",
       }}
     >
-      <div style={{ height: 64, background: bar, display: "flex", alignItems: "center", gap: 12, padding: "0 24px", flexShrink: 0 }}>
+      <div data-ve-bar="" style={{ height: 64, background: bar, display: "flex", alignItems: "center", gap: 12, padding: "0 24px", flexShrink: 0 }}>
         {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
           <div key={c} style={{ width: 18, height: 18, borderRadius: 9, background: c }} />
         ))}
@@ -215,6 +276,8 @@ export const ChatBubble: React.FC<{ text: string; side?: "me" | "ai"; at?: numbe
     <div style={{ display: "flex", justifyContent: me ? "flex-end" : "flex-start", margin: "14px 0", opacity: Math.min(1, s * 1.6), transform: `translateY(${(1 - s) * 24}px) scale(${0.85 + 0.15 * s})`, transformOrigin: me ? "100% 100%" : "0 100%" }}>
       {!me ? <div style={{ width: 22, height: 22, marginTop: 14, marginRight: 14, borderRadius: 11, background: M.accent, flexShrink: 0 }} /> : null}
       <div
+        data-ve="text"
+        data-ve-name="bong-bong"
         style={{
           maxWidth: "82%",
           fontSize: size,
@@ -313,7 +376,7 @@ export const Checklist: React.FC<Pos & { items: { text: string; at: number; done
               </svg>
             </div>
             {numbered ? <span style={{ fontFamily: M.serif, fontStyle: "italic", color: M.accent, fontSize: size * 0.9 }}>{String(i + 1).padStart(2, "0")}</span> : null}
-            <span style={{ fontSize: size, fontWeight: 600, color: M.ink }}>{it.text}</span>
+            <span data-ve="text" data-ve-name="y" style={{ fontSize: size, fontWeight: 600, color: M.ink }}>{it.text}</span>
           </div>
         );
       })}
@@ -424,9 +487,13 @@ export const Sticker: React.FC<Pos & { src?: string; text?: string; at?: number;
   const sp = useSpring(at, { damping: 9, stiffness: 200 });
   const wob = Math.sin((t - at) * 5) * 3 * Math.min(1, Math.max(0, t - at));
   return (
-    <div style={{ ...place(pos), transform: `scale(${sp}) rotate(${rot + wob}deg)`, opacity: sp > 0.01 ? 1 : 0 }}>
+    <div data-ve="box" data-ve-name="sticker" style={{ ...place(pos), transform: `scale(${sp}) rotate(${rot + wob}deg)`, opacity: sp > 0.01 ? 1 : 0 }}>
       {s ? (
         <Img src={src(s)} style={{ width: size, height: size, objectFit: "contain", filter: "drop-shadow(0 10px 18px rgba(0,0,0,.25))" }} />
+      ) : text && ICON_CODE.test(text.trim()) ? (
+        <div style={{ background: M.paper, borderRadius: size * 0.22, padding: size * 0.14, boxShadow: shadow(0.8), border: "5px solid #fff" }}>
+          <Glyph name={text} size={size * 0.62} />
+        </div>
       ) : (
         <div style={{ fontFamily: M.sans, fontWeight: 900, fontSize: size * 0.3, color: "#fff", background: M.accent, padding: "10px 26px", borderRadius: 18, boxShadow: shadow(0.8), border: "5px solid #fff" }}>{text}</div>
       )}
@@ -582,18 +649,15 @@ export const Node: React.FC<{ x: number; y: number; label: string; icon?: string
   const t = useSec();
   const s = useSpring(at, { damping: 12, stiffness: 190 });
   const c = done !== undefined ? prog(t, done, done + 0.3, easeOut) : 0;
-  const isImg = icon && /\.(png|jpe?g|svg|webp)$/i.test(icon);
   return (
     <div style={{ position: "absolute", left: x - w / 2, top: y - w * 0.45, width: w, transform: `scale(${s})`, opacity: s > 0.01 ? 1 : 0 }}>
-      <div style={{ background: M.paper, border: `2px solid ${M.line}`, borderRadius: 24, boxShadow: shadow(0.8), padding: "22px 14px 18px", textAlign: "center", fontFamily: M.sans, position: "relative" }}>
+      <div data-ve="box" data-ve-name="nut" style={{ background: M.paper, border: `2px solid ${M.line}`, borderRadius: 24, boxShadow: shadow(0.8), padding: "22px 14px 18px", textAlign: "center", fontFamily: M.sans, position: "relative" }}>
         {icon ? (
-          isImg ? (
-            <Img src={src(icon)} style={{ width: w * 0.32, height: w * 0.32, objectFit: "contain" }} />
-          ) : (
-            <div style={{ fontSize: w * 0.26, lineHeight: 1, color: color ?? M.accent, fontWeight: 900 }}>{icon}</div>
-          )
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Glyph name={icon} size={w * 0.3} color={color ?? M.accent} />
+          </div>
         ) : null}
-        <div style={{ fontSize: 26, fontWeight: 700, color: M.ink, marginTop: icon ? 10 : 0 }}>{label}</div>
+        <div data-ve="text" data-ve-name="nhan" style={{ fontSize: 26, fontWeight: 700, color: M.ink, marginTop: icon ? 10 : 0 }}>{label}</div>
         <div style={{ height: 5, width: "46%", margin: "10px auto 0", borderRadius: 3, background: color ?? M.accent, opacity: 0.85 }} />
         {done !== undefined ? (
           <div style={{ position: "absolute", top: -14, right: -14, width: 42, height: 42, borderRadius: 21, background: M.accent, transform: `scale(${c})`, display: "flex", alignItems: "center", justifyContent: "center", border: "4px solid #fff" }}>

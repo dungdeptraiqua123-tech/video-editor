@@ -146,6 +146,9 @@ def _motion(a) -> int:
         raise VEError(f"`motion {a.action}` thiếu tham số.", "Xem: video-editor motion -h")
     if a.action == "list":
         lib = MOTION.lib_items()
+        if getattr(a, "chi_tiet", False):
+            print("\n".join(MOTION.reference_md()))
+            return 0
         if a.json:
             print(_json.dumps({"builtin": [{"name": k, "y": v[0], "params": v[1]} for k, v in MOTION.BUILTIN_INFO.items()], "library": lib}, ensure_ascii=False))
             return 0
@@ -158,14 +161,19 @@ def _motion(a) -> int:
             info(f"  {m['name']:<22} điểm {m.get('score', 0):>4} · dùng {m.get('uses', 0)} lần{' · TẮT' if m.get('off') else ''} · {m.get('y', '')}")
         return 0
     if a.action == "find":
-        rows = MOTION.find(" ".join(args))
+        # Nhiều ý trong một lần gọi (mỗi đối số có dấu cách là một ý) → kết quả theo từng ý; các từ rời không ngoặc vẫn gộp thành một ý như cũ.
+        many = len(args) > 1 and any(" " in x for x in args)
+        groups = [(q, MOTION.find(q)) for q in (args if many else [" ".join(args)])]
         if a.json:
-            print(_json.dumps(rows, ensure_ascii=False))
+            print(_json.dumps({q: rows for q, rows in groups} if many else groups[0][1], ensure_ascii=False))
             return 0
-        if not rows:
-            info("Không có cảnh nào hợp ý này: viết cảnh mới motion/<tên>.tsx bằng kit (huong-dan/motion.md).")
-        for r in rows:
-            info(f"  {r['name']:<22} [{'có sẵn' if r['kind'] == 'co-san' else 'thư viện, điểm ' + str(r.get('score', 0))}] {r.get('y', '')}")
+        for q, rows in groups:
+            if many:
+                info(f"«{q}»:")
+            if not rows:
+                info("  Không có cảnh nào hợp ý này: viết cảnh mới motion/<tên>.tsx bằng kit (mục Tham chiếu nhanh trong work/kich-ban-hinh.md).")
+            for r in rows:
+                info(f"  {r['name']:<22} [{'có sẵn' if r['kind'] == 'co-san' else 'thư viện, điểm ' + str(r.get('score', 0))}] {r.get('y', '')}")
         return 0
     if a.action == "plan":
         out = MOTION.plan_sheet(Project(Path(args[0])))
@@ -359,6 +367,7 @@ def main(argv=None) -> int:
     mo_.add_argument("--mo-ta", default="", help="mô tả ngắn chuyển động (save)")
     mo_.add_argument("--ly-do", default="", help="lý do cộng/trừ điểm (rate)")
     mo_.add_argument("--as", dest="as_name", default=None, help="đặt tên khác khi chép vào dự án (use)")
+    mo_.add_argument("--chi-tiet", action="store_true", help="list: in tham chiếu đầy đủ (ví dụ mọi cảnh, chữ ký motion kit, khung mẫu cảnh mới)")
     mo_.add_argument("--json", action="store_true")
 
     a = ap.parse_args(argv)

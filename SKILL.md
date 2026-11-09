@@ -81,10 +81,12 @@ video-editor init du-an/<tên> --script kichban.txt [--type explainer|product] [
 - **Âm thanh:** `audio.clean` (`nhe` mặc định, `manh`, `false`) làm sạch giọng bằng bộ lọc ffmpeg; `music` có `duck` (tự hạ khi nói), `fade`, `start`, `sync` (dò nhịp nhạc để hạt nền và đổi khung nảy theo phách).
 
 **5c. Đạo diễn motion graphic** (chi tiết ở `huong-dan/motion.md`). Video có lời thoại thì **tự làm bước này**, không chờ người dùng mô tả:
-- `video-editor motion plan <dự án>` → `work/kich-ban-hinh.md`: từng câu kèm gợi ý ý/cảnh. Đọc ý cả câu, quyết định câu nào làm cảnh motion (cửa sổ app tự gõ, checklist tự tick, số đếm, đồng hồ, sóng âm cắt, sơ đồ tự vẽ nét…), câu nào để mặt người nói.
-- Tìm cảnh: `video-editor motion find "<ý>"` (cảnh có sẵn + thư viện cảnh đã dùng, xếp theo điểm). Không có cảnh hợp thì **viết cảnh mới** `motion/<tên>.tsx` bằng motion kit.
+- `video-editor motion plan <dự án>` → `work/kich-ban-hinh.md`: từng câu kèm gợi ý ý/cảnh, cuối file là **Tham chiếu nhanh** (ví dụ khung dán được của mọi cảnh có sẵn, mặc định, thư viện, chữ ký mọi viên gạch motion kit, khung mẫu cảnh mới). Đọc file này **một lần**; **không đọc mã nguồn engine** (`scenes.tsx`, `kit.tsx`…).
+- **Điền "Mạch ý" trước** (câu hỏi → kết luận → lý do / nhánh → ví dụ) và chọn **một hệ hình chính** cho cả video, rồi mới chọn cảnh từng câu theo đúng **ý**, không theo từ khoá. Video lời khuyên / giải thích: `so-sanh` (A hay B), `re-nhanh` (nếu… thì… / còn không thì…), `luu-y` (mẹo, cảnh báo), `hoi-dap` (câu hỏi người xem). `chat` chỉ khi thật sự nói về thao tác với app / AI. Câu nào không đáng minh hoạ thì để mặt người nói.
+- Tìm cảnh: gộp mọi ý vào một lần `video-editor motion find "<ý 1>" "<ý 2>" …` (cảnh có sẵn + thư viện cảnh đã dùng, xếp theo điểm). Không có cảnh hợp thì **viết cảnh mới** `motion/<tên>.tsx` bằng motion kit.
+- Viết content xong chạy `video-editor check <dự án>` (vài giây, không cắt video) tới khi hết lỗi neo / cảnh motion, rồi mới `build`.
 - Khung: `{"type": "motion", "scene": "<tên>", "layer": "full"|"overlay", "params": {…, "say": "cụm lời"}}` trong `content.beats`. Mật độ theo `style.graphics`, mặt người nói ≥ 50% thời lượng.
-- Sau `preview`, xem đủ 3 ảnh mỗi cảnh trong `out/motion-soat/` và sửa trước khi gửi duyệt. Cảnh viết riêng tự vào thư viện khi người dùng duyệt; bị góp ý thì `video-editor motion rate <tên> -1 --ly-do "…"`.
+- Sau `preview`, đọc **`out/soat-bo-cuc.md`** (soát bố cục tự động từ số đo, không cần model ảnh: chữ bị cắt / tràn, hai lớp đè nhau, chữ bị ô mặt che, đồ hoạ che mặt người nói / đè phụ đề, mã icon hiện thành chữ, cảnh trống, chữ lẻ dòng) và **sửa hết lỗi** (tối đa 2 vòng preview), rồi xem 3 ảnh mỗi cảnh trong `out/motion-soat/` (đúng ý câu, màu) nếu xem được ảnh. Cảnh viết riêng tự vào thư viện khi người dùng duyệt; bị góp ý thì `video-editor motion rate <tên> -1 --ly-do "…"`.
 
 **6. Dựng và kiểm tra.**
 
@@ -111,6 +113,7 @@ video-editor render <dự án>
 ```
 
 - **preview** tạo `out/storyboard.jpg`: ảnh chụp ở các thời điểm ngẫu nhiên rải đều (khoảng một ảnh mỗi 8 giây, 6–24 ảnh, khung đồ hoạ nào cũng có ít nhất một ảnh). Mỗi ảnh có tiêu đề: số thứ tự, thời điểm, cảnh đang hiện, lời đang nói. Video 3 phút mất khoảng 40 giây.
+- **Soát bố cục tự động:** preview đo vị trí mọi phần tử trên từng ảnh và ghi `out/soat-bo-cuc.md` (cũng in ra ngay). Còn lỗi thì sửa, build, preview lại; công cụ xem ảnh có lỗi hay hết credit thì vẫn dựa vào file này.
 - **Tự kiểm tra trước khi gửi:** mở storyboard và từng ảnh lớn trong `out/storyboard/`. Soát chữ tràn, đồ hoạ che mặt, sai màu nhận diện, phụ đề che nội dung, sai quy tắc riêng, sai góp ý trong `GHI-NHO.md`. Có lỗi thì sửa, build và preview lại. Chỉ gửi người dùng khi chính bạn thấy ổn.
 - Gửi storyboard cho người dùng duyệt. **Chỉ chạy `approve` khi người dùng đồng ý.** `render` từ chối chạy khi chưa duyệt, hoặc khi nội dung đổi sau lần duyệt.
 - Người dùng góp ý thì sửa, build, preview lại và gửi lại. Góp ý nào có ích cho các video sau thì ghi nhớ (xem bước 8).

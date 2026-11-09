@@ -22,6 +22,8 @@ import { Icon } from "./Icons";
 import { faceAt, fitVideo, Layout, layoutFor } from "./layout";
 import { alpha, applyBrand, C, glow } from "./theme";
 import { MotionBeat } from "./motion/Stage";
+import { setMotionIcons } from "./motion/ctx";
+import { Probe } from "./Probe";
 import { applyMotionStyle, M } from "./motion/theme";
 import { Brand, Props, Topic } from "./types";
 
@@ -127,7 +129,7 @@ const speechSpans = (words: Props["words"]) => {
 };
 
 const BrandTag: React.FC<{ L: Layout; badge: string; title: string; o: number }> = ({ L, badge, title, o }) => (
-  <div style={{ position: "absolute", left: L.head.x, top: L.head.y, width: L.head.w, fontFamily: C.font, opacity: o }}>
+  <div data-ve="text" data-ve-name="the-tieu-de" style={{ position: "absolute", left: L.head.x, top: L.head.y, width: L.head.w, fontFamily: C.font, opacity: o }}>
     <div style={{ color: C.sky, fontSize: 28 * L.u, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase" }}>{badge}</div>
     <div style={{ color: C.white, fontSize: 62 * L.u, fontWeight: 900, lineHeight: 1.12, marginTop: 10 }}>{title}</div>
     <div style={{ width: 120, height: 7, borderRadius: 4, background: C.orange, marginTop: 18, boxShadow: glow(C.orange, 12) }} />
@@ -142,6 +144,8 @@ const TopicCard: React.FC<{ L: Layout; topic: Topic; o: number }> = ({ L, topic,
   const shown = topic.items.filter((it) => t >= it.at);
   return (
     <div
+      data-ve="topic"
+      data-ve-name="the-chu-de"
       style={{
         position: "absolute",
         left: L.topic.x,
@@ -191,7 +195,10 @@ const Hook: React.FC<{ L: Layout; hook: Props["hook"]; brand: Brand; sec: number
           </div>
         ) : null}
         <div
+          data-ve="hook"
+          data-ve-name="mo-dau"
           style={{
+            ...({ textWrap: "balance" } as React.CSSProperties),
             background: `linear-gradient(135deg, ${C.orange}, ${alpha(C.orange, 0.75)})`,
             color: C.white,
             fontSize: 78 * L.u,
@@ -225,7 +232,7 @@ const Outro: React.FC<{ L: Layout; cta: string; buttons: string[] }> = ({ L, cta
   return (
     <AbsoluteFill style={{ fontFamily: C.font }}>
       <div style={{ position: "absolute", top: L.outroTop, left: 70, right: 70, display: "flex", flexDirection: "column", alignItems: "center", gap: 26 * L.u, transform: `translateY(${(1 - a) * -80}px)`, opacity: a }}>
-        <div style={{ background: alpha(C.panel, 0.92), border: `2px solid ${C.orange}`, boxShadow: glow(C.orange, 18), borderRadius: 30, padding: "26px 36px", color: C.white, fontSize: 54 * L.u, fontWeight: 800, textAlign: "center", lineHeight: 1.2, maxWidth: 1300 }}>
+        <div data-ve="cta" data-ve-name="keu-goi" style={{ ...({ textWrap: "balance" } as React.CSSProperties), background: alpha(C.panel, 0.92), border: `2px solid ${C.orange}`, boxShadow: glow(C.orange, 18), borderRadius: 30, padding: "26px 36px", color: C.white, fontSize: 54 * L.u, fontWeight: 800, textAlign: "center", lineHeight: 1.2, maxWidth: 1300 }}>
           {cta}
         </div>
         <div style={{ display: "flex", gap: 22 }}>
@@ -265,6 +272,7 @@ export const Video: React.FC<Props> = (props) => {
   const { brand, media, captions, beats, topics, zooms, words, hook } = props;
   applyBrand(brand);
   applyMotionStyle(brand, props.motionStyle);
+  setMotionIcons(props.icons);
   setMediaBase(props.mediaBase);
   useBrandFont(brand);
   const frame = useCurrentFrame();
@@ -299,6 +307,11 @@ export const Video: React.FC<Props> = (props) => {
   const s = lerp(zoom, pipScale, p);
   const tx = lerp(fx - fx * zoom, L.pip.w / 2 - fx * pipScale, p);
   const ty = lerp(fy - fy * zoom, L.pip.h / 2 - fy * pipScale, p);
+  // vùng mặt người nói trên video (toạ độ khung ra): dò sẵn ở build (media.face.box), chưa có thì dải giữa khung
+  const fb = media.face?.box;
+  const faceBox = faceless || !fit ? null
+    : fb ? { x: fit.ox + fb[0] * fit.vw, y: fit.oy + fb[1] * fit.vh, w: fb[2] * fit.vw, h: fb[3] * fit.vh }
+    : { x: L.w * 0.18, y: L.h * 0.14, w: L.w * 0.64, h: L.h * 0.41 };
 
   const beat = beats.find((b) => t >= b.start - 0.3 && t < b.end + 0.3);
   // cảnh motion toàn màn hình có pip: false thì ẩn hẳn ô mặt người nói (vẫn giữ tiếng)
@@ -307,6 +320,11 @@ export const Video: React.FC<Props> = (props) => {
   // phụ đề chữ mực khi cảnh motion nền sáng đang chiếm toàn màn hình
   const paperCaps = M.look === "sang" && beats.some((b) => b.g.type === "motion" && (b.g.layer ?? "full") === "full" && t >= b.start + 0.15 && t < b.end - 0.15);
   const topic = topics.find((x) => t >= x.start && t < x.end);
+  // thẻ chủ đề tự ẩn khi có cảnh motion (cả nổi lẫn toàn màn hình), hiện lại khi cảnh xong: không bao giờ đè nhau
+  const motionK = beats.reduce(
+    (m, b) => (b.g.type === "motion" ? Math.max(m, interpolate(t, [b.start - 0.35, b.start, b.end, b.end + 0.35], [0, 1, 1, 0], clamp)) : m),
+    0,
+  );
   const outroFrom = durationInFrames - Math.round(props.outroSec * fps);
   // phần kết: phụ đề dời xuống dưới để không đè khung kêu gọi
   const endP = interpolate(frame, [outroFrom - 10, outroFrom], [0, 1], { ...clamp, easing: ease });
@@ -314,7 +332,7 @@ export const Video: React.FC<Props> = (props) => {
   const capY = captions.position != null ? captions.position * L.h : lerp(capBase, Math.max(capBase, L.capGfx), endP);
 
   return (
-    <AbsoluteFill style={{ background: C.night, transform: bump !== 1 ? `scale(${bump})` : undefined }}>
+    <AbsoluteFill data-ve-root="" style={{ background: C.night, transform: bump !== 1 ? `scale(${bump})` : undefined }}>
       {faceless && media.background ? <BRoll src={media.background.src} duration={media.background.duration} /> : <Backdrop o={bg} kind={brand.backdrop} />}
       {efx.particles ? <Particles o={bg} beats={efx.musicBeats} /> : null}
       {faceless && media.main ? <Audio src={asset(media.main)} /> : null}
@@ -349,6 +367,8 @@ export const Video: React.FC<Props> = (props) => {
 
       {fit ? (
         <div
+          data-ve={p > 0.5 ? "pip" : undefined}
+          data-ve-name="o-mat"
           style={{
             position: "absolute",
             opacity: hidePip ? 0 : 1,
@@ -380,7 +400,7 @@ export const Video: React.FC<Props> = (props) => {
         return (
           <Sequence key={i} from={from} durationInFrames={dur} layout="none">
             {b.g.type === "motion" ? (
-              b.g.layer === "overlay" ? <MotionBeat g={b.g} durationFrames={dur} fps={fps} L={L} /> : null
+              b.g.layer === "overlay" ? <MotionBeat g={b.g} durationFrames={dur} fps={fps} L={L} face={faceBox} /> : null
             ) : b.g.type === "media" && b.g.full ? (
               <FullMedia src={b.g.src} dur={dur} credit={b.g.credit} fit={b.g.fit} />
             ) : (
@@ -423,7 +443,7 @@ export const Video: React.FC<Props> = (props) => {
           )
         : null}
 
-      {topic && t >= props.hookSec && frame < outroFrom ? <TopicCard L={L} topic={topic} o={Math.max(0, 1 - p * 2)} /> : null}
+      {topic && t >= props.hookSec && frame < outroFrom && motionK < 0.99 ? <TopicCard L={L} topic={topic} o={Math.max(0, 1 - p * 2) * (1 - motionK)} /> : null}
 
       <Sequence durationInFrames={Math.round(props.hookSec * fps)}>
         <Hook L={L} hook={hook} brand={brand} sec={props.hookSec} />
@@ -468,6 +488,8 @@ export const Video: React.FC<Props> = (props) => {
       ) : null}
 
       <TransitionFx kind={efx.transition} at={trAt} />
+
+      {props.probe ? <Probe key={frame} W={L.w} H={L.h} face={faceBox} /> : null}
 
       {/* thanh tiến độ */}
       <div style={{ position: "absolute", top: 0, left: 0, height: 8, width: (L.w * frame) / durationInFrames, background: C.sky, boxShadow: glow(C.orange, 10) }} />

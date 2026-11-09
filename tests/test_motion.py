@@ -167,3 +167,72 @@ class Library(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QuickReference(unittest.TestCase):
+    """Tham chiếu nhanh (cuối kich-ban-hinh.md, `motion list --chi-tiet`): đủ để Hermes viết khung và cảnh mới mà không đọc mã nguồn engine."""
+
+    def test_kit_ref_covers_every_brick(self):
+        src = (ROOT / "engine" / "src" / "motion" / "kit.tsx").read_text(encoding="utf-8")
+        names = re.findall(r"^export const (\w+): React\.FC", src, re.M)
+        ref = "\n".join(MOTION.kit_ref())
+        helpers = "\n".join(MOTION.ANIM_REF)
+        for n in re.findall(r"^export const (\w+) = ", src, re.M):  # hàm (không phải viên gạch) ghi ở mục Hàm
+            self.assertIn(f"`{n}(", helpers, n)
+        self.assertGreaterEqual(len(names), 20)
+        for n in names:
+            self.assertIn(f"`{n}`", ref, n)
+        self.assertIn("kicker?: string; title: string", ref)  # chữ ký props thật, không chỉ tên
+
+    def test_examples_match_scenes(self):
+        self.assertEqual(set(MOTION.EXAMPLES), MOTION.BUILTIN)
+        self.assertEqual(set(MOTION.DEFAULTS), MOTION.BUILTIN)
+        src = (ROOT / "engine" / "src" / "motion" / "scenes.tsx").read_text(encoding="utf-8")
+        for name, ex in MOTION.EXAMPLES.items():
+            for k in ex["params"]:
+                key = "d" if k == "say" else (k[:-3] + "D" if k.endswith("Say") else k)
+                self.assertIn(f"p.{key}", src, f"{name}: khoá {k} không có trong cảnh")
+
+    def test_examples_resolve(self):
+        # Mỗi ví dụ là một khung hợp lệ (cảnh có sẵn, layer đúng) khi thay cụm lời bằng lời có thật.
+        w = words(TEXT)
+        base = {"hook": {"title": "Bitcoin"}, "hookSec": 1.0, "outroSec": 2.0, "cta": "Theo dõi"}
+
+        def anchor(o):
+            if isinstance(o, list):
+                return [anchor(x) for x in o]
+            if isinstance(o, dict):
+                return {k: ("Bitcoin" if (k == "say" or k.endswith("Say")) else anchor(v)) for k, v in o.items()}
+            return o
+        for name, ex in MOTION.EXAMPLES.items():
+            g = {"type": "motion", "scene": name, "layer": ex["layer"], "params": anchor(ex["params"])}
+            _, rep = resolve_content(dict(base, beats=[{"start": "Bitcoin tăng", "end": "85 ngàn đô", "head": "", "g": g}]),
+                                     w, w[-1]["end"] + 4, media_ok=lambda p: True)
+            self.assertEqual([e for e in rep.errors if "motion" in e or "layer" in e or "cảnh" in e], [], name)
+
+    def test_plan_sheet_and_cli_reference(self):
+        import contextlib
+        import io
+
+        from ve import cli
+
+        with tempfile.TemporaryDirectory() as t, mock.patch("ve.env.HOME", Path(t) / "home"):
+            prj = prj_at(Path(t) / "du-an")
+            prj.work.mkdir(parents=True)
+            (prj.work / "loi-thoai.txt").write_text("[   0.50 –    3.00] Bước đầu tiên là cài Claude Code\n", encoding="utf-8")
+            txt = MOTION.plan_sheet(prj).read_text(encoding="utf-8")
+            self.assertIn("## Tham chiếu nhanh", txt)
+            self.assertIn('"scene": "checklist"', txt)
+            self.assertIn("`Cursor` { path: [number, number, number][]", txt)
+            self.assertIn("export default KeoThaFile;", txt)
+            self.assertIn("Cảnh trong thư viện", txt)
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                self.assertEqual(cli.main(["motion", "list", "--chi-tiet"]), 0)
+            self.assertIn("## Tham chiếu nhanh", buf.getvalue())
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                self.assertEqual(cli.main(["motion", "find", "các bước cài đặt", "con số tăng", "--json"]), 0)
+            found = __import__("json").loads(buf.getvalue())
+            self.assertEqual(list(found), ["các bước cài đặt", "con số tăng"])
+            self.assertIn("dem-so", [r["name"] for r in found["con số tăng"]])

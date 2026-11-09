@@ -1,10 +1,12 @@
 // Chụp nhiều khung hình trong một lần mở trình duyệt (nhanh hơn gọi `remotion still` từng ảnh).
-// node stills.mjs <bundle> <props.json> <jobs.json> <scale> <số thẻ song song> [trình duyệt]
+// node stills.mjs <bundle> <props.json> <jobs.json> <scale> <số thẻ song song> [trình duyệt] [probe.json]
+// probe.json: khi props có probe = true, mỗi ảnh ghi số đo bố cục (console "VE_PROBE {...}") vào đây cho ve/layout.py.
 // jobs.json: [{"frame": 120, "output": "/đường/dẫn/01.jpg"}, ...]
 import fs from "node:fs";
 import { openBrowser, renderStill, selectComposition } from "@remotion/renderer";
 
-const [serveUrl, propsPath, jobsPath, scale, concurrency, browserExecutable] = process.argv.slice(2);
+const [serveUrl, propsPath, jobsPath, scale, concurrency, browserExecutable, probePath] = process.argv.slice(2);
+const probes = [];
 const inputProps = JSON.parse(fs.readFileSync(propsPath, "utf-8"));
 const jobs = JSON.parse(fs.readFileSync(jobsPath, "utf-8"));
 const exe = browserExecutable || null;
@@ -18,6 +20,12 @@ try {
       await renderStill({
         composition, serveUrl, inputProps, frame: j.frame, output: j.output, scale: Number(scale) || 1,
         imageFormat: "jpeg", jpegQuality: 88, puppeteerInstance: browser, browserExecutable: exe, logLevel: "error", overwrite: true,
+        onBrowserLog: probePath
+          ? (log) => {
+              if (log.text.startsWith("VE_PROBE ")) probes.push({ output: j.output, ...JSON.parse(log.text.slice(9)) });
+              else if (log.text.startsWith("VE_PROBE_ERR")) probes.push({ output: j.output, error: log.text });
+            }
+          : undefined,
       });
       console.log(`ok ${j.output}`);
     }
@@ -25,4 +33,5 @@ try {
   await Promise.all(Array.from({ length: Math.max(1, Number(concurrency) || 1) }, worker));
 } finally {
   await browser.close({ silent: true });
+  if (probePath) fs.writeFileSync(probePath, JSON.stringify(probes));
 }

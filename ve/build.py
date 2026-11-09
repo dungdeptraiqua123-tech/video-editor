@@ -9,7 +9,7 @@ from pathlib import Path
 from . import media as M
 from .content import resolve_content
 from . import motion as MOTION
-from .env import ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
+from .env import ENGINE, ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
 from . import bang
 from . import dich as DICH
 from . import gia as GIA
@@ -199,7 +199,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     if MOTION.scene_files(prj):
         for e_ in MOTION.check_scenes(prj):
             rep.err("motion", e_)
-        if not rep.errors and not check_only:
+        if not rep.errors:  # cả `check` (không cắt video) cũng kiểm tra kiểu cảnh viết riêng
             from .render import engine_ready
             engine_ready()
             for e_ in MOTION.typecheck(prj):
@@ -226,6 +226,20 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     if cap.get("icons", True):
         for i, iid in inline.items():
             words_out[i]["ic"] = iid
+    # mã icon lu:/si: trong cảnh motion → hình icon cho bộ dựng (Glyph); mã không có thật thì báo để sửa
+    codes = sorted(MOTION.icon_codes(data["beats"]) - set(icon_table))
+    if codes and (ENGINE / "node_modules").exists():
+        bad = []
+        for c in codes:
+            d_ = ICONS.svg_data(c, {})
+            if d_:
+                icon_table[c] = d_
+            else:
+                bad.append(c)
+        if bad:
+            rep.err("icon", "mã icon không có: " + ", ".join(bad) + ". lu:<tên Lucide> (lucide.dev/icons, ví dụ lu:wallet, lu:building-2), si:<tên Simple Icons> (ví dụ si:bitcoin)")
+    for lv, where, msg in MOTION.lint(data["beats"], words_out, duration):
+        (rep.err if lv == "err" else rep.warn)(where, msg)
     if pops or inline:
         info(f"✨ icon theo lời: {len(pops)} lần bật lên, {len(inline) if cap.get('icons', True) else 0} icon cạnh phụ đề" + (" (" + ", ".join(dict.fromkeys(p["word"] for p in pops[:8])) + ")" if pops else ""))
 
@@ -233,6 +247,10 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
     if has_video:
         face = {k: v for k, v in (cfg.get("face") or {"x": 0.5, "y": 0.4}).items() if k != "track"}
         m.update(srcW=pinfo["width"], srcH=pinfo["height"], face=face)
+        if not check_only and not faceless and "box" not in face:
+            fb = FACE.box(prj, prj.media / main, force)  # vùng mặt: cảnh nổi tránh che mặt, bộ soát bố cục đối chiếu
+            if fb:
+                face["box"] = fb
         if not check_only and FACE.wanted(cfg, pinfo["width"], pinfo["height"], W, H):
             ft = FACE.track(prj, prj.media / main, tl.segments, force)
             if ft and ft["coverage"] >= FACE.MIN_COVERAGE:

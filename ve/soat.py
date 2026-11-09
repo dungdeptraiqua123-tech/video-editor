@@ -103,10 +103,34 @@ def as_fix(sugs: list[dict]) -> list[list[str]]:
     return [[s["sai"], s["dung"]] for s in sugs]
 
 
+# khoá neo thời điểm: phải chép ĐÚNG chữ Whisper nên không soát chính tả
+_ANCHOR = re.compile(r"^(say|start|end|anchor)$|Say$")
+
+
+def display_texts(content) -> list[str]:
+    """Chữ hiện trên hình trong content (bỏ các khoá neo say / xxxSay / start / end và mã icon)."""
+    out = []
+
+    def walk(o, key=""):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if not _ANCHOR.search(str(k)):
+                    walk(v, k)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x, key)
+        elif isinstance(o, str) and o.strip() and not re.match(r"^(lu|si|file):", o.strip()):
+            out.append(o)
+
+    walk(content or {})
+    return out
+
+
 def check_content(content: dict, sugs: list[dict]) -> list[str]:
-    """Chữ nghe nhầm bị chép vào đồ hoạ (beats, topics, hook, punches)."""
-    blob = json.dumps(content or {}, ensure_ascii=False).lower()
-    return [f"đồ hoạ có chữ \"{s['sai']}\", có thể đúng là \"{s['dung']}\"" for s in sugs if s["sai"].lower() in blob]
+    """Chữ nghe nhầm bị chép vào chữ hiện trên hình (beats, topics, hook, punches). Neo `say` được phép giữ chữ Whisper."""
+    blob = " " + " ".join(norm(t) for t in display_texts(content)) + " "
+    return [f"chữ trên hình có \"{s['sai']}\", đúng là \"{s['dung']}\" (sửa chữ hiển thị; `say` vẫn giữ đúng chữ Whisper)"
+            for s in sugs if f" {norm(s['sai'])} " in blob]
 
 
 def report_lines(sugs: list[dict]) -> list[str]:

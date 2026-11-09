@@ -89,7 +89,7 @@ export const Captions: React.FC<{
   const isBox = variant === "box";
   if (paper) {
     return (
-      <div style={{ position: "absolute", left: side, right: side, top: y, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: C.font, transform: `translateY(calc(-50% + ${(1 - enter) * 14}px))`, opacity: Math.min(1, enter * 1.4) }}>
+      <div data-ve="captions" data-ve-tight="" style={{ position: "absolute", left: side, right: side, top: y, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: C.font, transform: `translateY(calc(-50% + ${(1 - enter) * 14}px))`, opacity: Math.min(1, enter * 1.4) }}>
         {balance(page.words, cfg.maxChars >= 40 ? cfg.maxChars : 18).map((row, r) => (
           <div key={r} style={{ display: "flex", justifyContent: "center", columnGap: 18 * z }}>
             {row.map((i) => {
@@ -109,6 +109,8 @@ export const Captions: React.FC<{
   }
   return (
     <div
+      data-ve="captions"
+      data-ve-tight=""
       style={{
         position: "absolute",
         left: side,

@@ -86,7 +86,8 @@ export type Props = {
     hasVideo: boolean;
     srcW?: number;
     srcH?: number;
-    face?: { x: number; y: number; pipScale?: number; fit?: "auto" | "cover" | "contain" };
+    /** box: khung mặt người nói [x, y, w, h] tỉ lệ 0–1 của khung gốc (build dò sẵn), để cảnh nổi và bộ soát bố cục tránh che mặt. */
+    face?: { x: number; y: number; pipScale?: number; fit?: "auto" | "cover" | "contain"; box?: number[] };
     /** Đường đi của mặt người nói theo thời gian bản cắt: [giây, x, y] tỉ lệ 0–1 của khung gốc (bám mặt khi đổi khổ). */
     faceTrack?: number[][];
     background?: { src: string; duration: number } | null;
@@ -114,4 +115,6 @@ export type Props = {
   fx?: { transition: Transition; shake: boolean; particles: boolean; musicBeats?: number[] };
   /** Màu, font cho cảnh motion (mặc định: nền giấy sáng, màu nhấn theo thương hiệu). */
   motionStyle?: MotionStyle | null;
+  /** Chụp ảnh soát: đo bố cục từng khung (Probe), không đổi hình. */
+  probe?: boolean;
 };

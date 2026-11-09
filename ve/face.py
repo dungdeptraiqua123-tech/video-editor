@@ -155,3 +155,36 @@ def track(prj: Project, video: Path, segments: list, force: bool = False) -> dic
     raw.unlink(missing_ok=True)
     prj.mark("face", fp, coverage=res["coverage"])
     return res
+
+
+BOX_VERSION = 1
+
+
+def box(prj: Project, video: Path, force: bool = False) -> list | None:
+    """Khung mặt người nói [x, y, w, h] (tỉ lệ 0–1 của khung gốc), lấy trung vị trên video (1 khung mỗi giây), nới ra
+    cả trán / cằm. Dùng cho cảnh motion nổi tự tránh che mặt và cho bộ soát bố cục. Lưu work/mat.json, chỉ dò lại khi
+    video đổi. Không có OpenCV hoặc ít khi thấy mặt thì None (bộ dựng dùng dải giữa khung)."""
+    out = prj.work / "mat.json"
+    fp = fingerprint(video, BOX_VERSION)
+    if not force and prj.fresh("mat", fp) and out.exists():
+        return read_json(out).get("box")
+    vp = venv_python()
+    if not vp.exists():
+        return None
+    raw = prj.work / "mat-raw.json"
+    p = run([vp, SKILL_DIR / "ve" / "face_worker.py", video, raw, "1"], check=False, quiet=True)
+    if p.returncode != 0 or not raw.exists():
+        return None
+    r = read_json(raw)
+    raw.unlink(missing_ok=True)
+    picks = [max(b, key=lambda v: v[2] * v[3]) for _, b in r["samples"] if b]
+    res = None
+    if picks and len(picks) >= max(2, 0.3 * len(r["samples"])):
+        x, y, w, h = (st.median(v[i] for v in picks) for i in range(4))
+        # bộ dò Haar ôm sát mắt–miệng: nới ra hai bên, lên trán / tóc, xuống cằm
+        x0, y0 = max(0.0, x - 0.15 * w), max(0.0, y - 0.3 * h)
+        x1, y1 = min(1.0, x + 1.15 * w), min(1.0, y + 1.2 * h)
+        res = [round(x0, 4), round(y0, 4), round(x1 - x0, 4), round(y1 - y0, 4)]
+    write_json(out, {"box": res, "seen": len(picks), "samples": len(r["samples"])})
+    prj.mark("mat", fp)
+    return res
