@@ -7,10 +7,13 @@ Rà soát ngày 30/10/2026. Đây là ghi chú để tra cứu, không phải t�
 | Thành phần | Giấy phép | Ghi chú |
 |---|---|---|
 | Remotion 4.0.537 (`remotion`, `@remotion/cli`) | Remotion License | **Miễn phí** cho cá nhân, tổ chức phi lợi nhuận và công ty **tối đa 3 người**. Công ty lớn hơn cần mua Company License ở remotion.pro trước khi dùng thương mại |
+| HyperFrames 0.9.33 (`hyperframes`, bộ dựng tuỳ chọn) | Apache 2.0 | Chỉ cài khi chọn `setup --engine hyperframes`. Dùng thương mại không giới hạn số người |
+| GSAP 3.15.0 | Standard "No Charge" License | Miễn phí kể cả thương mại; HyperFrames cần một timeline GSAP |
+| esbuild 0.28.2, puppeteer-core 25.17.0 | MIT, Apache 2.0 | Đóng gói đồ hoạ và đo bố cục cho bộ dựng HyperFrames |
 | React 19 | MIT | |
 | faster-whisper 1.2.1, CTranslate2 | MIT | |
 | Mô hình Whisper (Systran/faster-whisper-*, mobiuslabsgmbh/faster-whisper-large-v3-turbo) | MIT (OpenAI Whisper) | Tải lúc cài, không kèm trong repo |
-| Chrome Headless Shell | BSD-3 (Chromium) | Remotion tải lúc cài |
+| Chrome Headless Shell | BSD-3 (Chromium) | Remotion (hoặc HyperFrames) tải lúc cài |
 | ffmpeg | LGPL/GPL | Người dùng tự cài, không kèm theo |
 | ElevenLabs | Điều khoản dịch vụ ElevenLabs | Gói Free không cho dùng thương mại. Chỉ nhân bản giọng khi có sự đồng ý của chủ giọng |
 

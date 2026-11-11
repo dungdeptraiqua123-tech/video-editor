@@ -189,6 +189,14 @@ def find_browser() -> str | None:
     return None
 
 
+def engine_modules() -> Path:
+    """node_modules của bộ dựng đã cài (Remotion hoặc HyperFrames): nơi đọc icon simple-icons, lucide-static."""
+    for p in (ENGINE / "node_modules", HOME / f"engine-hf-{VERSION}" / "node_modules"):
+        if (p / "simple-icons").exists():
+            return p
+    return ENGINE / "node_modules"
+
+
 def browser_exe() -> str | None:
     """Đường dẫn trình duyệt chạy được (Chrome Headless Shell của Remotion, hoặc trình duyệt tìm thấy) để chụp trang HTML."""
     d = ENGINE / "node_modules" / ".remotion" / "chrome-headless-shell"

@@ -9,7 +9,7 @@ from pathlib import Path
 from . import media as M
 from .content import resolve_content
 from . import motion as MOTION
-from .env import ENGINE, ENGINE_SRC, TEMPLATES, VEError, info, read_json, warn, write_json
+from .env import ENGINE_SRC, TEMPLATES, VEError, engine_modules, info, read_json, warn, write_json
 from . import bang
 from . import dich as DICH
 from . import gia as GIA
@@ -201,7 +201,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
             rep.err("motion", e_)
         if not rep.errors:  # cả `check` (không cắt video) cũng kiểm tra kiểu cảnh viết riêng
             from .render import engine_ready
-            engine_ready()
+            engine_ready(prj)
             for e_ in MOTION.typecheck(prj):
                 rep.err("motion", e_)
 
@@ -228,7 +228,7 @@ def build(prj: Project, force: bool = False, check_only: bool = False) -> dict:
             words_out[i]["ic"] = iid
     # mã icon lu:/si: trong cảnh motion → hình icon cho bộ dựng (Glyph); mã không có thật thì báo để sửa
     codes = sorted(MOTION.icon_codes(data["beats"]) - set(icon_table))
-    if codes and (ENGINE / "node_modules").exists():
+    if codes and engine_modules().exists():
         bad = []
         for c in codes:
             d_ = ICONS.svg_data(c, {})

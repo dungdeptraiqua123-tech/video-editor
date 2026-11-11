@@ -57,6 +57,21 @@ nhận việc (phong cách, nhịp, quy tắc riêng) → doctor/setup → init 
 
 **Chưa làm được:** quay cảnh mới, tạo người thật, đăng video.
 
+## Hai bộ dựng: Remotion hoặc HyperFrames
+
+Cùng một quy trình, một `project.json`, một bộ đồ hoạ React (`engine/src`). Chỉ khác phần chụp ảnh và render.
+
+```bash
+video-editor setup --engine hyperframes                 # mọi dự án dùng HyperFrames (bản ghim 0.9.33)
+video-editor init du-an/a --input a.mp4 --engine hyperframes   # hoặc chỉ một dự án
+video-editor studio du-an/a                             # mở HyperFrames Studio: timeline video, âm thanh, đồ hoạ
+```
+
+- **Cách ghép:** đồ hoạ React chạy trong trang HyperFrames kiểu "hosted" (vẽ lại theo thời gian HyperFrames đưa vào); gói `remotion` được thay bằng `engine-hf/shim/remotion.tsx` nên không sửa dòng đồ hoạ nào, kể cả cảnh motion viết riêng. Video và âm thanh là thẻ `<video>`/`<audio>` thật trong `index.html`, nên HyperFrames tự lấy khung, trộn tiếng (lịch âm hiệu ứng, độ hạ nhạc nền chép đúng theo `Video.tsx`), và Studio hiện thành các track.
+- **Kết quả đo** (cùng dự án, cùng máy 4 nhân): khung hình giống nhau khi đặt cạnh nhau, âm lượng lệch dưới 0,1 dB; video 20 giây có nhạc nền, b-roll, cảnh motion viết riêng, đổi 16:9 sang 9:16: Remotion 96 giây, HyperFrames 126 giây. `VE_ENGINE=hyperframes python3 tests/e2e.py` đạt toàn bộ.
+- **Vì sao chọn HyperFrames:** giấy phép Apache 2.0 (Remotion chỉ miễn phí tới 3 người), có Studio để xem và chỉnh thử. **Vì sao giữ Remotion:** render nhanh hơn khoảng 1,3 lần, đã chạy lâu, cần Node 20 thay vì 22.
+- Studio là chỗ chỉnh thử: `work/hf/` được sinh lại từ `project.json` ở mỗi lần preview/render.
+
 ## Cài đặt (Claude Code)
 
 ```bash
@@ -142,7 +157,8 @@ video-editor shorts du-an/podcast --tao 1,3   # mỗi đoạn một dự án tro
 | `AGENTS.md` | Hướng dẫn cho Codex và công cụ khác |
 | `bin/` | Lệnh `video-editor` (macOS/Linux) và `video-editor.cmd` (Windows) |
 | `ve/` | Công cụ điều phối (Python, chỉ thư viện chuẩn) |
-| `engine/` | Bộ dựng Remotion |
+| `engine/` | Bộ dựng Remotion (và mã đồ hoạ React dùng chung cho cả hai bộ dựng: `engine/src`) |
+| `engine-hf/` | Bộ dựng HyperFrames: lớp thay gói `remotion` (`shim/`), lối vào, đóng gói, đo bố cục; `ve/hf.py` sinh dự án HyperFrames |
 | `data/` | Từ điển icon theo lời (`icon-tu-dien.json`) |
 | `templates/` | Mẫu nhận diện |
 | `examples/` | Dự án mẫu |
@@ -155,6 +171,7 @@ video-editor shorts du-an/podcast --tao 1,3   # mỗi đoạn một dự án tro
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -t .   # 77 kiểm thử đơn vị, dưới 1 giây
+python3 -m unittest discover -s tests -t .   # 146 kiểm thử đơn vị, dưới 1 giây
 python3 tests/e2e.py                          # 2 video trọn quy trình + 5 tình huống lỗi
+VE_ENGINE=hyperframes python3 tests/e2e.py    # như trên, render bằng HyperFrames (cần `setup --engine hyperframes`)
 ```

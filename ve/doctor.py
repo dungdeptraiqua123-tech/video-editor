@@ -121,10 +121,22 @@ def checks(online_checks: bool = True) -> list[dict]:
     add("Môi trường chép lời", fw, str(VENV) if fw else "chưa cài", "Chạy `video-editor setup`")
     cv = fw and subprocess.run([str(vp), "-c", "import cv2"], capture_output=True).returncode == 0
     add("Bám mặt (OpenCV)", cv, "có" if cv else "chưa cài", "Chạy lại `video-editor setup`. Thiếu thì khi đổi khổ 16:9 → 9:16 khung giữ cố định", need=False)
-    eng = (ENGINE / "node_modules" / "remotion").exists()
-    add("Bộ dựng Remotion", eng, str(ENGINE) if eng else "chưa cài", "Chạy `video-editor setup`")
-    br = remotion_browser_ready() or find_browser()
-    add("Trình duyệt render", br, "Chrome Headless Shell của Remotion" if remotion_browser_ready() else (find_browser() or "chưa có"), "Chạy `video-editor setup`; nếu mạng chặn tải, đặt biến VE_BROWSER trỏ tới Chrome có sẵn")
+    from . import hf as HF
+
+    if HF.is_hf():
+        ok = HF.ready()
+        add("Bộ dựng", ok, f"HyperFrames {HF.pinned()} ({HF.ENGINE_HF})" if ok else "HyperFrames: chưa cài", "Chạy `video-editor setup --engine hyperframes`")
+        b = HF.browser() if ok else None
+        add("Trình duyệt render", b, b or "chưa có", "Chạy `video-editor setup --engine hyperframes` (HyperFrames tải Chrome riêng); nếu mạng chặn tải, đặt biến VE_BROWSER trỏ tới Chrome có sẵn")
+        if (ENGINE / "node_modules" / "remotion").exists():
+            add("Bộ dựng Remotion", True, f"cũng đã cài ({ENGINE}); dự án đặt \"engine\": \"remotion\" vẫn dùng được", need=False)
+    else:
+        eng = (ENGINE / "node_modules" / "remotion").exists()
+        add("Bộ dựng", eng, f"Remotion ({ENGINE})" if eng else "Remotion: chưa cài", "Chạy `video-editor setup`")
+        br = remotion_browser_ready() or find_browser()
+        add("Trình duyệt render", br, "Chrome Headless Shell của Remotion" if remotion_browser_ready() else (find_browser() or "chưa có"), "Chạy `video-editor setup`; nếu mạng chặn tải, đặt biến VE_BROWSER trỏ tới Chrome có sẵn")
+        if HF.ready():
+            add("Bộ dựng HyperFrames", True, f"cũng đã cài ({HF.ENGINE_HF}); dự án đặt \"engine\": \"hyperframes\" vẫn dùng được", need=False)
     m = resolve_model("auto")
     mc = model_cached(m)
     hf = mc or not online_checks or online("https://huggingface.co")
@@ -167,8 +179,16 @@ def doctor(as_json: bool = False, online_checks: bool = True) -> int:
     return 1 if bad else 0
 
 
-def setup(model: str | None = None, skip_model: bool = False, install_system: bool = False, skills: bool = True, skills_dir: str | None = None) -> int:
+def setup(model: str | None = None, skip_model: bool = False, install_system: bool = False, skills: bool = True, skills_dir: str | None = None,
+          engine: str | None = None) -> int:
+    from . import hf as HF
+
     HOME.mkdir(parents=True, exist_ok=True)
+    if engine:
+        cfg = load_config()
+        cfg["engine"] = "hyperframes" if engine in ("hyperframes", "hf") else "remotion"
+        save_config(cfg)
+    use_hf = HF.is_hf()
     # 0. skill liên quan (chỉ chép file, không cần mạng): làm trước để có ngay cả khi các bước sau còn thiếu công cụ
     if skills and has_related_skills():
         from .skills import install
@@ -197,6 +217,16 @@ def setup(model: str | None = None, skip_model: bool = False, install_system: bo
     run([vp, "-m", "pip", "install", "-q", "-r", SKILL_DIR / "requirements.txt"], quiet=True)
 
     # 3. bộ dựng
+    if use_hf:
+        HF.install()
+    else:
+        _install_remotion()
+    _setup_model(model, skip_model, vp)
+    info(f"Cấu hình lưu ở {CONFIG}")
+    return doctor()
+
+
+def _install_remotion() -> None:
     info(f"▶ cài bộ dựng Remotion: {ENGINE}")
     ENGINE.mkdir(parents=True, exist_ok=True)
     for name in ("package.json", "package-lock.json", "remotion.config.ts", "tsconfig.json"):
@@ -220,6 +250,8 @@ def setup(model: str | None = None, skip_model: bool = False, install_system: bo
         else:
             warn("Không tải được trình duyệt render. Kiểm tra mạng, hoặc đặt biến VE_BROWSER trỏ tới Chrome/Chromium có sẵn.")
 
+
+def _setup_model(model: str | None, skip_model: bool, vp) -> None:
     # 5. mô hình Whisper
     m = resolve_model(model) if model else resolve_model("auto")
     cfg = load_config()
@@ -234,5 +266,3 @@ def setup(model: str | None = None, skip_model: bool = False, install_system: bo
             if p.returncode != 0:
                 warn("Chưa tải được mô hình. Nếu mạng chặn Hugging Face: mở huggingface.co, *.hf.co, *.xethub.hf.co; "
                      "hoặc dùng phụ đề có sẵn (`transcribe --from-srt`). Video từ kịch bản (ElevenLabs) không cần mô hình này.")
-    info(f"Cấu hình lưu ở {CONFIG}")
-    return doctor()

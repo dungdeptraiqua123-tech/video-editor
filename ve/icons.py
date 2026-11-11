@@ -10,7 +10,7 @@ import json
 import re
 from pathlib import Path
 
-from .env import ENGINE, SKILL_DIR, read_json, warn
+from .env import SKILL_DIR, engine_modules, read_json, warn
 from .timeline import PUNCT, norm
 
 LEXICON = SKILL_DIR / "data" / "icon-tu-dien.json"
@@ -134,7 +134,7 @@ def _si_hex(slug: str, base: Path) -> str | None:
 
 def svg_data(iid: str, entry: dict, modules: Path | None = None) -> dict | None:
     """Đọc hình icon từ node_modules của bộ dựng: {kind: brand|line, body (phần trong thẻ svg), viewBox, color, label}."""
-    base = modules or (ENGINE / "node_modules")
+    base = modules or engine_modules()
     kind, _, name = iid.partition(":")
     if kind == "si":
         p = base / "simple-icons" / "icons" / f"{name}.svg"

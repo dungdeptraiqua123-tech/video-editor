@@ -118,6 +118,10 @@ figcaption{{height:{cap_h}px;padding:6px 8px;font-size:12px}} figcaption b{{disp
 figcaption span{{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#aab3c2}}
 </style></head><body><header><h1>{html.escape(title)}</h1>{"".join(f"<p>{html.escape(n)}</p>" for n in notes)}</header><main>{cells}</main></body></html>""", encoding="utf-8")
     b = browser_exe()
+    if not b:
+        from . import hf as HF
+
+        b = HF.browser() if HF.ready() else None
     png = image.with_suffix(".png")
     if b:
         # Chrome không chạy được dưới quyền root nếu còn sandbox (thường gặp trong container); máy thường giữ sandbox
