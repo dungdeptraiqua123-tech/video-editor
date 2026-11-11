@@ -39,6 +39,7 @@ Mô hình Whisper lưu ở bộ nhớ đệm Hugging Face (`~/.cache/huggingface
 | `audio` | `{"clean":"nhe"}` | Làm sạch giọng khi cắt, bằng bộ lọc có sẵn của ffmpeg: `nhe` (lọc ù, khử ồn nhẹ, giảm xì), `manh` (thêm khử ồn mạnh và nén, cho phòng có quạt, điều hoà), `false` giữ nguyên. Đổi mức thì build cắt lại |
 | `icons` | `{"auto":true,…}` | Icon tự hiện theo lời, xem dưới. `false` = tắt hết |
 | `sfx` | `{"enabled":true,"volume":1,"files":{}}` | Âm thanh hiệu ứng thu thật (Mixkit): `whoosh` khi khung đồ hoạ mở, `pop` khi từng phần tử trong khung bật ra, `tick` khi ý trong thẻ chủ đề được đánh dấu, `impact` ở mở đầu, `riser` trước phần kết, `click` ở nút theo dõi. `volume` nhân âm lượng chung. `files` thay từng âm bằng file của bạn (`{"impact": "am-thanh/trong.mp3"}`) hoặc tắt riêng một âm (`{"click": ""}`). `false` = tắt hết. Không dùng âm tạo bằng code |
+| `engine` | theo `setup --engine` (mặc định `remotion`) | Bộ dựng của dự án: `remotion` hoặc `hyperframes`. Đồ hoạ, âm thanh, khung hình như nhau; HyperFrames mở được Studio (`video-editor studio`) và dùng giấy phép Apache 2.0. Biến môi trường `VE_ENGINE` đổi cho cả phiên |
 | `render` | `{"crf":20}` | `concurrency`: số luồng render; `cacheMB`: bộ đệm khung hình (MB). Mặc định tự chọn theo RAM còn trống để không tràn RAM |
 | `content` | | Nội dung đồ hoạ, xem `do-hoa.md` |
 

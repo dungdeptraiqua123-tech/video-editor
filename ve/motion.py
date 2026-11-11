@@ -119,6 +119,10 @@ def typecheck(prj) -> list:
     """Kiểm tra kiểu cảnh viết riêng bằng tsc. Trả về lỗi dạng motion/<file>:<dòng>: <thông báo>."""
     if not scene_files(prj):
         return []
+    from . import hf as HF
+
+    if HF.is_hf(prj):
+        return HF.typecheck(prj)
     d = stage(prj)
     r = run([npx(), "tsc", "-p", str(d / "tsconfig.json"), "--noEmit", "--pretty", "false"], cwd=ENGINE, quiet=True, check=False)
     out = (r.stdout or "") + (r.stderr or "")

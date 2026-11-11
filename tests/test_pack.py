@@ -56,7 +56,9 @@ class PackTest(unittest.TestCase):
 
     def test_network_hosts_known(self):
         allowed = {"127.0.0.1", "api.elevenlabs.io", "api.coingecko.com", "api.pexels.com", "www.pexels.com", "assets.mixkit.co", "huggingface.co", "registry.npmjs.org", "remotion.dev",
-                   "github.com", "dotenvx.com", "opencollective.com", "patreon.com", "tidelift.com"}
+                   "github.com", "dotenvx.com", "opencollective.com", "patreon.com", "tidelift.com",
+                   # engine-hf/package-lock.json: đường dẫn quyên góp (funding) của gói npm, không phải chỗ skill gọi tới
+                   "www.patreon.com", "feross.org", "gsap.com"}
         self.assertEqual(set(self.res["hosts"]) - allowed, set())
 
 

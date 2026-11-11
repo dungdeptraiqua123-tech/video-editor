@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "lib": ["es2020", "dom"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "baseUrl": ".",
+    "paths": {
+      "remotion": ["./shim/remotion.tsx"],
+      "ve-du-an": ["./shim/du-an-rong.ts"]
+    }
+  },
+  "include": ["entry.tsx", "shim", "src"],
+  "exclude": ["src/Root.tsx", "src/index.ts"]
+}

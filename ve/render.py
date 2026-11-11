@@ -6,6 +6,7 @@ import shutil
 import time
 from pathlib import Path
 
+from . import hf as HF
 from . import media as M
 from . import motion as MOTION
 from . import subs
@@ -16,7 +17,10 @@ from .env import write_json
 import contextlib
 
 
-def engine_ready() -> None:
+def engine_ready(prj: Project | None = None) -> None:
+    if HF.is_hf(prj):
+        HF.require()
+        return
     if not (ENGINE / "node_modules" / "remotion").exists():
         raise VEError("Bộ dựng chưa được cài.", "Chạy `video-editor setup` (một lần).")
     # đồng bộ mã nguồn bộ dựng từ skill sang bản đã cài (nhanh, chỉ vài file)
@@ -74,6 +78,8 @@ def _props(prj: Project):
 
 
 def still(prj: Project, sec: float, out: Path, scale: float = 1.0, props: Path | None = None) -> Path:
+    if HF.is_hf(prj):
+        return HF.still(prj, sec, out, scale=scale)
     b = bundle(prj)
     d = read_json(_data(prj))
     frame = max(0, min(int(round(sec * d["format"]["fps"])), int(d["duration"] * d["format"]["fps"]) - 1))
@@ -85,6 +91,8 @@ def still(prj: Project, sec: float, out: Path, scale: float = 1.0, props: Path |
 def stills(prj: Project, shots: list[tuple[float, Path]], scale: float = 0.5, props: Path | None = None, probe: Path | None = None) -> list[Path]:
     """Chụp nhiều khung trong một lần mở trình duyệt; lỗi thì chụp từng ảnh bằng `remotion still`.
     probe: ghi số đo bố cục của từng ảnh vào file này (soát bố cục tự động, ve/layout.py)."""
+    if HF.is_hf(prj):
+        return HF.stills(prj, shots, scale=scale, probe=probe)
     b = bundle(prj)
     d = read_json(_data(prj))
     fps, last = d["format"]["fps"], int(d["duration"] * d["format"]["fps"]) - 1
@@ -116,6 +124,8 @@ LIMITER = "loudnorm=I=-13.5:TP=-2:LRA=11,alimiter=limit=0.79:attack=5:release=60
 
 
 def _render(prj: Project, out: Path, scale: float = 1.0, crf: int | None = None) -> None:
+    if HF.is_hf(prj):
+        return HF.render_to(prj, out, scale=scale, crf=crf)
     b = bundle(prj)
     cfg = prj.cfg.get("render") or {}
     with _props(prj) as pp:
@@ -155,17 +165,21 @@ def render(prj: Project, force: bool = False) -> Path:
     data = _data(prj)
     require_approval(prj, data)
     final = prj.out / f"{prj.slug}.mp4"
-    fp = fingerprint(read_json(data), ENGINE_SRC / "src", prj.media, prj.cfg.get("render"))
+    eng = HF.engine_name(prj)
+    fp = fingerprint(read_json(data), ENGINE_SRC / "src", prj.media, prj.cfg.get("render"), eng, *([HF.ENGINE_HF_SRC] if eng == "hyperframes" else []))
     if not force and prj.fresh("render", fp) and final.exists():
         info(f"✓ video còn mới, bỏ qua render: {final}")
         return final
     raw = prj.work / "render.mp4"
     t0 = time.time()
-    info(f"🎬 render {read_json(data)['duration']:.0f}s video …")
+    info(f"🎬 render {read_json(data)['duration']:.0f}s video bằng {'HyperFrames' if eng == 'hyperframes' else 'Remotion'} …")
     _render(prj, raw)
     # hình: chỉ chuyển vùng chứa, không nén lại lần hai. Tiếng: chặn đỉnh -1,5 dB (âm hiệu ứng cộng lên giọng hay đẩy đỉnh sát 0 dB,
     # nền tảng nén lại sẽ rè), nên phần tiếng được mã hoá lại một lần
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-map", "0:v", "-map", "0:a?", "-c:v", "copy", "-af", LIMITER, "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", final])
+    # cắt đúng số khung của video: tiếng (AAC, khung 1024 mẫu) hay dài hơn hình vài chục mili giây
+    dd = read_json(data)
+    secs = max(1, round(dd["duration"] * dd["format"]["fps"])) / dd["format"]["fps"]
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-map", "0:v", "-map", "0:a?", "-t", f"{secs:.3f}", "-c:v", "copy", "-af", LIMITER, "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", final])
     raw.unlink(missing_ok=True)
     took = time.time() - t0
     prj.mark("render", fp, seconds=round(took))

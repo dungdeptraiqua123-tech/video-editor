@@ -205,7 +205,7 @@ def _motion(a) -> int:
         if not errs and MOTION.scene_files(prj):
             from ve.render import engine_ready
 
-            engine_ready()
+            engine_ready(prj)
             errs = MOTION.typecheck(prj)
         if errs:
             raise VEError("Cảnh motion chưa hợp lệ:\n  - " + "\n  - ".join(errs), "Sửa các file trong motion/ rồi chạy lại.")
@@ -271,6 +271,7 @@ def main(argv=None) -> int:
     s.add_argument("--install-system", action="store_true", help="tự cài ffmpeg/Node bằng brew hoặc winget nếu thiếu")
     s.add_argument("--no-skills", action="store_true", help="không cài các skill liên quan trong reference/")
     s.add_argument("--skills-dir", help="thư mục skills đích (mặc định: thư mục đang chứa video-editor, hoặc ~/.claude/skills)")
+    s.add_argument("--engine", choices=["remotion", "hyperframes"], help="bộ dựng mặc định cho mọi dự án: remotion hoặc hyperframes (ghi vào cấu hình)")
     k = sub.add_parser("skills", help="cài, gỡ, xem các skill liên quan (93 skill trong reference/)")
     k.add_argument("action", nargs="?", default="status", choices=["status", "install", "remove"])
     k.add_argument("--dir", help="thư mục skills đích (mặc định: thư mục đang chứa video-editor, hoặc ~/.claude/skills)")
@@ -288,6 +289,11 @@ def main(argv=None) -> int:
     i.add_argument("--pace", choices=list(PACES), help="nhịp dựng: nhanh, vua (mặc định), cham")
     i.add_argument("--graphics", choices=list(GRAPHICS_EVERY), help="mật độ đồ hoạ: it, vua (mặc định), nhieu")
     i.add_argument("--rule", action="append", default=[], help="quy tắc riêng cho video này (lặp lại được), không áp dụng cho video khác")
+    i.add_argument("--engine", choices=["remotion", "hyperframes"], help="bộ dựng riêng cho dự án này (mặc định: theo `setup --engine`)")
+    st_ = sub.add_parser("studio", help="mở HyperFrames Studio để xem, tua, chỉnh thử video (bộ dựng HyperFrames)")
+    st_.add_argument("dir")
+    st_.add_argument("--port", type=int, help="cổng (mặc định HyperFrames tự chọn)")
+    st_.add_argument("--stop", action="store_true", help="tắt Studio đang chạy nền của dự án này")
     sub.add_parser("templates", help="liệt kê mẫu nhận diện")
     r = sub.add_parser("rules", help="xem/thêm quy tắc riêng của một video")
     r.add_argument("dir")
@@ -379,7 +385,7 @@ def main(argv=None) -> int:
         if a.cmd == "setup":
             from ve.doctor import setup
 
-            return setup(a.model, a.skip_model, a.install_system, not a.no_skills, a.skills_dir)
+            return setup(a.model, a.skip_model, a.install_system, not a.no_skills, a.skills_dir, a.engine)
         if a.cmd == "skills":
             from ve.env import has_related_skills
 
@@ -406,16 +412,33 @@ def main(argv=None) -> int:
             return 0
         if a.cmd == "init":
             prj = init_project(Path(a.dir), a.input, a.script, a.format, a.template, a.type, a.background, a.name, a.voice, a.pace, a.graphics, a.rule)
+            if a.engine:
+                raw = read_json(prj.file)
+                raw["engine"] = a.engine
+                write_json(prj.file, raw)
+                prj = Project(prj.root)
             if a.input and not a.script:
                 pi = M.probe(prj.path(prj.cfg["input"]))
                 info(f"nguồn: {pi['duration']:.1f}s" + (f", {pi['width']}×{pi['height']}" if pi.get("has_video") else ", chỉ âm thanh"))
                 M.check_audio(pi)
             st = prj.cfg["style"]
-            info(f"✓ tạo dự án {prj.root} ({prj.cfg['type']}, {prj.cfg['format']}, mẫu {prj.cfg['template']}, nhịp {st['pace']}, đồ hoạ {st['graphics']})")
+            from ve.hf import engine_name
+
+            info(f"✓ tạo dự án {prj.root} ({prj.cfg['type']}, {prj.cfg['format']}, mẫu {prj.cfg['template']}, nhịp {st['pace']}, đồ hoạ {st['graphics']}, bộ dựng {engine_name(prj)})")
             if rules_text(prj.cfg):
                 info(rules_text(prj.cfg))
             notes.show()
             info(f"  bước tiếp: video-editor {'tts' if a.script else 'transcribe'} {prj.root}")
+            return 0
+        if a.cmd == "studio":
+            from ve import hf as HF
+
+            prj = Project(Path(a.dir))
+            if not HF.is_hf(prj):
+                raise VEError("Dự án này dùng bộ dựng Remotion, không mở được HyperFrames Studio.",
+                              f"Đặt \"engine\": \"hyperframes\" trong {prj.file} (và chạy `video-editor setup --engine hyperframes` nếu chưa cài), rồi build lại.")
+            HF.require()
+            HF.studio(prj, a.port, a.stop)
             return 0
         if a.cmd == "note":
             notes.add(a.text, Project(Path(a.project)).cfg.get("name", "") if a.project else "", a.loai)

@@ -31,3 +31,8 @@ Mỗi lỗi của `video-editor` in hai dòng: `✗` là nguyên nhân, `→` l�
 | Tự kiểm tra báo "Khung đen", "Hình đứng yên", "Không có tiếng" | Bản cắt lỗi, nguồn có đoạn đen hoặc câm | Xem khung đó trong `out/kiem-tra/`, sửa `cuts.drop` hoặc nguồn, rồi build → preview → duyệt → render lại |
 | Không thấy các skill liên quan trong Claude Code | Chưa chạy `setup`, hoặc phiên đang mở từ trước khi cài | `video-editor skills` để xem đã cài chưa, `video-editor skills install` để cài, rồi mở phiên Claude Code mới |
 | "Bỏ qua … skill vì đã có skill cùng tên" | Bạn tự cài một skill trùng tên trước đó | Giữ bản của bạn, hoặc xoá thư mục đó rồi chạy lại `video-editor skills install` |
+| Bộ dựng HyperFrames chưa được cài | Dự án đặt `"engine": "hyperframes"` (hoặc `VE_ENGINE`) mà chưa cài | `video-editor setup --engine hyperframes` (cần Node 22+) |
+| HyperFrames không tải được Chrome / phông chữ | Mạng chặn `storage.googleapis.com` hoặc `fonts.googleapis.com` | Mở hai địa chỉ đó rồi chạy lại; hoặc đặt `HYPERFRAMES_BROWSER_PATH=<Chrome có sẵn>` |
+| Sửa trong Studio rồi mất sau khi preview/render | `work/hf/` được sinh lại từ `project.json` | Studio là chỗ chỉnh thử: ghi thay đổi muốn giữ vào `project.json`, build lại |
+| `video-editor studio` báo dự án dùng Remotion | Dự án chưa chọn HyperFrames | Thêm `"engine": "hyperframes"` vào `project.json`, build lại |
+| Render HyperFrames chậm hơn Remotion | HyperFrames chụp từng khung qua Chrome | Bình thường (khoảng 1,3 lần). Giảm luồng khi máy ít RAM: `render.concurrency` |

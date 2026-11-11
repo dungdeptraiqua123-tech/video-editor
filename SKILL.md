@@ -1,6 +1,6 @@
 ---
 name: video-editor
-description: Dựng video ngắn tiếng Việt (Reels, TikTok, Shorts, YouTube) từ video người nói hoặc từ kịch bản với giọng đọc AI. Tự cài môi trường, chép lời, cắt lặng và từ đệm, đồ hoạ bật đúng lúc nói, phụ đề, render MP4, xuất SRT/VTT và báo cáo. Icon/logo tự hiện khi nhắc tới, chữ đập, chuyển cảnh động, biểu đồ giá coin thật, b-roll Pexels, phụ đề karaoke và song ngữ, làm sạch giọng, nhạc nền tự hạ và nảy theo nhịp. Cắt video dài thành nhiều short, học nhịp từ video mẫu, tự bám mặt khi đổi khổ 16:9 sang 9:16. Khổ 9:16, 16:9, 1:1, 4:5; mẫu nhận diện đổi được.
+description: Dựng video ngắn tiếng Việt (Reels, TikTok, Shorts, YouTube) từ video người nói hoặc từ kịch bản với giọng đọc AI. Tự cài môi trường, chép lời, cắt lặng và từ đệm, đồ hoạ bật đúng lúc nói, phụ đề, render MP4, xuất SRT/VTT và báo cáo. Icon/logo tự hiện khi nhắc tới, chữ đập, chuyển cảnh động, biểu đồ giá coin thật, b-roll Pexels, phụ đề karaoke và song ngữ, làm sạch giọng, nhạc nền tự hạ và nảy theo nhịp. Cắt video dài thành nhiều short, học nhịp từ video mẫu, tự bám mặt khi đổi khổ 16:9 sang 9:16. Khổ 9:16, 16:9, 1:1, 4:5; mẫu nhận diện đổi được. Render bằng Remotion hoặc HyperFrames (có Studio để xem, chỉnh thử).
 ---
 
 # video-editor
@@ -16,10 +16,25 @@ Công cụ tự quản lý đường dẫn, file trung gian và trạng thái; c
 | Codex và công cụ khác đọc `AGENTS.md` | Dùng được, cùng lệnh |
 | Chat không có terminal, hoặc sandbox không có mạng | Không đủ: cần Node, ffmpeg, tải mô hình |
 
+## Bộ dựng: Remotion hoặc HyperFrames
+
+Skill có hai bộ dựng, cùng một quy trình, cùng `project.json`, cùng đồ hoạ (`engine/src`). Chỉ khác chỗ chụp ảnh và render:
+
+| | Remotion (mặc định) | HyperFrames |
+|---|---|---|
+| Chọn | `setup` | `setup --engine hyperframes` (mọi dự án), hoặc `init … --engine hyperframes` / `"engine": "hyperframes"` trong `project.json` (một dự án) |
+| Render | `remotion render` | `hyperframes render` (Chrome trên máy), bản ghim 0.9.33 |
+| Xem, chỉnh thử | ảnh storyboard | thêm `video-editor studio <dự án>`: mở HyperFrames Studio, có timeline video, âm thanh, đồ hoạ (tắt: `studio <dự án> --stop`) |
+| Giấy phép | Remotion License: miễn phí tới 3 người, công ty lớn hơn phải mua | Apache 2.0 |
+
+- Dự án HyperFrames sinh trong `work/hf/` từ `work/data.json` mỗi lần preview/render. Chỉnh trong Studio là chỉnh thử: muốn giữ thì ghi vào `project.json` rồi build lại.
+- Hai bộ dựng ra khung hình giống nhau (đã so từng khung trên cùng dự án). Render HyperFrames chậm hơn khoảng 1,3 lần.
+- Thu thập số liệu và tự cài skill của HyperFrames luôn tắt khi skill gọi nó.
+
 ## Phạm vi hoạt động
 
 Chi tiết ở `AN-TOAN.md`. Tóm tắt:
-- **Ghi file:** thư mục dự án người dùng chọn và `~/.video-editor` (môi trường, bộ dựng, cấu hình). Không ghi vào thư mục skill, trừ `GHI-NHO.md` khi người dùng góp ý.
+- **Ghi file:** thư mục dự án người dùng chọn và `~/.video-editor` (môi trường, bộ dựng, cấu hình). Không ghi vào thư mục skill, trừ `GHI-NHO.md` khi người dùng góp ý. Bộ dựng HyperFrames tải thêm Chrome và phông chữ vào `~/.cache/hyperframes`.
 - **Mạng:** lúc cài thì PyPI, npm, huggingface.co và trình duyệt render do Remotion tải. Lúc dựng chỉ gọi mạng khi người dùng chạy lệnh tương ứng: api.elevenlabs.io (`tts`), api.coingecko.com (`gia`, giá coin công khai), api.pexels.com (`broll`, b-roll miễn phí). Video và lời thoại không gửi đi đâu: chép lời chạy trên máy. Không có thu thập số liệu sử dụng.
 - **Khoá API:** chỉ đọc từ biến môi trường: `ELEVENLABS_API_KEY`, `PEXELS_API_KEY`, `COINGECKO_API_KEY` (không bắt buộc). Không xin người dùng dán key vào chat, không ghi key ra file.
 
@@ -38,7 +53,7 @@ Chi tiết ở `AN-TOAN.md`. Tóm tắt:
 <skill>/bin/video-editor doctor
 ```
 
-- Còn dấu ✗ thì chạy `<skill>/bin/video-editor setup` (một lần, 1–10 phút).
+- Còn dấu ✗ thì chạy `<skill>/bin/video-editor setup` (một lần, 1–10 phút). Người dùng muốn HyperFrames: `setup --engine hyperframes`.
 - Lệnh này cài môi trường Python riêng, thư viện đúng phiên bản, bộ dựng Remotion và trình duyệt render vào `~/.video-editor`, rồi tải mô hình Whisper.
 - Bản đầy đủ (clone từ repo, có thư mục `reference/`) cài thêm 93 skill liên quan thành skill riêng cạnh `video-editor`. Bản gọn (tải lên làm skill cá nhân) không kèm phần này.
 - Người dùng nhờ "cài skill" từ link repo: clone vào `~/.claude/skills/video-editor` rồi chạy `setup`. Báo họ mở phiên mới để thấy các skill liên quan.
@@ -196,7 +211,7 @@ video-editor shorts du-an/<video dài> --tao 1,3            # hoặc mốc giây
 | Chữ đập, chuyển cảnh, hạt nền, karaoke, làm sạch giọng, dò nhịp nhạc | Có sẵn |
 | Giá coin thật | Mạng tới api.coingecko.com (miễn phí, 365 ngày gần nhất), hoặc nhập CSV |
 | B-roll miễn phí | `PEXELS_API_KEY` (miễn phí, 200 lượt/giờ) + mạng tới api.pexels.com |
-| Render | Node 20.19+; trình duyệt Chrome Headless Shell do Remotion tải |
+| Render | Node 20.19+ (HyperFrames: Node 22+); trình duyệt Chrome Headless Shell do Remotion hoặc HyperFrames tải |
 
 ## Tài liệu
 

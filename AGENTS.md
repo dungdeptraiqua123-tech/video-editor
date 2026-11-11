@@ -7,7 +7,8 @@ Repo này là skill `video-editor`: dựng video ngắn tiếng Việt từ vide
 - **Tải lên làm skill cá nhân** (nền tảng có bước quét an toàn): `python3 tools/dong-goi.py` tạo bản gọn `dist/video-editor-skill.zip`, chỉ gồm phần lõi. Phạm vi hoạt động: `AN-TOAN.md`.
 - **Sửa chính skill:**
   - mã điều phối Python (chỉ dùng thư viện chuẩn): `ve/`;
-  - bộ dựng Remotion: `engine/src`;
+  - bộ dựng Remotion: `engine/src` (đồ hoạ React, dùng chung cho bộ dựng HyperFrames);
+  - bộ dựng HyperFrames: `engine-hf/` (lớp thay `remotion` trong `shim/remotion.tsx`) và `ve/hf.py`; kiểm thử trọn bằng `VE_ENGINE=hyperframes python3 tests/e2e.py`;
   - mẫu nhận diện: `templates/`.
 - **Kiểm thử sau khi sửa:**
   - `python3 -m unittest discover -s tests -t .` (nhanh, không cần cài gì);

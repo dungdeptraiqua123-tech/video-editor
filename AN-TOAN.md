@@ -10,7 +10,9 @@ Tài liệu này nói rõ skill `video-editor` làm gì trên máy: ghi file ở
 |---|---|---|
 | Thư mục dự án người dùng chọn (`video-editor init <thư mục>`) | `project.json`, `media/`, `work/`, `out/`; dự án short trong `<dự án dài>/shorts/`; phân tích video mẫu trong `work/mau/` | Mọi lệnh dựng |
 | `./phan-tich-mau/` trong thư mục đang đứng (đổi bằng `--ra`) | Phân tích video mẫu khi không gắn với dự án nào | `video-editor mau` không có `--project` |
-| `~/.video-editor/` (đổi bằng `VE_HOME`) | Môi trường Python riêng, bộ dựng Remotion, `config.json` (đường dẫn trình duyệt, mô hình đã chọn) | `setup` |
+| `~/.video-editor/` (đổi bằng `VE_HOME`) | Môi trường Python riêng, bộ dựng Remotion (`engine-<phiên bản>`) hoặc HyperFrames (`engine-hf-<phiên bản>`), `config.json` (đường dẫn trình duyệt, mô hình, bộ dựng đã chọn) | `setup` |
+| `~/.cache/hyperframes/`, `~/.local/state/hyperframes/` | Chrome để render, phông chữ đã tải, nhật ký Studio | Chỉ bộ dựng HyperFrames: `setup --engine hyperframes`, preview, render, `studio` |
+| `<dự án>/work/hf/` | Dự án HyperFrames sinh từ `work/data.json` (`index.html`, `ve/`, liên kết `assets` tới `media/`) | Chỉ bộ dựng HyperFrames: preview, render, `studio` |
 | `~/.video-editor/motion-lib/` | Thư viện cảnh motion: mã cảnh (`scene.tsx`), ảnh xem trước, `meta.json` (ý dùng, điểm) | `video-editor approve` (tự lưu cảnh của video đã duyệt), `motion save/rate/off` |
 | `~/.video-editor/engine-<phiên bản>/du-an/` | Bản chép cảnh motion viết riêng của từng dự án để đóng gói (ghi đè mỗi lần build) | `build`, `preview`, `render` khi dự án có `motion/*.tsx` |
 | Bộ nhớ đệm Hugging Face (`~/.cache/huggingface`) | Mô hình chép lời Whisper | `setup` |
@@ -26,12 +28,14 @@ Tài liệu này nói rõ skill `video-editor` làm gì trên máy: ghi file ở
 | registry.npmjs.org | Cài Remotion và React theo `engine/package-lock.json` | `setup` |
 | huggingface.co (*.hf.co) | Tải mô hình Whisper | `setup` |
 | remotion.media | Remotion tải trình duyệt render Chrome Headless Shell | `setup` |
+| registry.npmjs.org, storage.googleapis.com | Bộ dựng HyperFrames: cài gói theo `engine-hf/package-lock.json`, HyperFrames tải Chrome for Testing | `setup --engine hyperframes` |
+| fonts.googleapis.com, fonts.gstatic.com | HyperFrames tải phông chữ (Inter, Montserrat…) một lần rồi lưu trong `~/.cache/hyperframes/fonts` | Lần đầu preview/render bằng HyperFrames |
 | api.elevenlabs.io | Đổi kịch bản thành giọng đọc | Chỉ `video-editor tts`, khi người dùng chọn giọng AI và tự đặt key |
 | api.coingecko.com | Lịch sử giá coin cho biểu đồ (chỉ gửi tên coin và khoảng ngày) | Chỉ `video-editor gia` |
 | api.pexels.com, *.pexels.com | Tìm và tải b-roll miễn phí (chỉ gửi từ khoá tìm) | Chỉ `video-editor broll`, khi người dùng tự đặt `PEXELS_API_KEY` |
 | 127.0.0.1 (cổng ngẫu nhiên) | Máy chủ cục bộ đưa file media của dự án cho bộ dựng | Trong lúc render, tắt ngay sau đó; chỉ nghe trên máy, máy khác không vào được |
 
-Video, âm thanh và lời thoại của người dùng không được gửi đi đâu: chép lời, dò mặt (`face_worker.py`, bộ dò Haar có sẵn trong gói OpenCV), chấm điểm đoạn short và phân tích video mẫu đều chạy trên máy. Lệnh `mau` chỉ đọc file trên máy, từ chối link và không tải video từ mạng. Skill không có thu thập số liệu sử dụng, không đăng video lên mạng xã hội.
+Video, âm thanh và lời thoại của người dùng không được gửi đi đâu: chép lời, dò mặt (`face_worker.py`, bộ dò Haar có sẵn trong gói OpenCV), chấm điểm đoạn short và phân tích video mẫu đều chạy trên máy. Lệnh `mau` chỉ đọc file trên máy, từ chối link và không tải video từ mạng. Skill không có thu thập số liệu sử dụng, không đăng video lên mạng xã hội. Khi gọi HyperFrames, skill luôn đặt `HYPERFRAMES_NO_TELEMETRY=1`, `HYPERFRAMES_NO_UPDATE_CHECK=1`, `HYPERFRAMES_SKIP_SKILLS=1` (và chạy `hyperframes telemetry disable` lúc cài), nên HyperFrames không gửi số liệu, không kiểm tra bản mới, không tự cài skill. Skill không gọi các lệnh cần tài khoản hay đám mây của HyperFrames (`cloud`, `publish`, `share`, `lambda`).
 
 ### Khoá API
 
@@ -41,7 +45,7 @@ Video, âm thanh và lời thoại của người dùng không được gửi đ
 
 ### Chương trình được gọi
 
-`ffmpeg`/`ffprobe` (cắt ghép, đo âm), `node`/`npx remotion` (render), Python trong môi trường riêng (chép lời), trình duyệt Chrome ở chế độ không giao diện (chụp ảnh storyboard). Cờ `--no-sandbox` của Chrome chỉ dùng khi chạy dưới quyền root, như trong container, vì Chrome không chạy được ở đó nếu thiếu cờ này.
+`ffmpeg`/`ffprobe` (cắt ghép, đo âm), `node`/`npx remotion` hoặc `node …/hyperframes` bản ghim trong bộ dựng (render, chụp ảnh, Studio), Python trong môi trường riêng (chép lời), trình duyệt Chrome ở chế độ không giao diện (chụp ảnh storyboard). Cờ `--no-sandbox` của Chrome chỉ dùng khi chạy dưới quyền root, như trong container, vì Chrome không chạy được ở đó nếu thiếu cờ này.
 
 `setup --install-system` (chỉ khi người dùng thêm cờ này) gọi `brew` hoặc `winget` để cài ffmpeg và Node. Không có lệnh nào tải script từ mạng rồi chạy thẳng.
 
